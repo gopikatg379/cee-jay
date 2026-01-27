@@ -1,0 +1,136 @@
+<!-- templates/brokers/manage.html -->
+{% extends 'base.html' %}
+{% block content %}
+
+<div class="cee-manage-broker-wrapper">
+    {% if messages %}
+    <div class="container mt-3">
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                {{ message|safe }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+    <div class="cee-manage-header">
+        <h4>Manage Receiver</h4>
+        {% if request.GET.mode != 'add' and request.GET.mode != 'edit' %}
+            <div id="search-bar" class="cee-search-container d-flex justify-content-center flex-grow-1 mx-4" >
+                <form method="get" action="{% url 'receiver_manage' %}" class="w-100 d-flex justify-content-center">
+                    <input type="hidden" name="mode" value="list">
+                    <div class="input-group shadow-sm rounded-pill" style="max-width: 480px; background: white;">
+                        <span class="input-group-text bg-transparent border-0 ps-4">
+                            <i class="bi bi-search text-primary"></i>
+                        </span>
+                        <input type="text"
+                            name="q"
+                            class="form-control border-0 shadow-none"
+                            placeholder="Search receiver name,GST..."
+                            autocomplete="off">
+                    </div>
+                </form>
+            </div>
+        {% endif %}
+        <div class="cee-action-buttons">
+            <button class="cee-action-btn {% if request.GET.mode == 'add' %}active{% endif %}" 
+                    id="btn-show-form" 
+                    title="Add New Receiver">
+                <i class="bi bi-plus-lg"></i>
+            </button>
+            
+            <button class="cee-action-btn {% if not request.GET.mode %}active{% endif %}" 
+                    id="btn-show-list" 
+                    title="View Receiver List">
+                <i class="bi bi-list-ul"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- Form View -->
+    <div class="view-container {% if active_tab not in 'add edit' %}d-none{% endif %}" id="view-form">
+        <div class="cee-broker-form-container">
+            <form method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+                <div class="cee-form-row">
+                    <div class="cee-form-group">
+                        <label>Receiver Name <span style="color:red;">*</span></label>
+                        <input type="text" name="consignee_name" required style="text-transform: uppercase;" value="{{ receivers.consignee_name|default:'' }}" placeholder="Enter Receiver Name">
+                    </div>
+                    <div class="cee-form-group">
+                        <label>Phone</label>
+                        <input type="tel" name="consignee_phone" maxlength="10" inputmode="numeric" oninput="this.value=this.value.replace(/[^0-9]/g,'').slice(0,10)" pattern="[0-9]{10}" placeholder="9999988888" value="{{ receivers.consignee_phone|default:'' }}">
+                    </div>
+                    <div class="cee-form-group">
+                        <label>GST No.</label>
+                        <input type="text" name="gst_no" maxlength="15" style="text-transform: uppercase;" value="{{ receivers.gst_no|default:'' }}" placeholder="GST Number">
+                    </div>
+                </div>
+
+                <div class="cee-form-row">
+                    <div class="cee-form-group">
+                        <label>Address</label>
+                        <input type="text" name="consignee_address" style="text-transform: uppercase;"  placeholder="Enter Address" value="{{ receivers.consignee_address|default:'' }}">
+                    </div>
+                </div>
+                <div class="cee-checkbox-group">
+                    <label><input type="checkbox" name="consignee_is_active" {% if not is_edit or receivers.consignee_is_active %}checked{% endif %}> Active</label>
+                </div>
+                <button type="submit" class="cee-btn-save">Save Shipper</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="view-container {% if request.GET.mode == 'add' %}d-none{% endif %}" id="view-list">
+        <div class="p-4">
+            <div class="table-wrapper">
+            <table class="table table-bordered table-hover">
+                <thead class="custom-thead">
+                    <tr>
+                        <th class="custom-subhead">#</th>
+                        <th class="custom-subhead">Receiver Name</th>
+                        <th class="custom-subhead">Phone</th>
+                        <th class="custom-subhead">GST No.</th>
+                        <th class="custom-subhead">Address</th>
+                        <th class="custom-subhead">Is Active?</th>
+                        {% if user.role == "ADMIN" %}
+                        <th class="custom-subhead">Action</th>
+                        {% endif %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for receiver in receiver %}
+                    <tr>
+                        <td>{{ forloop.counter }}</td>
+                        <td>{{ receiver.consignee_name|upper }}</td>
+                        <td>{{ receiver.consignee_phone}}</td>
+                        <td>{{ receiver.gst_no|upper }}</td>
+                        <td>{{ receiver.consignee_address|upper }}</td>
+                        <td>
+                            <span class="badge {% if receiver.consignee_is_active %}bg-success{% else %}bg-danger{% endif %}">
+                                {{ receiver.consignee_is_active|yesno:"YES,NO" }}
+                            </span>
+                        </td>
+                        {% if user.role == "ADMIN" %}
+                        <td>
+                            <a href="{% url 'receiver_edit' receiver.consignee_id %}" class="btn btn-sm btn-success">
+                                <i class="bi bi-pencil"></i>
+                            </a>
+                            <a href="{% url 'receiver_delete' receiver.consignee_id %}" class="btn btn-sm btn-danger">
+                                <i class="bi bi-trash"></i>
+                            </a>
+                        </td>
+                        {% endif %}
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="9" class="text-center py-4">No receivers found</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+{% endblock %}

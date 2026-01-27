@@ -1,0 +1,196 @@
+<!-- templates/brokers/manage.html -->
+{% extends 'base.html' %}
+{% block content %}
+
+<div class="cee-manage-broker-wrapper">
+
+    <!-- Always the same header -->
+    <div class="cee-manage-header">
+        <h4>Manage Branch</h4>
+        {% if request.GET.mode != 'add' and request.GET.mode != 'edit' %}
+            <div id="search-bar" class="cee-search-container d-flex justify-content-center flex-grow-1 mx-4" >
+                <form method="get" action="{% url 'branch_manage' %}" class="w-100 d-flex justify-content-center">
+                    <input type="hidden" name="mode" value="list">
+                    <div class="input-group shadow-sm rounded-pill" style="max-width: 480px; background: white;">
+                        <span class="input-group-text bg-transparent border-0 ps-4">
+                            <i class="bi bi-search text-primary"></i>
+                        </span>
+                        <input type="text"
+                            name="q"
+                            class="form-control border-0 shadow-none"
+                            placeholder="Search branch name,shortname,code..."
+                            autocomplete="off">
+                    </div>
+                </form>
+            </div>
+        {% endif %}
+        <div class="cee-action-buttons">
+            <button class="cee-action-btn {% if request.GET.mode == 'add' %}active{% endif %}" 
+                    id="btn-show-form" 
+                    title="Add New Branch">
+                <i class="bi bi-plus-lg"></i>
+            </button>
+            
+            <button class="cee-action-btn {% if not request.GET.mode %}active{% endif %}" 
+                    id="btn-show-list" 
+                    title="View Branch List">
+                <i class="bi bi-list-ul"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- Form View -->
+    <div class="view-container {% if active_tab not in 'add edit' %}d-none{% endif %}" id="view-form">
+        <div class="cee-broker-form-container">
+            <form method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+                <div class="cee-form-row">
+                    <div class="cee-form-group">
+                        <label>Company<span style="color:red;">*</span></label>
+                        <select name="company" required>
+                            <option value="">Select an option</option>
+                            {% for comp in company%}
+                            <option value="{{ comp.comp_id }}"
+                                    {% if branch.company.comp_id == comp.comp_id %}selected{% endif %}>
+                                {{ comp.comp_name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                        
+                    </div>
+                    <div class="cee-form-group">
+                        <label>Branch Name <span style="color:red;">*</span></label>
+                        <input type="text" name="branch_name" required style="text-transform: uppercase;" value="{{ branch.branch_name|default:'' }}" placeholder="Enter Branch Name">
+                    </div>
+                    <div class="cee-form-group">
+                        <label>Branch Code <span style="color:red;">*</span></label>
+                        <input type="text" name="branch_code" required style="text-transform: uppercase;" value="{{ branch.branch_code|default:'' }}" placeholder="Enter Branch Code">
+                    </div>
+                </div>
+
+                <div class="cee-form-row">
+                    <div class="cee-form-group">
+                        <label>Short Name</label>
+                        <input type="text" name="branch_shortname" style="text-transform: uppercase;" value="{{ branch.branch_shortname|default:'' }}" placeholder="Short Name ">
+                    </div>
+                    <div class="cee-form-group">
+                        <label>Branch Type <span style="color:red;">*</span></label>
+                        <select name="branch_type" required>
+                            <option value="">Select an option</option>
+                            <option value="Company"  {% if branch.branch_type == 'Company' %}selected{% endif %}>Company</option>
+                            <option value="Agency" {% if branch.branch_type == 'Agency' %}selected{% endif %}>Agency</option>
+                        </select>
+                    </div>
+                    <div class="cee-form-group">
+                        <label>Phone</label>
+                        <input type="tel" name="branch_phone" maxlength="10" inputmode="numeric" oninput="this.value=this.value.replace(/[^0-9]/g,'').slice(0,10)" pattern="[0-9]{10}" placeholder="9999988888" value="{{ branch.branch_phone|default:'' }}">
+                    </div>
+                </div>
+                <div class="cee-form-row">
+                    <div class="cee-form-group">
+                        <label>Email</label>
+                        <input type="text" name="branch_email"  value="{{ branch.branch_email|default:'' }}" placeholder="Enter Your Email">
+                    </div>
+                    <div class="cee-form-group">
+                        <label>Agent <span style="color:red;">*</span></label>
+                        <select name="agent" required style="text-transform: uppercase;">
+                            <option value="">Select an option</option>
+                            {% for agent in agents%}
+                            <option value="{{ agent.broker_id }}"
+                                    {% if branch.broker.broker_id == agent.broker_id %}selected{% endif %}>
+                                {{ agent.broker_name|upper }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="cee-form-group">
+                        <label>Address</label>
+                        <input type="text" name="branch_address" style="text-transform: uppercase;" value="{{ branch.branch_address|default:'' }}" placeholder="Full address">
+                    </div>
+                    <div class="cee-form-group">
+                        <label>Services</label>
+                        <select name="services" required>
+                            <option value="">Select an option</option>
+                            <option value="Booking"  {% if branch.services == 'Booking' %}selected{% endif %}>Booking</option>
+                            <option value="Delivery" {% if branch.services == 'Delivery' %}selected{% endif %}>Delivery</option>
+                            <option value="Both"     {% if branch.services == 'Both' %}selected{% endif %}>Both</option>
+                        </select>
+                    </div>
+                    <div class="cee-form-group">
+                        <label>Zone<span style="color:red;">*</span></label>
+                          <select name="category" required>
+                            <option value="">Select an option</option>
+                            <option value="A" {% if branch.category == 'A' %}selected{% endif %}>A</option>
+                            <option value="B" {% if branch.category == 'B' %}selected{% endif %}>B</option>
+                            <option value="C" {% if branch.category == 'C' %}selected{% endif %}>C</option>
+                            <option value="D" {% if branch.category == 'D' %}selected{% endif %}>D</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="cee-checkbox-group">
+                    <label><input type="checkbox" name="is_active" {% if not is_edit or branch.branch_is_active %}checked{% endif %}> Active</label>
+                </div>
+                <button type="submit" class="cee-btn-save">Save Agent</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- List View -->
+    <div class="view-container {% if request.GET.mode == 'add' %}d-none{% endif %}" id="view-list">
+        <div class="p-4">
+            <div class="table-wrapper">
+            <table class="table table-bordered table-hover">
+                <thead class="custom-thead">
+                    <tr>
+                        <th class="custom-subhead">#</th>
+                        <th class="custom-subhead">Company</th>
+                        <th class="custom-subhead">Branch Name</th>
+                        <th class="custom-subhead">Branch Code</th>
+                        <th class="custom-subhead">Short Name</th>
+                        <th class="custom-subhead">Broker</th>
+                        <th class="custom-subhead">Phone</th>
+                        <th class="custom-subhead">Address</th>
+                        <th class="custom-subhead">Is Active?</th>
+                        {% if user.role == "ADMIN" %}
+                        <th class="custom-subhead">Action</th>
+                        {% endif %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for branch in branchs %}
+                    <tr>
+                        <td>{{ forloop.counter }}</td>
+                        <td>{{ branch.company.comp_name|upper }}</td>
+                        <td>{{ branch.branch_name|upper }}</td>
+                        <td>{{ branch.branch_code|upper }}</td>
+                        <td>{{ branch.branch_shortname|upper }}</td>
+                        <td>{{ branch.broker }}</td>
+                        <td>{{ branch.branch_phone }}</td>
+                        <td>{{ branch.branch_address|default:"-"|upper }}</td>
+                        <td>
+                            <span class="badge {% if branch.branch_is_active %}bg-success{% else %}bg-danger{% endif %}">
+                                {{ branch.branch_is_active|yesno:"YES,NO" }}
+                            </span>
+                        </td>
+                        {% if user.role == "ADMIN" %}
+                        <td>
+                            <a href="{% url 'branch_edit' branch.branch_id %}" class="btn btn-sm btn-success">
+                                <i class="bi bi-pencil"></i>
+                            </a>
+                            <a href="{% url 'branch_delete' branch.branch_id %}" class="btn btn-sm btn-danger">
+                                <i class="bi bi-trash"></i>
+                            </a>
+                        </td>
+                        {% endif %}
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="9" class="text-center py-4">No branches found</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

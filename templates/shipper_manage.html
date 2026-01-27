@@ -1,0 +1,276 @@
+
+{% extends 'base.html' %}
+{% block content %}
+
+<div class="cee-manage-broker-wrapper">
+    {% if messages %}
+    <div class="container mt-3">
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                {{ message|safe }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+    <div class="cee-manage-header">
+        <h4>Manage Shipper</h4>
+        {% if request.GET.mode != 'add' and request.GET.mode != 'edit' %}
+            <div id="search-bar" class="cee-search-container d-flex justify-content-center flex-grow-1 mx-4" >
+                <form method="get" action="{% url 'shipper_manage' %}" class="w-100 d-flex justify-content-center">
+                    <input type="hidden" name="mode" value="list">
+                    <div class="input-group shadow-sm rounded-pill" style="max-width: 480px; background: white;">
+                        <span class="input-group-text bg-transparent border-0 ps-4">
+                            <i class="bi bi-search text-primary"></i>
+                        </span>
+                        <input type="text"
+                            name="q"
+                            class="form-control border-0 shadow-none"
+                            placeholder="Search shipper name, phone, GST..."
+                            autocomplete="off">
+                    </div>
+                </form>
+            </div>
+        {% endif %}
+
+        <div class="cee-action-buttons">
+            <button class="cee-action-btn {% if request.GET.mode == 'add' %}active{% endif %}" 
+                    id="btn-show-form" 
+                    title="Add New Shipper">
+                <i class="bi bi-plus-lg"></i>
+            </button>
+            
+            <button class="cee-action-btn {% if not request.GET.mode %}active{% endif %}" 
+                    id="btn-show-list" 
+                    title="View Shipper List">
+                <i class="bi bi-list-ul"></i>
+            </button>
+        </div>
+    </div>
+
+    <div class="view-container {% if active_tab not in 'add edit' %}d-none{% endif %}" id="view-form">
+        <div class="cee-broker-form-container">
+            <form method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+                <div class="cee-form-row">
+                    <div class="cee-form-group">
+                        <label>Shipper Name <span style="color:red;">*</span></label>
+                        <input type="text" name="consignor_name" required style="text-transform: uppercase;" value="{{ shipper.consignor_name|default:'' }}" placeholder="Enter Shipper Name">
+                    </div>
+                    <div class="cee-form-group">
+                        <label>Phone</label>
+                        <input type="tel" maxlength="10" inputmode="numeric" oninput="this.value=this.value.replace(/[^0-9]/g,'').slice(0,10)" name="consignor_phone" pattern="[0-9]{10}" placeholder="9999988888" value="{{ shipper.consignor_phone|default:'' }}">
+                    </div>
+                    <div class="cee-form-group">
+                        <label>GST No.</label>
+                        <input type="text" name="gst_no" maxlength="15" style="text-transform: uppercase;" value="{{ shipper.gst_no|default:'' }}" placeholder="GST Number">
+                    </div>
+                </div>
+
+                <div class="cee-form-row">
+                    <div class="cee-form-group">
+                        <label>GST Type <span style="color:red;">*</span></label>
+                        <select name="gst_type" required>
+                            <option value="">Select an option</option>
+                            <option value="Statement"  {% if shipper.gst_type|lower == 'statement' %}selected{% endif %}>Statement</option>
+                            <option value="Reverse Tax Invoice(5%)" {% if shipper.gst_type|lower == 'reverse tax invoice(5%)' %}selected{% endif %}>Reverse Tax Invoice(5%)</option>
+                            <option value="Regular Tax Invoice(18%)" {% if shipper.gst_type|lower == 'regular tax invoice(18%)' %}selected{% endif %}>Regular Tax Invoice(18%)</option>
+                            <option value="IGST Tax Invoice(18%)" {% if shipper.gst_type|lower == 'igst tax invoice(18%)' %}selected{% endif %}>IGST Tax Invoice(18%)</option>
+                        </select>
+                    </div>
+                    <div class="cee-form-group">
+                        <label>Address</label>
+                        <input type="text" name="address" style="text-transform: uppercase;"  placeholder="Enter Address" value="{{ shipper.address|default:'' }}">
+                    </div>
+                    <div class="cee-form-group">
+                        <label>Billing Address</label>
+                        <input type="text" name="billing_address" style="text-transform: uppercase;"  placeholder="Enter Billing_address" value="{{ shipper.address|default:'' }}">
+                    </div>
+                </div>
+                <div class="cee-form-row">
+                    <div class="cee-form-group">
+                        <label>LR Charge</label>
+                        <input type="number" name="lr_charge"  value="{{ shipper.lr_charge|default:'' }}" placeholder="Enter LR Charge">
+                    </div>
+                    <div class="cee-form-group">
+                        <label>Item <span style="color:red;">*</span></label>
+                        <select name="items" id="items-dropdown" multiple required>
+                            {% for item in items %}
+                            <option value="{{ item.item_id }}"
+                                {% if shipper and item in shipper.items.all %}selected{% endif %}>
+                                {{ item.item_name|upper }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="cee-form-group">
+                        <label>Type <span style="color:red;">*</span></label>
+                        <select name="type" required style="text-transform: uppercase;">
+                            <option value="">Select an option</option>
+                            <option value="Temporary"  {% if shipper.type|lower == 'temporary' %}selected{% endif %}>Temporary</option>
+                            <option value="Permanent" {% if shipper.type|lower == 'permanent' %}selected{% endif %}>Permanent</option>
+                        </select>
+                    </div>
+                   <div class="cee-form-group">
+                        <label>State <span style="color:red;">*</span></label>
+                        <select name="states" id="states-dropdown" multiple required>
+                            {% for s in states %}
+                                <option value="{{ s.location_id }}"
+                                    {% if shipper and s in shipper.state.all %}selected{% endif %}>
+                                    {{ s.state }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="cee-form-row">
+                    <div class="cee-checkbox-group">
+                        <label><input type="checkbox" name="consignor_is_active" {% if not is_edit or shipper.consignor_is_active %}checked{% endif %}> Active</label>
+                    </div>
+                    <div class="cee-checkbox-group">
+                        <label><input type="checkbox" name="is_manual" {% if not is_edit or shipper.is_manual %}checked{% endif %}>Is Manuel</label>
+                    </div>
+                    <div class="cee-checkbox-group">
+                        <label><input type="checkbox" name="pod_use" {% if not is_edit or shipper.pod_use %}unchecked{% endif %}>POD Use</label>
+                    </div>
+                </div>
+                <button type="submit" class="cee-btn-save">Save Shipper</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="view-container {% if request.GET.mode == 'add' %}d-none{% endif %}" id="view-list">
+        <div class="p-4">
+            <div class="d-flex justify-content-end mb-3">
+                <a href="{% url 'shipper_export_excel' %}" class="btn btn-success">
+                    <i class="bi bi-file-earmark-excel me-1"></i> Export Excel
+                </a>
+            </div>
+            <div class="table-wrapper">
+            <table class="table table-bordered table-hover">
+                <thead class="custom-thead">
+                    <tr>
+                        <th class="custom-subhead">#</th>
+                        <th class="custom-subhead">Shipper Code</th>
+                        <th class="custom-subhead">Shipper Name</th>
+                        <th class="custom-subhead">Phone</th>
+                        <th class="custom-subhead">GST No.</th>
+                        <th class="custom-subhead">GST Type </th>
+                        <th class="custom-subhead">Address</th>
+                        <th class="custom-subhead">Billing Address</th>
+                        <th class="custom-subhead">LR Charge</th>
+                        <th class="custom-subhead">Type</th>
+                        <th class="custom-subhead">Item</th>
+                        <th class="custom-subhead">State</th>
+                        <th class="custom-subhead">Is Active?</th>
+                        <th class="custom-subhead">Is Manuel?</th>
+                        <th class="custom-subhead">POD?</th>
+                        {% if user.role == "ADMIN" %}
+                        <th class="custom-subhead">Action</th>
+                        {% endif %}
+                    </tr>
+                </thead>
+                    <tbody>
+
+                        {% for shipper in shippers %}
+                        <tr>
+                            <td>{{ forloop.counter }}</td>
+                            {% if shipper.consignor_code %}
+                                <td>{{ shipper.consignor_code }}</td>
+                            {% else %}
+                                <td>None</td>
+                            {% endif %}
+                            <td>{{ shipper.consignor_name|upper }}</td>
+                            <td>{{ shipper.consignor_phone }}</td>
+                            <td>{{ shipper.gst_no|upper }}</td>
+                            <td>{{ shipper.gst_type|upper }}</td>
+                            <td>{{ shipper.address|upper }}</td>
+                            <td>{{ shipper.billing_address|upper }}</td>
+                            <td>{{ shipper.lr_charge|default:"0" }}</td>
+                            <td>{{ shipper.type|upper }}</td>
+
+                            <td>
+                                {% if shipper.items.exists %}
+                                    {{ shipper.items.all|join:", "|upper }}
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </td>
+
+                            <td>
+                                    {% for loc in shipper.state.all %}
+                                        {{ loc.state|upper }}{% if not forloop.last %}, {% endif %}
+                                    {% endfor %}
+
+                            </td>
+
+                            <td>
+                                <span class="badge {% if shipper.consignor_is_active %}bg-success{% else %}bg-danger{% endif %}">
+                                    {{ shipper.consignor_is_active|yesno:"YES,NO" }}
+                                </span>
+                            </td>
+                            <td>
+                                <span class="badge {% if shipper.is_manual %}bg-success{% else %}bg-danger{% endif %}">
+                                    {{ shipper.is_manual|yesno:"YES,NO" }}
+                                </span>
+                            </td>
+                            <td>
+                                <span class="badge {% if shipper.pod_use %}bg-success{% else %}bg-danger{% endif %}">
+                                    {{ shipper.pod_use|yesno:"YES,NO" }}
+                                </span>
+                            </td>
+                            {% if user.role == "ADMIN" %}
+                            <td>
+                                <a href="{% url 'shipper_edit' shipper.consignor_id %}" class="btn btn-sm btn-success">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                                <a href="{% url 'shipper_delete' shipper.consignor_id %}" class="btn btn-sm btn-danger">
+                                    <i class="bi bi-trash"></i>
+                                </a>
+                                <a href="{% url 'shipper_quotation' shipper.consignor_id %}" 
+                                    class="btn btn-sm btn-primary" 
+                                    title="Quotation">
+                                        <i class="bi bi-file-text"></i>
+                                </a>
+                            </td>
+                            {% endif %}
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="15" class="text-center py-4">No shippers found</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+            </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+
+document.addEventListener('DOMContentLoaded', function () {
+    const itemsDropdown = document.getElementById('items-dropdown');
+    new Choices(itemsDropdown, {
+        removeItemButton: true, 
+        placeholderValue: 'Select items',
+        searchEnabled: true,
+        shouldSort: false
+    });
+
+
+    const statesDropdown = document.getElementById('states-dropdown');
+    new Choices(statesDropdown, {
+        removeItemButton: true,
+        placeholderValue: 'Select states',
+        searchEnabled: true,
+        shouldSort: false
+    });
+});
+</script>
+
+
+
+
+{% endblock %}

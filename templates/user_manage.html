@@ -1,0 +1,165 @@
+{% extends 'base.html' %}
+{% block content %}
+
+<div class="cee-manage-broker-wrapper">
+    {% if messages %}
+    <div class="container mt-3">
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                {{ message|safe }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+    <div class="cee-manage-header">
+        <h4>Manage User</h4>
+        {% if request.GET.mode != 'add' and request.GET.mode != 'edit' %}
+            <div id="search-bar" class="cee-search-container d-flex justify-content-center flex-grow-1 mx-4" >
+                <form method="get" action="{% url 'user_manage' %}" class="w-100 d-flex justify-content-center">
+                    <input type="hidden" name="mode" value="list">
+                    <div class="input-group shadow-sm rounded-pill" style="max-width: 480px; background: white;">
+                        <span class="input-group-text bg-transparent border-0 ps-4">
+                            <i class="bi bi-search text-primary"></i>
+                        </span>
+                        <input type="text"
+                            name="q"
+                            class="form-control border-0 shadow-none"
+                            placeholder="Search username,role,branch..."
+                            autocomplete="off">
+                    </div>
+                </form>
+            </div>
+        {% endif %}
+        <div class="cee-action-buttons">
+            <button class="cee-action-btn {% if request.GET.mode == 'add' %}active{% endif %}" 
+                    id="btn-show-form" 
+                    title="Add New User">
+                <i class="bi bi-plus-lg"></i>
+            </button>
+            
+            <button class="cee-action-btn {% if not request.GET.mode %}active{% endif %}" 
+                    id="btn-show-list" 
+                    title="View User List">
+                <i class="bi bi-list-ul"></i>
+            </button>
+        </div>
+    </div>
+
+    <div class="view-container {% if active_tab not in 'add edit' %}d-none{% endif %}" id="view-form">
+        <div class="cee-broker-form-container">
+            <form method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+                <div class="cee-form-row">
+                    <div class="cee-form-group">
+                            <label>Branch<span style="color:red;">*</span></label>
+                            <select name="branch" required>
+                                <option value="">Select an option</option>
+                                {% for branch in branches%}
+                                <option value="{{ branch.branch_id }}"
+                                        {% if vehicles.branch.branch_id == branch.branch_id %}selected{% endif %}>
+                                    {{ branch.branch_name }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                    </div>
+                        
+                    <div class="cee-form-group">
+                        <label>Username<span style="color:red;">*</span></label>
+                        <input type="text" name="username" value="{{ users.username|default:'' }}" placeholder="Enter Username">
+                    </div>
+                    <div class="cee-form-group">
+                        <label>Email<span style="color:red;">*</span></label>
+                        <input type="text" name="email"  value="{{ users.email|default:'' }}" placeholder="Enter Email">
+                    </div>
+                    <div class="cee-form-group">
+                        <label>Phone<span style="color:red;">*</span></label>
+                        <input type="tel" name="phone" required maxlength="10" inputmode="numeric" oninput="this.value=this.value.replace(/[^0-9]/g,'').slice(0,10)" value="{{ users.phone|default:'' }}" pattern="[0-9]{10}" placeholder="9999988888">
+                    </div>
+                    <div class="cee-form-group">
+                        <label>Role <span style="color:red;">*</span></label>
+                        <select name="role" required>
+                            <option value="">Select an option</option>
+                            <option value="Staff"  {% if users.role == 'Staff' %}selected{% endif %}>Staff</option>
+                            <option value="Agent" {% if users.role == 'Agent' %}selected{% endif %}>Agent</option>
+                            <option value="Accountant" {% if users.role == 'Accountant' %}selected{% endif %}>Accountant</option>
+                            <option value="Asst Accountant" {% if users.role == 'Asst Accountant' %}selected{% endif %}>Asst Accountant</option>
+                            <option value="Operation Manager" {% if users.role == 'Operation Manager' %}selected{% endif %}>Operation Manager</option>
+                            <option value="Logistics Admin" {% if users.role == 'Logistics Admin' %}selected{% endif %}>Logistics Admin</option>
+                            <option value="Warehouse Assistant" {% if users.role == 'Warehouse Assistant' %}selected{% endif %}>Warehouse Assistant</option>    
+                            <option value="Finance Manager" {% if users.role == 'Finance Manager' %}selected{% endif %}>Finance Manager</option>
+                            <option value="Customer" {% if users.role == 'Customer' %}selected{% endif %}>Customer</option>
+                            <option value="Customer Service Executive" {% if users.role == 'Customer Service Executive' %}selected{% endif %}>Customer Service Executive</option>
+                            <option value="Pod Document Controller" {% if users.role == 'Pod Document Controller' %}selected{% endif %}>Pod Document Controller</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="cee-form-row">
+                    <div class="cee-checkbox-group">
+                        <label><input type="checkbox" name="is_active" {% if not is_edit or users.is_active %}checked{% endif %}> Active</label>
+                    </div>
+                </div>
+                <button type="submit" class="cee-btn-save">Save User</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="view-container {% if request.GET.mode == 'add' %}d-none{% endif %}" id="view-list">
+        <div class="p-4">
+            <div class="table-wrapper">
+            <table class="table table-bordered table-hover">
+                <thead class="custom-thead">
+                    <tr>
+                        <th class="custom-subhead">#</th>
+                        <th class="custom-subhead">Branch</th>
+                        <th class="custom-subhead">Username</th>
+                        <th class="custom-subhead">Email</th>
+                        <th class="custom-subhead">Phone</th>
+                        <th class="custom-subhead">Role</th>
+                        <th class="custom-subhead">Is Active?</th>
+                        {% if user.role == "ADMIN" %}
+                        <th class="custom-subhead">Action</th>
+                        {% endif %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for ur in user_list %}
+                    <tr>
+                        <td>{{ forloop.counter }}</td>
+                        <td>{{ ur.branch.branch_name|upper }}</td>
+                        <td>{{ ur.username }}</td>
+                        <td>{{ ur.email }}</td>
+                        <td>{{ ur.phone}}</td>
+                        <td>{{ ur.role|upper }}</td>
+                        <td>
+                            <span class="badge {% if ur.is_active %}bg-success{% else %}bg-danger{% endif %}">
+                                {{ ur.is_active|yesno:"YES,NO" }}
+                            </span>
+                        </td>
+                         {% if user.role == "ADMIN" %}
+                        <td>
+                            <a href="{% url 'user_edit' ur.id %}" class="btn btn-sm btn-success">
+                                <i class="bi bi-pencil"></i>
+                            </a>
+                            <a href="{% url 'user_delete' ur.id %}" class="btn btn-sm btn-danger">
+                                <i class="bi bi-trash"></i>
+                            </a>
+                            <a href="{% url 'user_reset_password' ur.id %}"
+                                class="btn btn-sm btn-warning"
+                                title="Reset Password">
+                                    <i class="bi bi-key"></i>
+                            </a>
+                        </td>
+                         {% endif %}
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="9" class="text-center py-4">No vehicles found</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

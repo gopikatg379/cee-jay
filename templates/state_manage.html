@@ -1,0 +1,64 @@
+<!-- templates/brokers/manage.html -->
+{% extends 'base.html' %}
+{% block content %}
+
+<div class="cee-manage-broker-wrapper">
+
+    <!-- Always the same header -->
+    <div class="cee-manage-header">
+        <h4>Manage State</h4>
+        {% if request.GET.mode != 'add' and request.GET.mode != 'edit' %}
+            <div id="search-bar" class="cee-search-container d-flex justify-content-center flex-grow-1 mx-4" >
+                <form method="get" action="{% url 'state_manage' %}" class="w-100 d-flex justify-content-center">
+                    <input type="hidden" name="mode" value="list">
+                    <div class="input-group shadow-sm rounded-pill" style="max-width: 480px; background: white;">
+                        <span class="input-group-text bg-transparent border-0 ps-4">
+                            <i class="bi bi-search text-primary"></i>
+                        </span>
+                        <input type="text"
+                            name="q"
+                            class="form-control border-0 shadow-none"
+                            placeholder="Search state name..."
+                            autocomplete="off">
+                    </div>
+                </form>
+            </div>
+        {% endif %}
+        <div class="cee-action-buttons">
+            
+            <button class="cee-action-btn {% if not request.GET.mode %}active{% endif %}" 
+                    id="btn-show-list" 
+                    title="View State List">
+                <i class="bi bi-list-ul"></i>
+            </button>
+        </div>
+    </div>
+
+    <div class="view-container {% if request.GET.mode == 'add' %}d-none{% endif %}" id="view-list">
+        <div class="p-4">
+            <div class="table-wrapper">
+            <table class="table table-bordered table-hover">
+                <thead class="custom-thead">
+                    <tr>
+                        <th class="custom-subhead">#</th>
+                        <th class="custom-subhead">State</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for state in state %}
+                    <tr>
+                        <td>{{ forloop.counter }}</td>
+                        <td>{{ state.state|upper }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="9" class="text-center py-4">No states found</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+{% endblock %}

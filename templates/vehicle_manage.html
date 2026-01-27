@@ -1,0 +1,195 @@
+{% extends 'base.html' %}
+{% block content %}
+
+<div class="cee-manage-broker-wrapper">
+    {% if messages %}
+    <div class="container mt-3">
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                {{ message|safe }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+    <div class="cee-manage-header">
+        <h4>Manage Vehicle</h4>
+        {% if request.GET.mode != 'add' and request.GET.mode != 'edit' %}
+            <div id="search-bar" class="cee-search-container d-flex justify-content-center flex-grow-1 mx-4" >
+                <form method="get" action="{% url 'vehicle_manage' %}" class="w-100 d-flex justify-content-center">
+                    <input type="hidden" name="mode" value="list">
+                    <div class="input-group shadow-sm rounded-pill" style="max-width: 480px; background: white;">
+                        <span class="input-group-text bg-transparent border-0 ps-4">
+                            <i class="bi bi-search text-primary"></i>
+                        </span>
+                        <input type="text"
+                            name="q"
+                            class="form-control border-0 shadow-none"
+                            placeholder="Search register no.,branch..."
+                            autocomplete="off">
+                    </div>
+                </form>
+            </div>
+        {% endif %}
+        <div class="cee-action-buttons">
+            <button class="cee-action-btn {% if request.GET.mode == 'add' %}active{% endif %}" 
+                    id="btn-show-form" 
+                    title="Add New Vehicle">
+                <i class="bi bi-plus-lg"></i>
+            </button>
+            
+            <button class="cee-action-btn {% if not request.GET.mode %}active{% endif %}" 
+                    id="btn-show-list" 
+                    title="View Vehicle List">
+                <i class="bi bi-list-ul"></i>
+            </button>
+        </div>
+    </div>
+
+    <div class="view-container {% if active_tab not in 'add edit' %}d-none{% endif %}" id="view-form">
+        <div class="cee-broker-form-container">
+            <form method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+                <div class="cee-form-row">
+                    <div class="cee-form-group">
+                            <label>Branch<span style="color:red;">*</span></label>
+                            <select name="branch" required>
+                                <option value="">Select an option</option>
+                                {% for branch in branches%}
+                                <option value="{{ branch.branch_id }}"
+                                        {% if vehicles.branch.branch_id == branch.branch_id %}selected{% endif %}>
+                                    {{ branch.branch_name }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                    </div>
+                        
+                    <div class="cee-form-group">
+                        <label>Registration No.<span style="color:red;">*</span></label>
+                        <input type="text"
+                            name="registration_no"
+                            required
+                            maxlength="10"
+                            pattern="[A-Za-z0-9]{1,10}"
+                            title="Only letters and numbers allowed (max 10 characters)"
+                            style="text-transform: uppercase;"
+                            value="{{ vehicles.registration_no|default:'' }}"
+                            placeholder="Enter Registration number"
+                            oninput="this.value = this.value.replace(/[^A-Za-z0-9]/g, '')">
+                    </div>
+                <div class="cee-form-group">
+                    <label>Vehicle Type <span style="color:red;">*</span></label>
+                    <select name="vehicle_type" id="vehicle_type" required>
+                        <option value="">Select an option</option>
+                        <option value="Rent"  {% if vehicles.vehicle_type == 'Rent' %}selected{% endif %}>Rent</option>
+                        <option value="Own" {% if vehicles.vehicle_type == 'Own' %}selected{% endif %}>Own</option>
+                    </select>
+                </div>
+                <div id="fuel-options"> 
+                    
+                    <div class="cee-form-group">
+                        <label>Fuel Type</label>
+                        <select name="fuel_type">
+                            <option value="">Select Fuel Type</option>
+                            <option value="Diesel" {% if vehicles.fuel_type == 'Diesel' %}selected{% endif %}>Diesel</option>
+                            <option value="Petrol" {% if vehicles.fuel_type == 'Petrol' %}selected{% endif %}>Petrol</option>
+                            <option value="CNG" {% if vehicles.fuel_type == 'CNG' %}selected{% endif %}>CNG</option>
+                            <option value="EV" {% if vehicles.fuel_type == 'EV' %}selected{% endif %}>EV</option>
+                        </select>
+                    </div>
+                    <div class="cee-checkbox-group">
+                        <label class="d-block">Fuel Card</label>
+                        <input type="checkbox" name="fuel_card" {% if vehicles.fuel_card %}checked{% endif %}>
+                    </div>
+                </div>
+                </div>
+                <div class="cee-form-row">
+                    <div class="cee-checkbox-group">
+                        <label><input type="checkbox" name="is_active" {% if not is_edit or vehicles.vehicle_is_active %}checked{% endif %}> Active</label>
+                    </div>
+                </div>
+                <button type="submit" class="cee-btn-save">Save Vehicle</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="view-container {% if request.GET.mode == 'add' %}d-none{% endif %}" id="view-list">
+        <div class="p-4">
+            <div class="table-wrapper">
+            <table class="table table-bordered table-hover">
+                <thead class="custom-thead">
+                    <tr>
+                        <th class="custom-subhead">#</th>
+                        <th class="custom-subhead">Branch</th>
+                        <th class="custom-subhead">Registration No.</th>
+                        <th class="custom-subhead">Vehicle Type</th>
+                        <th class="custom-subhead">Fuel Card?</th>
+                        <th class="custom-subhead">Fuel Type</th>
+                        <th class="custom-subhead">Is Active?</th>
+                        {% if user.role == "ADMIN" %}
+                        <th class="custom-subhead">Action</th>
+                        {% endif %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for vle in vehicle %}
+                    <tr>
+                        <td>{{ forloop.counter }}</td>
+                        <td>{{ vle.branch.branch_name|upper }}</td>
+                        <td>{{ vle.registration_no|upper }}</td>
+                        <td>{{ vle.vehicle_type|upper }}</td>
+                        <td>
+                            <span class="badge {% if vle.fuel_card %}bg-success{% else %}bg-danger{% endif %}">
+                                {{ vle.fuel_card|yesno:"YES,NONE" }}
+                            </span>
+                        </td>
+                        {% if vle.fuel_type%}
+                        <td>{{vle.fuel_type}}</td>
+                        {% else%}
+                        <td>None</td>
+                        {% endif %}
+                        <td>
+                            <span class="badge {% if vle.vehicle_is_active %}bg-success{% else %}bg-danger{% endif %}">
+                                {{ vle.vehicle_is_active|yesno:"YES,NO" }}
+                            </span>
+                        </td>
+                        {% if user.role == "ADMIN" %}
+                        <td>
+                            <a href="{% url 'vehicle_edit' vle.vehicle_id %}" class="btn btn-sm btn-success">
+                                <i class="bi bi-pencil"></i>
+                            </a>
+                            <a href="{% url 'vehicle_delete' vle.vehicle_id %}" class="btn btn-sm btn-danger">
+                                <i class="bi bi-trash"></i>
+                            </a>
+                        </td>
+                        {% endif %}
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="9" class="text-center py-4">No vehicles found</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const vehicleType = document.getElementById('vehicle_type');
+    const fuelOptions = document.getElementById('fuel-options');
+
+    function toggleFuelOptions() {
+        if (vehicleType.value === 'Own') {
+            fuelOptions.classList.remove('d-none');
+        } else {
+            fuelOptions.classList.add('d-none');
+        }
+    }
+
+    toggleFuelOptions();
+
+    vehicleType.addEventListener('change', toggleFuelOptions);
+});
+</script>
+
+{% endblock %}

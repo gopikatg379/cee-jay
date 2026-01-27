@@ -1,0 +1,152 @@
+<!-- templates/brokers/manage.html -->
+{% extends 'base.html' %}
+{% block content %}
+
+<div class="cee-manage-broker-wrapper">
+
+    <div class="cee-manage-header">
+        <h4>Manage Agent</h4>
+        {% if request.GET.mode != 'add' and request.GET.mode != 'edit' %}
+            <div id="search-bar" class="cee-search-container d-flex justify-content-center flex-grow-1 mx-4" >
+                <form method="get" action="{% url 'broker_manage' %}" class="w-100 d-flex justify-content-center">
+                    <input type="hidden" name="mode" value="list">
+                    <div class="input-group shadow-sm rounded-pill" style="max-width: 480px; background: white;">
+                        <span class="input-group-text bg-transparent border-0 ps-4">
+                            <i class="bi bi-search text-primary"></i>
+                        </span>
+                        <input type="text"
+                            name="q"
+                            class="form-control border-0 shadow-none"
+                            placeholder="Search agent name,shortname..."
+                            autocomplete="off">
+                    </div>
+                </form>
+            </div>
+        {% endif %}
+        <div class="cee-action-buttons">
+            <button class="cee-action-btn {% if request.GET.mode == 'add' %}active{% endif %}" 
+                    id="btn-show-form" 
+                    title="Add New Broker">
+                <i class="bi bi-plus-lg"></i>
+            </button>
+            
+            <button class="cee-action-btn {% if not request.GET.mode %}active{% endif %}" 
+                    id="btn-show-list" 
+                    title="View Broker List">
+                <i class="bi bi-list-ul"></i>
+            </button>
+        </div>
+    </div>
+
+    <div class="view-container {% if active_tab not in 'add edit' %}d-none{% endif %}" id="view-form">
+        <div class="cee-broker-form-container">
+            <form method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+                <div class="cee-form-row">
+                    <div class="cee-form-group">
+                        <label>Agent Name <span style="color:red;">*</span></label>
+                        <input type="text" name="broker_name" required style="text-transform: uppercase;" value="{{ broker.broker_name|default:'' }}" placeholder="Enter full Agent name">
+                    </div>
+                    <div class="cee-form-group">
+                        <label>Short Name <span style="color:red;">*</span></label>
+                        <input type="text" name="short_name" required style="text-transform: uppercase;" value="{{ broker.borker_shortname|default:'' }}" placeholder="Short code / alias">
+                    </div>
+                    <div class="cee-form-group">
+                        <label>Phone <span style="color:red;">*</span></label>
+                        <input type="tel" name="phone" required style="text-transform: uppercase;" value="{{ broker.broker_phone|default:'' }}" pattern="[0-9]{10}" placeholder="9999988888">
+                    </div>
+                </div>
+
+                <div class="cee-form-row">
+                    <div class="cee-form-group">
+                        <label>Booking Type <span style="color:red;">*</span></label>
+                        <select name="booking_type" required>
+                            <option value="">Select an option</option>
+                            <option value="Topay" {% if broker.booking_type == 'Topay' %}selected{% endif %}>Topay</option>
+                            <option value="Paid" {% if broker.booking_type == 'Paid' %}selected{% endif %}>Paid</option>
+                            <option value="Credit" {% if broker.booking_type == 'Credit' %}selected{% endif %}>Credit</option>
+                        </select>
+                    </div>
+                    <div class="cee-form-group">
+                        <label>Address</label>
+                        <input type="text" name="address" style="text-transform: uppercase;" value="{{ broker.booking_address|default:'' }}" placeholder="Full address">
+                    </div>
+                    <div class="cee-form-group">
+                        <label>Agreement/Document</label>
+                        <input type="file" name="document">
+                        {% if is_edit and broker.document %}
+                        <small class="form-text text-muted">
+                            Current file: <a href="{{ broker.document.url }}" target="_blank">View/download</a>
+                        </small>
+                    {% endif %}
+                    </div>
+                </div>
+                <div class="cee-checkbox-group">
+                    <label><input type="checkbox" name="is_active" {% if not is_edit or broker.is_active %}checked{% endif %}> Active</label>
+                </div>
+
+                <button type="submit" class="cee-btn-save">Save Agent</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- List View -->
+    <div class="view-container {% if request.GET.mode == 'add' %}d-none{% endif %}" id="view-list">
+        <div class="p-4">
+            <div class="table-wrapper">
+            <table class="table table-bordered table-hover">
+                <thead class="custom-thead">
+                    <tr>
+                        <th class="custom-subhead">#</th>
+                        <th class="custom-subhead">Agent Name</th>
+                        <th class="custom-subhead">Short Name</th>
+                        <th class="custom-subhead">Phone</th>
+                        <th class="custom-subhead">Address</th>
+                        <th class="custom-subhead">Agreement Upload</th>
+                        <th class="custom-subhead">Is Active?</th>
+                        {% if user.role == "ADMIN" %}
+                        <th class="custom-subhead">Action</th>
+                        {% endif %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for broker in brokers %}
+                    <tr>
+                        <td>{{ forloop.counter }}</td>
+                        <td>{{ broker.broker_name|upper }}</td>
+                        <td>{{ broker.borker_shortname|upper }}</td>
+                        <td>{{ broker.broker_phone }}</td>
+                        <td>{{ broker.booking_address|default:"-"|upper }}</td>
+                        {% if broker.document %}
+                        <td>YES</td>
+                        {% else%}
+                        <td>NO</td>
+                        {% endif %}
+                        <td>
+                            <span class="badge {% if broker.is_active %}bg-success{% else %}bg-danger{% endif %}">
+                                {{ broker.is_active|yesno:"YES,NO" }}
+                            </span>
+                        </td>
+                        {% if user.role == "ADMIN" %}
+                        <td>
+                            <a href="{% url 'broker_edit' broker.broker_id %}" class="btn btn-sm btn-success">
+                                <i class="bi bi-pencil"></i>
+                            </a>
+                            <a href="{% url 'broker_delete' broker.broker_id %}" class="btn btn-sm btn-danger">
+                                <i class="bi bi-trash"></i>
+                            </a>
+                        </td>
+                        {% endif %}
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="9" class="text-center py-4">No brokers found</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+{% endblock %}

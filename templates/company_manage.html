@@ -1,0 +1,154 @@
+<!-- templates/brokers/manage.html -->
+{% extends 'base.html' %}
+{% block content %}
+
+<div class="cee-manage-broker-wrapper">
+
+    <div class="cee-manage-header">
+        <h4>Manage Company</h4>
+        {% if request.GET.mode != 'add' and request.GET.mode != 'edit' %}
+            <div id="search-bar" class="cee-search-container d-flex justify-content-center flex-grow-1 mx-4" >
+                <form method="get" action="{% url 'company_manage' %}" class="w-100 d-flex justify-content-center">
+                    <input type="hidden" name="mode" value="list">
+                    <div class="input-group shadow-sm rounded-pill" style="max-width: 480px; background: white;">
+                        <span class="input-group-text bg-transparent border-0 ps-4">
+                            <i class="bi bi-search text-primary"></i>
+                        </span>
+                        <input type="text"
+                            name="q"
+                            class="form-control border-0 shadow-none"
+                            placeholder="Search company name,GST..."
+                            autocomplete="off">
+                    </div>
+                </form>
+            </div>
+        {% endif %}
+        <div class="cee-action-buttons">
+            <button class="cee-action-btn {% if request.GET.mode == 'add' %}active{% endif %}" 
+                    id="btn-show-form" 
+                    title="Add New Company">
+                <i class="bi bi-plus-lg"></i>
+            </button>
+            
+            <button class="cee-action-btn {% if not request.GET.mode %}active{% endif %}" 
+                    id="btn-show-list" 
+                    title="View Company List">
+                <i class="bi bi-list-ul"></i>
+            </button>
+        </div>
+    </div>
+
+    <div class="view-container {% if active_tab not in 'add edit' %}d-none{% endif %}" id="view-form">
+        <div class="cee-broker-form-container">
+            <form method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+                <div class="cee-form-row">
+                    <div class="cee-form-group">
+                        <label>Company Name <span style="color:red;">*</span></label>
+                        <input type="text" name="comp_name" required style="text-transform: uppercase;" value="{{ companies.comp_name|default:'' }}" placeholder="Enter Company name">
+                    </div>
+                    <div class="cee-form-group">
+                        <label>Company Address<span style="color:red;">*</span></label>
+                        <input type="text" name="comp_address" required style="text-transform: uppercase;" value="{{ companies.comp_address|default:'' }}" placeholder="Enter Company Address">
+                    </div>
+                    <div class="cee-form-group">
+                        <label>Phone <span style="color:red;">*</span></label>
+                        <input type="tel" name="phone" maxlength="10" inputmode="numeric" oninput="this.value=this.value.replace(/[^0-9]/g,'').slice(0,10)" required style="text-transform: uppercase;" value="{{ companies.comp_phone|default:'' }}" pattern="[0-9]{10}" placeholder="9999988888">
+                    </div>
+                </div>
+
+                <div class="cee-form-row">
+                    <div class="cee-form-group">
+                        <label>Email<span style="color:red;">*</span></label>
+                        <input type="email" name="comp_email" value="{{ companies.comp_email|default:'' }}" placeholder="Enter Email">
+                    </div>
+                    <div class="cee-form-group">
+                        <label>GST No.</label>
+                        <input type="text" name="comp_gst" maxlength="15" style="text-transform: uppercase;" value="{{ companies.comp_gst|default:'' }}" placeholder="Enter GST Number">
+                    </div>
+                    <div class="cee-form-group">
+                        <label>PAN No.</label>
+                        <input type="text" name="comp_pan" style="text-transform: uppercase;" value="{{ companies.comp_pan|default:'' }}" placeholder="Enter PAN">
+                    </div>
+                    <div class="cee-form-group">
+                        <label>MSME No.</label>
+                        <input type="text" name="msme_no" style="text-transform: uppercase;" value="{{ companies.msme_no|default:'' }}" placeholder="Enter MSME Number">
+                    </div>
+                </div>
+
+                <button type="submit" class="cee-btn-save">Save Company</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- List View -->
+    <div class="view-container {% if request.GET.mode == 'add' %}d-none{% endif %}" id="view-list">
+        <div class="p-4">
+            <div class="table-wrapper">
+            <table class="table table-bordered table-hover">
+                <thead class="custom-thead">
+                    <tr>
+                        <th class="custom-subhead">#</th>
+                        <th class="custom-subhead">Company Name</th>
+                        <th class="custom-subhead">Phone</th>
+                        <th class="custom-subhead">Address</th>
+                        <th class="custom-subhead">Email</th>
+                        <th class="custom-subhead">GST</th>
+                        <th class="custom-subhead">PAN</th>
+                        <th class="custom-subhead">MSME</th>
+                        {% if user.role == "ADMIN" %}
+                        <th class="custom-subhead">Action</th>
+                        {% endif %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for comp in company %}
+                    <tr>
+                        <td>{{ forloop.counter }}</td>
+                        <td>{{ comp.comp_name|upper }}</td>
+                        <td>{{ comp.comp_phone }}</td>
+                        <td>{{ comp.comp_address|default:"-"|upper }}</td>
+                        <td>{{ comp.comp_email|upper }}</td>
+                        <td>{{ comp.comp_gst|upper }}</td>
+                        <td>{{ comp.comp_pan|upper }}</td>
+                        <td>{{ comp.msme_no|upper }}</td>
+                        {% if user.role == "ADMIN" %}
+                        <td>
+                            <a href="{% url 'company_edit' comp.comp_id %}" class="btn btn-sm btn-success">
+                                <i class="bi bi-pencil"></i>
+                            </a>
+                            <a href="{% url 'company_delete' comp.comp_id %}" class="btn btn-sm btn-danger">
+                                <i class="bi bi-trash"></i>
+                            </a>
+                        </td>
+                        {% endif %}
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="9" class="text-center py-4">No companies found</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .table-responsive-wrapper {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    max-width: 100%;
+}
+
+.table-fixed-scroll {
+    width: max-content;          
+    min-width: 100%;             
+}
+
+.table-fixed-scroll th,
+.table-fixed-scroll td {
+    white-space: nowrap;         
+}
+</style>
+
+{% endblock %}

@@ -1,0 +1,648 @@
+:root {
+    --primary: #1C4D8D;
+    --dark-gray: #57595B;
+    --dark-gray-hover: #6c6e70;
+}
+body {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+.navbar {
+    background-color: var(--primary) !important;
+    padding: 0.9rem 1.5rem;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+}
+
+.navbar-brand {
+    font-weight: 700;
+    font-size: 1.35rem;
+    color: white !important;
+    display: flex;
+    align-items: center;
+}
+
+.navbar-brand img {
+    margin-right: 12px;
+    border: 2px solid rgba(255,255,255,0.85);
+}
+
+.nav-link {
+    color: white !important;
+    font-weight: 500;
+    padding: 0.6rem 1rem !important;
+    transition: all 0.2s;
+}
+
+.nav-link:hover {
+    background-color: rgba(255,255,255,0.12);
+    border-radius: 6px;
+}
+
+.dropdown-menu {
+    background-color: var(--dark-gray) !important;
+    border: none;
+    border-radius: 8px;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.4);
+    min-width: 230px;
+}
+
+.dropdown-item {
+    color: white !important;
+    padding: 0.55rem 1.25rem;
+    transition: all 0.15s;
+}
+
+.dropdown-item:hover,
+.dropdown-item:focus {
+    background-color: var(--dark-gray-hover) !important;
+}
+
+/* ── Nested dropdown (dropend) fix ─────────────────────────────────────── */
+.dropdown-menu .dropend {
+    position: relative;
+}
+
+.dropdown-menu .dropend > .dropdown-menu {
+    top: 0;
+    left: 100%;
+    margin-top: -4px;
+    margin-left: 4px;
+    display: none;
+}
+
+.dropdown-menu .dropend:hover > .dropdown-menu,
+.dropdown-menu .dropend.show > .dropdown-menu {
+    display: block !important;
+}
+
+/* Arrow styling */
+.dropdown-toggle::after { display: none !important; }
+
+.dropend .dropdown-toggle .bi-chevron-right {
+    margin-left: 0.9rem;
+    font-size: 0.95rem;
+    opacity: 0.85;
+    transition: transform 0.2s;
+}
+
+.dropend:hover .dropdown-toggle .bi-chevron-right {
+    transform: translateX(3px);
+}
+.search-form {
+    width: 260px;
+    max-width: 100%;
+}
+
+.search-form .form-control {
+    background-color: rgba(251, 251, 251, 0.15);
+    border: 1px solid rgba(255,255,255,0.3);
+    color: white;
+    border-radius: 20px 0 0 20px;
+    padding: 0.5rem 1rem;
+}
+
+.search-form .form-control::placeholder {
+    color: rgba(255,255,255,0.7);
+}
+
+.search-form .form-control:focus {
+    background-color: rgba(255,255,255,0.25);
+    border-color: rgba(255,255,255,0.5);
+    box-shadow: none;
+    color: white;
+}
+
+.search-form .btn {
+    background-color: rgba(255,255,255,0.2);
+    border: 1px solid rgba(255,255,255,0.3);
+    border-left: none;
+    color: white;
+    border-radius: 0 20px 20px 0;
+    padding: 0.5rem 0.9rem;
+}
+
+.search-form .btn:hover {
+    background-color: rgba(255,255,255,0.35);
+}
+
+.user-dropdown .dropdown-menu {
+    padding: 1.25rem;
+    width: 270px;
+    text-align: center;
+}
+
+.profile-img {
+    border: 3px solid var(--primary);
+    background-color: #e9ecef;
+}
+main {
+    flex: 1;                  
+}
+.view-container {
+    width: 100%;
+}
+
+.view-container table {
+    width: 100%;
+    table-layout: fixed;    
+}
+
+.view-container th,
+.view-container td {
+    white-space: normal;   
+    word-break: break-word;  
+}
+
+.cee-manage-header {
+    background: #1C4D8D;
+    color: white;
+    padding: 14px 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.cee-manage-header h4 {
+    margin: 0;
+    font-size: 1.38rem;
+    font-weight: 600;
+}
+
+.cee-action-buttons {
+    display: flex;
+    gap: 12px;
+}
+
+.cee-action-btn {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.18);
+    color: white;
+    border: none;
+    font-size: 1.4rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.22s;
+}
+
+.cee-action-btn:hover {
+    background: rgba(255,255,255,0.38);
+    transform: translateY(-2px);
+}
+
+.cee-action-btn.active {
+    background: white;
+    color: #1C4D8D;
+}
+
+
+.cee-broker-form-container {
+    padding: 30px;
+   
+}
+
+
+.cee-broker-form-container.hidden {
+    display: none;
+}
+
+.cee-form-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+    margin-bottom: 24px;
+}
+
+.cee-form-group {
+    margin-bottom: 1.4rem;
+}
+
+.cee-form-group label {
+    display: block;
+    margin-bottom: 6px;
+    color: #444;
+    font-weight: 500;
+    font-size: 0.95rem;
+}
+
+.cee-form-group input,
+.cee-form-group select {
+    width: 100%;
+    padding: 10px 14px;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    font-size: 0.97rem;
+}
+
+.cee-form-group input:focus,
+.cee-form-group select:focus {
+    outline: none;
+    border-color: #1C4D8D;
+    box-shadow: 0 0 0 3px rgba(28, 77, 141, 0.12);
+}
+
+.cee-checkbox-group {
+    margin: 1.6rem 0;
+}
+
+.cee-btn-save {
+    background: #1C4D8D;
+    color: white;
+    border: none;
+    padding: 12px 36px;
+    border-radius: 6px;
+    font-weight: 600;
+    cursor: pointer;
+    float: right;
+    transition: background 0.2s;
+    margin-bottom: 20px;
+}
+
+.cee-btn-save:hover {
+    background: #163c6e;
+}
+.custom-thead {
+    background-color: #234C6A;
+    color: white;
+}
+
+.custom-thead th {
+    background-color: #234C6A !important; 
+    color: white;
+}
+.custom-thead .custom-subhead {
+    color: white;
+}
+
+.cee-search-container,
+.cee-search-container *,
+.cee-search-container .input-group,
+.cee-search-container .input-group > *,
+.cee-search-container input.form-control,
+.cee-search-container .input-group-text {
+    text-decoration: none !important;
+    text-decoration-line: none !important;   /* extra safety for some browsers */
+    text-decoration-style: none !important;
+    text-decoration-color: transparent !important;
+}
+
+.cee-search-container:hover,
+.cee-search-container *:hover,
+.cee-search-container input:focus,
+.cee-search-container .input-group:focus-within {
+    text-decoration: none !important;
+}
+
+.cee-manage-header a:hover .cee-search-container,
+.cee-manage-header .cee-search-container:hover {
+    text-decoration: none !important;
+}
+.input-group.rounded-pill {
+    overflow: hidden;
+    transition: all 0.25s ease;
+}
+
+.input-group.rounded-pill:focus-within {
+    box-shadow: 0 0 0 4px rgba(13, 110, 253, 0.15);
+    transform: translateY(-1px);
+}
+
+.input-group.rounded-pill .form-control {
+    background: transparent;
+    font-size: 0.95rem;
+    padding: 0.65rem 0.75rem;
+}
+
+.input-group.rounded-pill .form-control::placeholder {
+    color: #adb5bd;
+    font-style: italic;
+}
+
+.input-group.rounded-pill .input-group-text {
+    background: transparent;
+}
+.suggestion-box {
+    position: absolute;
+    background: #fff;
+    border: 1px solid #ddd;
+    width: 100%;
+    max-height: 200px;
+    overflow-y: auto;
+    z-index: 1000;
+    width:400px;
+}
+
+.suggestion-item {
+    padding: 8px 10px;
+    cursor: pointer;
+}
+
+.suggestion-item:hover {
+    background-color: #f0f0f0;
+}
+
+footer {
+    margin-top: auto;          
+}
+/* Payment radio group container */
+.cee-form-group .payment-options {
+    display: flex;
+    gap: 1.5rem;           /* space between options */
+    margin-top: 0.5rem;
+    flex-wrap: wrap;        /* wrap on smaller screens */
+}
+
+/* Hide default radio button */
+.cee-form-group .payment-options input[type="radio"] {
+    display: none;
+}
+
+/* Custom radio button */
+.cee-form-group .payment-options label {
+    position: relative;
+    padding-left: 28px;       /* space for circle */
+    cursor: pointer;
+    font-weight: 500;
+    color: #444;
+    user-select: none;
+    display: flex;
+    align-items: center;
+}
+
+/* Outer circle */
+.cee-form-group .payment-options label::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 20px;               /* uniform size */
+    height: 20px;
+    border: 2px solid #1C4D8D; /* primary color */
+    border-radius: 50%;         /* perfect circle */
+    background: white;
+    box-sizing: border-box;
+    transition: all 0.2s;
+}
+
+/* Inner dot when selected */
+.cee-form-group .payment-options input[type="radio"]:checked + label::after {
+    content: "";
+    position: absolute;
+    left: 5px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;         /* perfect circle */
+    background: #1C4D8D;        /* primary color */
+}
+
+/* Hover effect */
+.cee-form-group .payment-options label:hover::before {
+    box-shadow: 0 0 0 3px rgba(28, 77, 141, 0.2);
+}
+/* ===== ITEMS SECTION ===== */
+#items-wrapper {
+    margin-top: 10px;
+}
+
+/* Each item row as a card */
+#items-wrapper .cee-form-row {
+    background: #f9fbfd;
+    border: 1px solid #e3e8ef;
+    border-radius: 10px;
+    padding: 12px 14px;
+    margin-bottom: 10px;
+    position: relative;
+    transition: box-shadow 0.2s ease;
+}
+
+#items-wrapper .cee-form-row:hover {
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+}
+
+/* Form groups inside item row */
+#items-wrapper .cee-form-group {
+    min-width: 150px;
+}
+
+/* Inputs & select */
+#items-wrapper select,
+#items-wrapper input[type="number"] {
+    height: 38px;
+    border-radius: 6px;
+    border: 1px solid #ced4da;
+    padding: 6px 10px;
+    font-size: 14px;
+}
+
+/* Readonly total field */
+#items-wrapper input[readonly] {
+    background-color: #eef3f8;
+    font-weight: 600;
+    color: #2c3e50;
+}
+
+/* ===== REMOVE (X) BUTTON ===== */
+#items-wrapper .btn-danger {
+    position: absolute;
+    top: -10px;
+    right: -10px;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    padding: 0;
+    font-size: 14px;
+    font-weight: bold;
+    line-height: 28px;
+    text-align: center;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+}
+
+/* Hover effect for remove */
+#items-wrapper .btn-danger:hover {
+    background-color: #c82333;
+}
+
+/* ===== ADD ITEM BUTTON ===== */
+button[onclick="addItemRow()"] {
+    border-radius: 20px;
+    padding: 6px 16px;
+    font-size: 14px;
+    font-weight: 500;
+}
+#total-items,
+#freight-total,
+#grand-total {
+    background-color: #eef3f8;
+    font-weight: 600;
+    color: #2c3e50;
+    border-radius: 6px;
+    border: 1px solid #ced4da;
+    height: 38px;
+    padding: 6px 10px;
+}
+
+@media (max-width: 768px) {
+    #items-wrapper .cee-form-row {
+        flex-direction: column;
+    }
+
+    #items-wrapper .btn-danger {
+        top: 6px;
+        right: 6px;
+    }
+}
+
+/* Responsive for small screens */
+@media (max-width: 576px) {
+    .cee-form-group .payment-options {
+        gap: 1rem;
+        flex-direction: column;
+    }
+}
+
+@media (max-width: 992px) {
+    .cee-manage-header {
+        flex-direction: column;
+        align-items: stretch;
+        text-align: center;
+    }
+
+    .cee-action-buttons {
+        justify-content: center;
+        width: 100%;
+        padding-top: 0.5rem;
+    }
+
+    .cee-broker-form-container {
+        padding: 1.5rem;
+    }
+}
+
+@media (max-width: 768px) {
+    .cee-manage-broker-wrapper {
+        margin: 1rem auto;
+        padding: 0 0.75rem;
+    }
+
+    .cee-manage-header {
+        padding: 1rem;
+    }
+
+    .cee-form-row {
+        grid-template-columns: 1fr;
+        gap: 1.25rem;
+    }
+
+    .cee-action-btn {
+        width: 52px;
+        height: 52px;   /* slightly bigger touch target */
+        font-size: 1.5rem;
+    }
+
+    .search-form {
+        max-width: 100%;
+    }
+}
+
+@media (max-width: 576px) {
+    .navbar {
+        padding: 0.6rem 1rem;
+    }
+
+    .navbar-brand {
+        font-size: 1.25rem;
+    }
+
+    .cee-btn-save {
+        width: 100%;
+    }
+}
+@media (max-width: 991.98px) {
+  .navbar-collapse {
+    background: #0d1117;
+    padding: 1rem;
+    margin: 0 -1rem;
+  }
+  
+  .navbar-nav .dropdown-menu {
+    border: none;
+    background: #161b22;
+  }
+  
+  .search-form {
+    max-width: 100% !important;
+  }
+  
+  .search-form .form-control {
+    background: rgba(255,255,255,0.1);
+    border-color: rgba(255,255,255,0.2);
+    color: white;
+  }
+  
+  .search-form .btn {
+    border-color: rgba(255,255,255,0.2);
+  }
+}
+
+@media (max-width: 576px) {  /* ← extra small phones */
+    .navbar-brand {
+        font-size: 1.25rem;
+    }
+
+    .navbar-brand img {
+        height: 34px;
+    }
+
+    .profile-img {
+        width: 34px;
+        height: 34px;
+    }
+
+    .nav-link {
+        padding: 0.9rem 1.5rem !important;
+    }
+}
+        
+
+/* Desktop – NO scroll */
+@media (min-width: 992px) {
+    .table-wrapper {
+        overflow-x: visible;
+    }
+
+    .table-wrapper table {
+        width: 100%;
+        table-layout: fixed;
+    }
+
+    .table-wrapper th,
+    .table-wrapper td {
+        white-space: normal;
+        word-break: break-word;
+    }
+}
+
+/* Tablet & Mobile – ENABLE scroll */
+@media (max-width: 991.98px) {
+    .table-wrapper {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .table-wrapper table {
+        min-width: 1200px;   /* keeps columns readable */
+        table-layout: auto;
+    }
+
+    .table-wrapper th,
+    .table-wrapper td {
+        white-space: nowrap;
+    }
+}

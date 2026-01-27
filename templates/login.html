@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    {% load static %}
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CEE JAY COURIER - Login</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            min-height: 100vh;
+            background: url("{% static 'images/truck.jpg' %}") no-repeat center center/cover fixed;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+        }
+
+        body::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.60);
+            z-index: 1;
+        }
+
+        .login-container {
+            position: relative;
+            z-index: 2;
+            width: 100%;
+            max-width: 360px;
+            background: rgba(255, 255, 255, 0.975);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            padding: 2rem 1.7rem;
+            border-radius: 14px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.28);
+            border: 1px solid rgba(255, 255, 255, 0.25);
+        }
+
+        .brand-header {
+            text-align: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .brand-icon {
+            font-size: 2.4rem;
+            color: #1C4D8D;
+            margin-bottom: 0.35rem;
+        }
+
+        .brand-title {
+            font-weight: 700;
+            color: #222;
+            letter-spacing: 1.4px;
+            font-size: 1.45rem;          /* smaller & more elegant */
+        }
+
+        .form-label {
+            font-weight: 500;
+            color: #555;
+            margin-bottom: 0.3rem;
+            font-size: 0.9rem;
+        }
+
+        .input-group-text {
+            background-color: #f9fafb;
+            border-color: #d1d5db;
+            color: #6b7280;
+        }
+
+        .form-control {
+            border-radius: 0.5rem;
+            padding: 0.6rem 0.9rem;
+            font-size: 0.92rem;           /* main input text size reduced */
+            line-height: 1.4;
+            transition: all 0.2s ease;
+        }
+
+        .form-control::placeholder {
+            color: #9ca3af;
+            font-size: 0.9rem;
+        }
+
+        .form-control:focus {
+            border-color: #1C4D8D;
+            box-shadow: 0 0 0 0.18rem rgba(28, 77, 141, 0.12);
+        }
+
+        .login-btn {
+            width: 100%;
+            padding: 0.68rem;
+            font-size: 0.98rem;           /* button text slightly smaller */
+            font-weight: 600;
+            background: #1C4D8D;
+            border: none;
+            border-radius: 0.5rem;
+            color: white;
+            transition: all 0.25s ease;
+            margin-top: 1rem;
+        }
+
+        .login-btn:hover {
+            background: #0f62fe;
+            transform: translateY(-1px);
+            box-shadow: 0 5px 15px rgba(28, 77, 141, 0.25);
+        }
+
+        .footer-text {
+            text-align: center;
+            margin-top: 1.3rem;
+            font-size: 0.8rem;
+            color: #6b7280;
+        }
+
+        @media (max-width: 576px) {
+            .login-container {
+                margin: 1rem;
+                padding: 1.6rem 1.3rem;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="login-container">
+        {% if messages %}
+        <div class="container mt-2 mb-3">
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                    {{ message|safe }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <div class="brand-header">
+            <i class="bi bi-truck brand-icon"></i>
+            <h2 class="brand-title">CEE JAY COURIER</h2>
+        </div>
+
+        <form method="post">
+            {% csrf_token %}
+
+            <div class="mb-3">
+                <label for="username" class="form-label">Username</label>
+                <div class="input-group">
+                    <span class="input-group-text"><i class="bi bi-person-fill"></i></span>
+                    <input type="text" class="form-control" id="username" name="username" 
+                           placeholder="Enter username" required autofocus>
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label for="password" class="form-label">Password</label>
+                <div class="input-group">
+                    <span class="input-group-text"><i class="bi bi-lock-fill"></i></span>
+                    <input type="password" class="form-control" id="password" name="password" 
+                           placeholder="Enter password" required>
+                </div>
+            </div>
+
+            <button type="submit" class="login-btn">Login</button>
+        </form>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
