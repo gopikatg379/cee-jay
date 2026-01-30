@@ -2,6 +2,7 @@ from django.urls import path
 from .views import *
 urlpatterns = [
     path('cnote/manage/',cnote_manage_view,name='cnote_manage'),
+    path("cnotes/edit/<int:pk>/", cnote_manage_view, name="cnote_edit"),
     path("get-consignor-items/<int:consignor_id>/", get_consignor_items, name="get_consignor_items"),
     path('get-branch-by-location/<int:location_id>/', get_branch_by_location),
     path('get-quotation-rates/<int:consignor_id>/<int:location_id>/',get_quotation_rates,name='get_quotation_rates'),

@@ -115,7 +115,7 @@
                     </span>
                 </td>
                 <td>
-                    <a href="#" class="btn btn-sm btn-success">
+                    <a href="{% url 'cnote_edit' cnote.cnote_id %}" class="btn btn-sm btn-success">
                         <i class="bi bi-pencil"></i>
                     </a>
                     <a href="{% url 'cnote_delete' cnote.cnote_id %}" class="btn btn-sm btn-danger">

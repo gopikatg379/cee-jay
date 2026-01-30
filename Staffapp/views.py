@@ -61,87 +61,97 @@ def get_branch_by_location(request, location_id):
         return JsonResponse({"branches": []}, status=404)
 
 @login_required(login_url='/')
-def cnote_manage_view(request):
+def cnote_manage_view(request, pk=None):
     user = request.user
+
+    cnote = None
+    if pk:
+        cnote = get_object_or_404(CnoteModel, pk=pk)
+
     consignors = Consignor.objects.all()
     consignees = Consignee.objects.all()
-    branches = Branch.objects.all()
     locations = Location.objects.all()
     items = Item.objects.all()
+
     if user.role == 'ADMIN':
         branches = Branch.objects.all()
     else:
         branches = Branch.objects.filter(branch_id=user.branch_id)
+
     if request.method == "POST":
-        date = request.POST.get('date')
-        reference_no = request.POST.get('reference_no')
-        payment = request.POST.get('payment')
-        consignor_id = request.POST.get('consignor')
-        consignee_id = request.POST.get('consignee')
-        branch_id = request.POST.get('branch')
-        destination_id = request.POST.get('location')
-        lr_charge = Decimal(request.POST.get('lr_charge') or 0)
-        invoice_no = request.POST.get('invoice_no')
-        invoice_amt = Decimal(request.POST.get('invoice_amt') or 0)
-        pickup_charge = Decimal(request.POST.get('pickup_charge') or 0)
-        hamali_charge = Decimal(request.POST.get('hamali_charge') or 0)
-        unloading_charge = Decimal(request.POST.get('unloading_charge') or 0)
-        door_delivery = Decimal(request.POST.get('door_delivery') or 0)
-        other_charge = Decimal(request.POST.get('other_charge') or 0)
-        delivery_type = request.POST.get('delivery_type')
-        booking_branch = request.POST.get('booking_branch')
-        items_ids = request.POST.getlist('item[]')
-        qtys = request.POST.getlist('qty[]')
-        rates = request.POST.getlist('rate[]')
-        totals = request.POST.getlist('total[]')
+        data = request.POST
 
-        total_items = sum(int(q) for q in qtys if q)
-        freight = sum(Decimal(t) for t in totals if t)
-        grand_total = freight + lr_charge + pickup_charge + hamali_charge + unloading_charge + door_delivery + other_charge
+        if cnote:
+            obj = cnote          
+        else:
+            obj = CnoteModel()  
 
-        cnote = CnoteModel.objects.create(
-            date=date,
-            reference_no=reference_no,
-            payment=payment,
-            consignor_id=consignor_id,
-            consignee_id=consignee_id,
-            delivery_branch_id = branch_id,
-            booking_branch_id=booking_branch,
-            destination_id=destination_id,
-            lr_charge=lr_charge,
-            invoice_no=invoice_no,
-            invoice_amt=invoice_amt,
-            pickup_charge=pickup_charge,
-            hamali_charge=hamali_charge,
-            unloading_charge=unloading_charge,
-            door_delivery=door_delivery,
-            other_charge=other_charge,
-            delivery_type=delivery_type,
-            total_item=total_items,
-            freight=freight,
-            total=grand_total
-        )
+        obj.date = data.get("date")
+        obj.reference_no = data.get("reference_no")
+        obj.payment = data.get("payment")
+        obj.consignor_id = data.get("consignor")
+        obj.consignee_id = data.get("consignee")
+        obj.booking_branch_id = data.get("booking_branch")
+        obj.delivery_branch_id = data.get("branch")
+        obj.destination_id = data.get("location")
+        obj.delivery_type = data.get("delivery_type")
 
-        for i, item_id in enumerate(items_ids):
-            if item_id:
-                CnoteItem.objects.create(
-                    cnote=cnote,
-                    item_id=item_id,
-                    qty=int(qtys[i]),
-                    rate=Decimal(rates[i]),
-                    total=Decimal(totals[i])
-                )
+        obj.lr_charge = data.get("lr_charge") or 0
+        obj.invoice_no = data.get("invoice_no")
+        obj.invoice_amt = data.get("invoice_amt") or 0
+        obj.pickup_charge = data.get("pickup_charge") or 0
+        obj.hamali_charge = data.get("hamali_charge") or 0
+        obj.unloading_charge = data.get("unloading_charge") or 0
+        obj.door_delivery = data.get("door_delivery") or 0
+        obj.other_charge = data.get("other_charge") or 0
 
-        return redirect('dashboard')
+        obj.save()
+
+        if cnote:
+            obj.items.all().delete()
+
+        qtys = data.getlist("qty[]")
+        rates = data.getlist("rate[]")
+        totals = data.getlist("total[]")
+        item_ids = data.getlist("item[]")
+
+        total_items = 0
+        freight = 0
+
+        for i, item_id in enumerate(item_ids):
+            if not item_id:
+                continue
+            qty = int(qtys[i])
+            rate = float(rates[i])
+            total = float(totals[i])
+
+            CnoteItem.objects.create(
+                cnote=obj,
+                item_id=item_id,
+                qty=qty,
+                rate=rate,
+                total=total
+            )
+            total_items += qty
+            freight += total
+
+        obj.total_item = total_items
+        obj.freight = freight
+        obj.total = freight + float(obj.lr_charge) + float(obj.pickup_charge) + float(obj.hamali_charge) + float(obj.unloading_charge) + float(obj.door_delivery) + float(obj.other_charge)
+        obj.save()
+
+        return redirect("cnote_detail", pk=obj.pk)
 
     context = {
+        "cnote": cnote,
         "consignors": consignors,
         "consignees": consignees,
         "branches": branches,
         "locations": locations,
-        'items': items, 
+        "items": items,
+        "is_edit": bool(cnote),
     }
-    return render(request, 'cnote_manage.html', context)
+    return render(request, "cnote_manage.html", context)
 
 
 def get_quotation_rates(request, consignor_id, location_id):

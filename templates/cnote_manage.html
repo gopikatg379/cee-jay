@@ -143,32 +143,32 @@
                 <label>Payment</label>
                 <select name="payment" required>
                     <option value="">Select</option>
-                    <option value="TOPAY">To Pay</option>
-                    <option value="PAID">Paid</option>
-                    <option value="CREDIT">Credit</option>
+                    <option value="TOPAY" {% if cnote.payment == "TOPAY" %}selected{% endif %}>To Pay</option>
+                    <option value="PAID"  {% if cnote.payment == "PAID" %}selected{% endif %}>Paid</option>
+                    <option value="CREDIT"  {% if cnote.payment == "CREDIT" %}selected{% endif %}>Credit</option>
                 </select>
             </div>
            
             <div class="cee-form-group">
                 <label>Shipper*</label>
-                <input type="text" id="consignor-input" required>
-                <input type="hidden" name="consignor" id="consignor-id">
+                <input type="text" id="consignor-input" value="{{ cnote.consignor.consignor_name|default:'' }}" required>
+                <input type="hidden" name="consignor" id="consignor-id" value="{{ cnote.consignor.consignor_id|default:'' }}">
                 <div id="consignor-suggestions" class="suggestion-box"></div>
                 <a href="{% url 'shipper_manage' %}?mode=add" id="add-shipper-link" style="display:none;"><p style="font-size: 10px;">Add Shipper</p></a>
             </div>
 
             <div class="cee-form-group">
                 <label>Receiver*</label>
-                <input type="text" id="consignee-input" required>
-                <input type="hidden" name="consignee" id="consignee-id">
+                <input type="text" id="consignee-input" value="{{ cnote.consignee.consignee_name|default:'' }}" required>
+                <input type="hidden" name="consignee" id="consignee-id" value="{{ cnote.consignee.consignee_id|default:'' }}">
                 <div id="consignee-suggestions" class="suggestion-box"></div>
                 <a href="{% url 'receiver_manage' %}?mode=add"><p style="font-size: 10px;">Add Receiver</p></a>
             </div>
 
             <div class="cee-form-group">
                 <label>Location*</label>
-                <input type="text" id="location-input">
-                <input type="hidden" name="location" id="location-id">
+                <input type="text" id="location-input" value="{{ cnote.destination.location_name|default:'' }}">
+                <input type="hidden" name="location" id="location-id" value="{{ cnote.destination.location_id|default:'' }}">
                 <div id="location-suggestions" class="suggestion-box"></div>
             </div>
             
@@ -179,21 +179,21 @@
 
              <div class="cee-form-group">
                 <label>Reference No</label>
-                <input type="text" name="reference_no">
+                <input type="text" name="reference_no" value="{{ cnote.reference_no|default:'' }}">
             </div>
 
             <div class="cee-form-group">
                 <label>LR Charge</label>
-                <input type="number" name="lr_charge" value="20">
+                <input type="number" name="lr_charge" value="{{ cnote.lr_charge|default:'20' }}">
             </div>
             
             <div class="cee-form-group">
                 <label>Invoice No*</label>
-                <input type="number" name="invoice_no" required>
+                <input type="number" name="invoice_no" value="{{ cnote.invoice_no|default:'' }}" required>
             </div>
             <div class="cee-form-group">
                 <label>Invoice Amount</label>
-                <input type="number" name="invoice_amt" >
+                <input type="number" name="invoice_amt" value="{{ cnote.invoice_amt|default:'' }}">
             </div>
             
             <div class="cee-form-group">
@@ -205,8 +205,8 @@
             </div>
             <div class="cee-form-group">
                 <label>Delivery Branch</label>
-                <input type="text" id="branch-input" readonly>
-                <input type="hidden" name="branch" id="branch-id">
+                <input type="text" id="branch-input" value="{{ cnote.delivery_branch.branch_name|default:'' }}" readonly>
+                <input type="hidden" name="branch" id="branch-id" value="{{ cnote.delivery_branch.branch_id|default:'' }}">
             </div>
         </div>
 
@@ -223,23 +223,23 @@
             <div class="cee-form-row">
                 <div class="cee-form-group">
                     <label>Pickup Charge</label>
-                    <input type="number" name="pickup_charge" value="0" oninput="updateSummary()">
+                    <input type="number" name="pickup_charge" value="{{ cnote.pickup_charge|default:'0' }}" oninput="updateSummary()">
                 </div>
                 <div class="cee-form-group">
                     <label>Hamali Charge</label>
-                    <input type="number" name="hamali_charge" value="0" oninput="updateSummary()">
+                    <input type="number" name="hamali_charge" value="{{ cnote.hamali_charge|default:'0' }}" oninput="updateSummary()">
                 </div>
                 <div class="cee-form-group">
                     <label>Unloading Charge</label>
-                    <input type="number" name="unloading_charge" value="0" oninput="updateSummary()">
+                    <input type="number" name="unloading_charge" value="{{ cnote.unloading_charge|default:'0' }}" oninput="updateSummary()">
                 </div>
                 <div class="cee-form-group">
                     <label>Door Delivery</label>
-                    <input type="number" name="door_delivery" value="0" oninput="updateSummary()">
+                    <input type="number" name="door_delivery" value="{{ cnote.door_delivery|default:'0' }}" oninput="updateSummary()">
                 </div>
                 <div class="cee-form-group">
                     <label>Other Charge</label>
-                    <input type="number" name="other_charge" value="0" oninput="updateSummary()">
+                    <input type="number" name="other_charge" value="{{ cnote.other_charge|default:'0' }}" oninput="updateSummary()">
                 </div>
             </div>
         </div>
@@ -459,6 +459,41 @@ document.addEventListener("DOMContentLoaded", () => {
     setupAutocomplete("location-input","location-id","location-suggestions",locations,
         id => { selectedLocation = id;loadBranchByLocation(id); if (selectedConsignor) loadQuotationRates(); });
 });
-</script>
 
+</script>
+{% if is_edit %}
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+    if (!itemsData.length) {
+        // Load itemsData first from consignor if needed
+        itemsData = allItems; // or fetch dynamically
+    }
+
+    const existingItems = [
+    {% for it in cnote.items.all %}
+    {
+        item_id: {{ it.item_id }},
+        qty: {{ it.qty }},
+        rate: {{ it.rate }},
+        total: {{ it.total }}
+    },
+    {% endfor %}
+    ];
+
+    existingItems.forEach(it => {
+        addItemRow();
+        const rows = document.querySelectorAll(".items-row");
+        const row = rows[rows.length - 1];
+        // Wait until options are loaded
+        setTimeout(() => {
+            row.children[0].value = it.item_id;
+            row.children[1].value = it.qty;
+            row.children[2].value = it.rate;
+            row.children[3].value = it.total;
+            updateSummary();
+        }, 50);
+    });
+});
+</script>
+{% endif %}
 {% endblock %}
