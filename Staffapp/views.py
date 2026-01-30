@@ -5,13 +5,14 @@ from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
 from decimal import Decimal
 from django.contrib.auth.decorators import login_required
-from django.db.models import Q
+from django.db.models import Q,Value
 from django.core.paginator import Paginator
 from openpyxl import Workbook
 from datetime import datetime
 from django.http import HttpResponse
-from django.template.loader import render_to_string
-
+from django.utils import timezone
+from django.contrib import messages
+from django.db.models.functions import Replace
 
 def get_consignor_items(request, consignor_id):
     consignor = get_object_or_404(Consignor, pk=consignor_id)
@@ -153,7 +154,7 @@ def get_quotation_rates(request, consignor_id, location_id):
     data = []
     for q in quotations:
         data.append({
-            "item_id": q.item_id,
+            "item_id": q.item.item_id,
             "item_name": q.item.item_name,
             "rate": float(q.rate)
         })
@@ -165,12 +166,12 @@ def cnote_list_view(request):
         'consignor', 'consignee', 'destination'
     ).order_by('-cnote_id')
 
-    # -------- Filters --------
     from_date = request.GET.get('from_date')
     to_date = request.GET.get('to_date')
     status = request.GET.get('status')
     search = request.GET.get('search')
-
+    if search:
+        normalized_search = search.replace('-', '')
     if from_date:
         cnotes = cnotes.filter(date__gte=from_date)
 
@@ -181,12 +182,14 @@ def cnote_list_view(request):
         cnotes = cnotes.filter(status=status)
 
     if search:
-        cnotes = cnotes.filter(
-            Q(cnote_id__icontains=search) |
+        normalized_search = search.replace('-', '')
+
+        cnotes = cnotes.annotate(
+            cnote_no_nodash=Replace('cnote_number', Value('-'), Value(''))
+        ).filter(
+            Q(cnote_no_nodash__icontains=normalized_search) |
             Q(invoice_no__icontains=search)
         )
-
-    # -------- Pagination --------
     paginator = Paginator(cnotes, 10)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
@@ -273,8 +276,6 @@ def download_cnote_excel(request):
             c.total_item,
             c.get_status_display(),
         ])
-    print("added")
-    print(ws)
     response = HttpResponse(
         content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
@@ -292,3 +293,34 @@ def print_cnote(request, cnote_id):
     }
     
     return render(request, 'cnotes/print_bill.html', context)
+
+def cnote_delete(request,cnote_id):
+    cnote = get_object_or_404(CnoteModel,cnote_id=cnote_id)
+    cnote.delete()
+    return redirect('cnote_list')
+
+def cnote_detail(request, pk):
+    cnote = get_object_or_404(CnoteModel, pk=pk)
+    context = {
+        'cnote': cnote,
+        'title': f'Basic Info - {cnote.cnote_number}',
+    }
+    return render(request, 'cnotes/cnote_detail.html', context)
+
+@login_required
+def receive_cnote(request, pk):
+    cnote = get_object_or_404(CnoteModel, pk=pk)
+    user_branch = request.user.branch
+
+    if cnote.status == CnoteModel.STATUS_RECEIVED and cnote.received_branch == user_branch:
+        messages.warning(request, "This CNote is already received by your branch.")
+        return redirect("cnote_manage")
+
+    cnote.status = CnoteModel.STATUS_RECEIVED
+    cnote.received_at = timezone.now()
+    cnote.received_branch = user_branch
+    cnote.received_by = request.user
+    cnote.save()
+
+    messages.success(request, "CNote received successfully.")
+    return redirect("cnote_list")

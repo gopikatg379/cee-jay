@@ -1,17 +1,38 @@
 from django.db import models, transaction
 from django.db.models import Max
-from Adminapp.models import Consignee,Consignor,Location,Item,Branch
+from Adminapp.models import Consignee,Consignor,Location,Item,Branch,UserModel
 from decimal import Decimal
+from django.utils import timezone
 
 class CnoteModel(models.Model):
     STATUS_NEW = 'NEW'
-    STATUS_DISPATCHED = 'DISPATCHED'
+    STATUS_RECEIVED = 'RECEIVED'
+    STATUS_INTRANSIT = 'SHIPPED'
+    STATUS_DISPATCHED = 'OUT FOR DELIVERY'
     STATUS_DELIVERED = 'DELIVERED'
     STATUS_CHOICES = [
         (STATUS_NEW, 'New'),
-        (STATUS_DISPATCHED, 'Dispatched'),
+        (STATUS_RECEIVED, 'Received'),
+        (STATUS_INTRANSIT, 'Shipped'),
+        (STATUS_DISPATCHED, 'Out For Delivery'),
         (STATUS_DELIVERED, 'Delivered'),
     ]
+    received_at = models.DateTimeField(null=True, blank=True)
+    received_branch = models.ForeignKey(
+        Branch,
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="received_cnotes"
+    )
+    received_by = models.ForeignKey(
+        UserModel,
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="received_cnotes"
+    )
+
     cnote_id = models.AutoField(primary_key=True)
     date = models.DateField()
 
@@ -57,32 +78,40 @@ class CnoteModel(models.Model):
     freight=models.DecimalField(max_digits=12, decimal_places=2)
     total = models.DecimalField(max_digits=12, decimal_places=2)
 
+    remarks = models.TextField(blank=True,null=True)
     class Meta:
         db_table = "cnote_table"
     def save(self, *args, **kwargs):
-        if not self.cnote_number:  
-            with transaction.atomic(): 
-                prefix = ""
-                if self.booking_branch:
-                    prefix = (self.booking_branch.branch_shortname or "").upper().strip()
+        is_new = self.pk is None
 
-                if not prefix:
-                    prefix = "GEN"  
+        if not is_new:
+            old = CnoteModel.objects.get(pk=self.pk)
 
-                last = (
-                    CnoteModel.objects
-                    .filter(cnote_number__startswith=prefix)
-                    .aggregate(max_num=Max('cnote_number'))
-                    ['max_num']
-                )
+            if old.status != self.STATUS_RECEIVED and self.status == self.STATUS_RECEIVED:
+                if not self.received_at:
+                    self.received_at = timezone.now()
 
-                if last:
+        if not self.cnote_number:
+            with transaction.atomic():
 
-                    num = int(last[len(prefix):]) + 1
+                if not self.booking_branch or not self.booking_branch.branch_code:
+                    prefix = "GEN"
                 else:
-                    num = 10000   
+                    prefix = str(self.booking_branch.branch_code)
 
-                self.cnote_number = f"{prefix}{num}"
+                last_cnote = (
+                    CnoteModel.objects
+                    .filter(cnote_number__startswith=f"{prefix}-")
+                    .aggregate(max_num=Max('cnote_number'))
+                    .get('max_num')
+                )
+                if last_cnote:
+                    last_running = int(last_cnote.split("-")[1])
+                    next_running = last_running + 1
+                else:
+                    next_running = 10000
+
+                self.cnote_number = f"{prefix}-{next_running}"
 
         super().save(*args, **kwargs)
 

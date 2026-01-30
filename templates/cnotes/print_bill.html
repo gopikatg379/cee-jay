@@ -1,161 +1,299 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    {% load static %}
     <meta charset="UTF-8">
-    <title>Consignment Note - {{ cnote.cnote_id }}</title>
+    <title>Consignment Note - {{ cnote.cnote_number|default:"" }}</title>
     <style>
+        @page { size: A4; margin: 0; }
         body {
             font-family: Arial, Helvetica, sans-serif;
-            font-size: 11pt;
+            font-size: 10.8pt;        
             margin: 0;
             padding: 0;
             color: #000;
+            background: white;
+            line-height: 1.28;
         }
-        .container {
-            width: 210mm;          /* A4 width */
-            min-height: 297mm;     /* A4 height */
+        .a4-page {
+            width: 210mm;
+            height: 297mm;
             margin: 0 auto;
-            padding: 10mm;
+            padding: 7mm 10mm;
             box-sizing: border-box;
+        }
+        .lr-box {
+            border: 1.5px solid #000;
+            padding: 6mm 8mm;
+            margin-bottom: 10mm;
+            box-sizing: border-box;
+            background: white;
+        }
+        .copy-label {
+            text-align: center;
+            font-weight: bold;
+            font-size: 12pt;
+            margin-bottom: 5mm;
+            text-transform: uppercase;
+        }
+        .header-row {
+            display: flex;
+            align-items: center;
+            margin-bottom: 5mm;
+        }
+        .logo-img {
+            width: 80px;
+            height: auto;
+            margin-right: 12mm;
+        }
+        .company-name {
+            font-size: 22pt;          
+            font-weight: bold;
+            text-align: left;
+        }
+        .company-info {
+            font-size: 10pt;         
+            line-height: 1.4;
+        }
+        .title {
+            font-size: 16pt;        
+            font-weight: bold;
+            text-align: center;
+            margin: 6px 0 5px;
         }
         table {
             width: 100%;
             border-collapse: collapse;
-            margin-bottom: 8px;
+            margin-bottom: 5px;
         }
         th, td {
-            border: 1px solid #000;
+            border: 1px solid black;
             padding: 4px 6px;
             vertical-align: top;
+            font-size: 10.5pt;         
         }
-        .header {
+        .no-border { border: none !important; }
+        .top-row td {
+            font-weight: bold;
             text-align: center;
-            font-weight: bold;
+            padding: 5px 4px;
+            font-size: 11pt;
         }
-        .logo {
-            font-size: 18pt;
-            margin-bottom: 4px;
-        }
-        .small {
-            font-size: 9pt;
-        }
-        .right {
-            text-align: right;
-        }
-        .total {
-            font-weight: bold;
-            background: #f8f8f8;
-        }
-        .no-border {
-            border: none !important;
-        }
+        .right { text-align: right; }
+        .bold { font-weight: bold; }
+        .small { font-size: 9.2pt; }
         .terms {
-            font-size: 8.5pt;
-            margin-top: 15px;
-            line-height: 1.3;
+            font-size: 8.8pt;
+            line-height: 1.25;
+            margin-top: 8px;
+        }
+        .signature-row td {
+            border: none;
+            padding-top: 20px;
+            font-size: 10pt;
+        }
+        .lr-box {
+            page-break-inside: avoid;
         }
 
-        /* Print-specific styles */
-        @media print {
-            body { margin: 0; }
-            .no-print { display: none !important; }
-            @page {
-                size: A4;
-                margin: 0;
+       @media print {
+            .a4-sheet {
+                height: 297mm !important;
+                padding: 4mm 7mm 3mm !important;
             }
+            .lr-box {
+                margin-bottom: 3mm !important;
+                padding: 3mm 5mm 2.5mm !important;
+            }
+            .lr-box:last-child {
+                margin-bottom: 0 !important;
+            }
+            body { margin: 0 !important; }
+            * { -webkit-print-color-adjust: exact; }
         }
     </style>
 </head>
 <body>
 
-<div class="container">
+<div class="a4-page">
 
-    <!-- Header -->
-    <table>
-        <tr>
-            <td class="no-border" colspan="3">
-                <div class="logo">CEE JAY COURIER</div>
-                <div>DOOR NO:38/1385-A1, CHANDRATHIL ROAD, EDAPPALLY, PIN-682024</div>
-                <div>GST: 32AKQPP7985H2ZD  |  MSME: UDYAM-KL-02-0058521</div>
-                <div>Phone: 6238275151  |  Email: logistics@ceejaycourrier.com</div>
-            </td>
-            <td class="no-border right small">
-                <!-- QR placeholder - you can add real QR later with static file or library -->
-                QR CODE HERE
-            </td>
-        </tr>
-    </table>
+    <div class="lr-box">
+        <div class="header-row">
+            <img src="{% static 'logo/Ceejay_logo.png' %}" alt="CEE JAY COURIER Logo" class="logo-img">
+            <div>
+                <div class="company-name">CEE JAY COURIER</div>
+                <div class="company-info">
+                    DOOR NO:38/1385-A1, CHANDRATHIL ROAD EDAPPALLY, PIN-682024<br>
+                    GST 32AKQPP7985H2ZD  |  MSME NO: UDYAM-KL-02-0058521<br>
+                    Phone: 6238275151  |  Email: logistics@ceejaycourrier.com
+                </div>
+            </div>
+        </div>
 
-    <div class="header" style="font-size:16pt; margin:8px 0;">CONSIGNMENT NOTE</div>
+        <div class="title">CONSIGNMENT NOTE</div>
 
-    <!-- Top info row -->
-    <table>
-        <tr>
-            
-            <td><strong>{{cnote.payment}}</strong></td>
-            <td><strong>TOTAL PIECES</strong> {{ cnote.total_item|default:"1" }}</td>
-            <td><strong>RC{{ cnote.cnote_id }}</strong></td>
-        </tr>
-    </table>
+        <table>
+            <tr class="top-row">
+                <td>DATE: {{ cnote.date|date:"d-m-Y" }}</td>
+                <td>{{ cnote.payment|upper }}</td>
+                <td>TOTAL PIECES {{ cnote.total_item|default:"1" }}</td>
+                <td>{{ cnote.cnote_number }}</td>
+            </tr>
+        </table>
 
-    <!-- Main content -->
-    <table>
-        <tr>
-            <th>FROM</th>
-            <td>{{ cnote.consignor.consignor_name }} / {{ cnote.consignor.code|default:"" }}</td>
-            <th>DESTINATION</th>
-            <td>{{ cnote.destination.location_name }}</td>
-            <th>CHARGES</th>
-            <th class="right">AMOUNT</th>
-        </tr>
-        <tr>
-            <td colspan="2">
-                <strong>CONSIGNOR:</strong> {{ cnote.consignor.consignor_name }}<br>
-                Contact: {{ cnote.consignor.contact_no|default:"-" }}
-            </td>
-            <td colspan="2">
-                <strong>CONSIGNEE:</strong> {{ cnote.consignee.consignee_name }}<br>
-                Contact: {{ cnote.consignee.contact_no|default:"-" }}<br>
-                District: {{ cnote.consignee.district|default:"Ernakulam" }}<br>
-                State: Kerala
-            </td>
-            <td>Freight</td>
-            <td class="right">{{ cnote.freight|default:"300.00" }}</td>
-        </tr>
-        <tr>
-            <td colspan="4">
-                <strong>Invoice No:</strong> {{ cnote.invoice_no|default:"614" }}<br>
-                <strong>Item:</strong> {{ cnote.description|default:"BOX(1)" }}
-            </td>
-            <td>LR Charges</td>
-            <td class="right">{{ cnote.lr_charge|default:"20.00" }}</td>
-        </tr>
-        <!-- Add more charge rows as needed (Pickup, Hamali, Unloading, DD, Other) -->
-        <tr>
-            <td colspan="4" class="small">
-                Remarks: {{ cnote.remarks|default:"" }}
-            </td>
-            <td><strong>TOTAL</strong></td>
-            <td class="right total">{{ cnote.total|default:"320.00" }}</td>
-        </tr>
-    </table>
+        <table>
+            <tr>
+                <th>FROM: {{ cnote.booking_branch.broker.broker_name|default:"-" }}</th>
+                <th>Destination: {{ cnote.destination.location_name|default:"ERNAKULAM" }}</th>
+                <th>Charges</th>
+                <th class="right">Amount</th>
+            </tr>
+            <tr>
+                <td colspan="2" rowspan="6">
+                    <span class="bold">CONSIGNOR</span><br>
+                    {{ cnote.consignor.consignor_name }}<br>
+                    CONTACT NO : {{ cnote.consignor.consignor_phone|default:"-" }}
+                    <br><br>
+                    <span class="bold">CONSIGNEE</span><br>
+                    {{ cnote.consignee.consignee_name }}<br>
+                    {{ cnote.consignee.consignee_address|default:"-" }}<br>
+                    CONTACT NO: {{ cnote.consignee.consignee_phone|default:"-" }}
+                </td>
+                <td>Freight</td>
+                <td class="right">{{ cnote.freight|floatformat:2 }}</td>
+            </tr>
+            <tr><td>LR Charges</td><td class="right">{{ cnote.lr_charge|floatformat:2 }}</td></tr>
+            <tr><td>Pickup Charge</td><td class="right">{{ cnote.pickup_charge|floatformat:2 }}</td></tr>
+            <tr><td>Hamali Charges</td><td class="right">{{ cnote.hamali_charge|floatformat:2 }}</td></tr>
+            <tr><td>Unloading Charge</td><td class="right">{{ cnote.unloading_charge|floatformat:2 }}</td></tr>
+            <tr><td>Other Charges</td><td class="right">{{ cnote.other_charge|floatformat:2 }}</td></tr>
+            <tr>
+                <td colspan="2" class="small">
+                    <span class="bold">DESCRIPTIONS / ITEM NAME</span><br>
+                    {{ cnote.description|default:"BOX(1)" }}<br><br>
+                    Remarks: {{ cnote.remarks|default:"" }}
+                </td>
+                <td class="bold">TOTAL</td>
+                <td class="right bold">{{ cnote.total|floatformat:2 }}</td>
+            </tr>
+        </table>
 
-    <!-- Terms & Conditions -->
-    <div class="terms">
-        <strong>Terms & conditions:</strong><br>
-        (1) The parcel should not contain any letter or communication which infringes the Indian Post Office Act 1893<br>
-        (2) CEE JAY COURIER will not be responsible for any article sent by the consignor which is illegal, contraband ...<br>
-        <!-- Copy your full terms here from the image -->
-        (5) All disputes with respect to non-delivery, loss etc are subject to the jurisdiction of courts at Calicut only
+        <table>
+            <tr>
+                <td class="small no-border">
+                    Invoice No: {{ cnote.invoice_no|default:"-" }} | 
+                    Reference No: {{ cnote.reference_no|default:"-" }} | 
+                    DLY Type: {{ cnote.delivery_type|default:"Door Delivery" }} | 
+                    Charge Wt: {{ cnote.charge_weight|default:"-" }}
+                </td>
+            </tr>
+        </table>
+
+        <div class="terms">
+            <strong>Terms & conditions:</strong><br>
+            (1) The parcel should not contain any letter or communication which infringes the Indian Post Office Act 1893<br>
+            (2) CEE JAY COURIER will not be responsible for any article sent by the consignor which is illegal, contraband (or) prohibited by Railway/Airport/Road Transport Authorities/Indian Post Office Act or Prohibited by the law of carriage, also it should not contain acids, explosives, articles under Restricted Articles Regulation Act, original share certificates/ securities/ cash / Jewellery / visa / passport or any contraband drugs<br>
+            (3) Consignors are bound to insure parcels contents of which are worth more than Rs 100/- and also declare its contents and value at the same time of booking. In case of loss/damage in-transit, our maximum admissible liability for any parcel is Rs 100/- (4) No claim whatsoever shall be entertained after 15 days of booking.<br>
+            (4) All disputes with respect to non-delivery, loss etc are subject to the jurisdiction of courts at Calicut only
+        </div>
+
+        <table>
+            <tr class="signature-row">
+                <td>Receiver Signature</td>
+                <td style="text-align:right;">Clerk / Agent : {{ cnote.booking_branch.broker.broker_name|default:"-" }}</td>
+            </tr>
+        </table>
     </div>
 
-    <!-- Signatures -->
-    <table style="margin-top:40px; border:none;">
-        <tr>
-            <td style="border:none; width:50%;">Receiver Signature</td>
-            <td style="border:none; text-align:right;">Signature of Clerk / Agent : RAHASCLT</td>
-        </tr>
-    </table>
+    <!-- ================= COPY ================= -->
+    <div class="lr-box">
+
+        <div class="header-row">
+            <img src="{% static 'logo/Ceejay_logo.png' %}" alt="CEE JAY COURIER Logo" class="logo-img">
+            <div>
+                <div class="company-name">CEE JAY COURIER</div>
+                <div class="company-info">
+                    DOOR NO:38/1385-A1, CHANDRATHIL ROAD EDAPPALLY, PIN-682024<br>
+                    GST 32AKQPP7985H2ZD  |  MSME NO: UDYAM-KL-02-0058521<br>
+                    Phone: 6238275151  |  Email: logistics@ceejaycourrier.com
+                </div>
+            </div>
+        </div>
+
+        <div class="title">CONSIGNMENT NOTE</div>
+
+        <table>
+            <tr class="top-row">
+                <td>DATE: {{ cnote.date|date:"d-m-Y" }}</td>
+                <td>{{ cnote.payment|upper }}</td>
+                <td>TOTAL PIECES {{ cnote.total_item|default:"1" }}</td>
+                <td>{{ cnote.cnote_number }}</td>
+            </tr>
+        </table>
+
+        <table>
+            <tr>
+                <th>FROM: {{ cnote.booking_branch.broker.broker_name|default:"-" }}</th>
+                <th>Destination: {{ cnote.destination.location_name|default:"ERNAKULAM" }}</th>
+                <th>Charges</th>
+                <th class="right">Amount</th>
+            </tr>
+            <tr>
+                <td colspan="2" rowspan="6">
+                    <span class="bold">CONSIGNOR</span><br>
+                    {{ cnote.consignor.consignor_name }}<br>
+                    CONTACT NO : {{ cnote.consignor.consignor_phone|default:"-" }}
+                    <br><br>
+                    <span class="bold">CONSIGNEE</span><br>
+                    {{ cnote.consignee.consignee_name }}<br>
+                    {{ cnote.consignee.consignee_address|default:"-" }}<br>
+                    CONTACT NO: {{ cnote.consignee.consignee_phone|default:"-" }}
+                </td>
+                <td>Freight</td>
+                <td class="right">{{ cnote.freight|floatformat:2 }}</td>
+            </tr>
+            <tr><td>LR Charges</td><td class="right">{{ cnote.lr_charge|floatformat:2 }}</td></tr>
+            <tr><td>Pickup Charge</td><td class="right">{{ cnote.pickup_charge|floatformat:2 }}</td></tr>
+            <tr><td>Hamali Charges</td><td class="right">{{ cnote.hamali_charge|floatformat:2 }}</td></tr>
+            <tr><td>Unloading Charge</td><td class="right">{{ cnote.unloading_charge|floatformat:2 }}</td></tr>
+            <tr><td>Other Charges</td><td class="right">{{ cnote.other_charge|floatformat:2 }}</td></tr>
+            <tr>
+                <td colspan="2" class="small">
+                    <span class="bold">DESCRIPTIONS / ITEM NAME</span><br>
+                    {{ cnote.description|default:"BOX(1)" }}<br><br>
+                    Remarks: {{ cnote.remarks|default:"" }}
+                </td>
+                <td class="bold">TOTAL</td>
+                <td class="right bold">{{ cnote.total|floatformat:2 }}</td>
+            </tr>
+        </table>
+
+        <table>
+            <tr>
+                <td class="small no-border">
+                    Invoice No: {{ cnote.invoice_no|default:"-" }} | 
+                    Reference No: {{ cnote.reference_no|default:"-" }} | 
+                    DLY Type: {{ cnote.delivery_type|default:"Door Delivery" }} | 
+                    Charge Wt: {{ cnote.charge_weight|default:"-" }}
+                </td>
+            </tr>
+        </table>
+
+        <div class="terms">
+            <strong>Terms & conditions:</strong><br>
+            (1) The parcel should not contain any letter or communication which infringes the Indian Post Office Act 1893<br>
+            (2) CEE JAY COURIER will not be responsible for any article sent by the consignor which is illegal, contraband (or) prohibited by Railway/Airport/Road Transport Authorities/Indian Post Office Act or Prohibited by the law of carriage, also it should not contain acids, explosives, articles under Restricted Articles Regulation Act, original share certificates/ securities/ cash / Jewellery / visa / passport or any contraband drugs<br>
+            (3) Consignors are bound to insure parcels contents of which are worth more than Rs 100/- and also declare its contents and value at the same time of booking. In case of loss/damage in-transit, our maximum admissible liability for any parcel is Rs 100/- (4) No claim whatsoever shall be entertained after 15 days of booking.<br>
+            (4) All disputes with respect to non-delivery, loss etc are subject to the jurisdiction of courts at Calicut only
+        </div>
+
+        <table>
+            <tr class="signature-row">
+                <td>Receiver Signature</td>
+                <td style="text-align:right;">Clerk / Agent : {{ cnote.booking_branch.broker.broker_name|default:"-" }}</td>
+            </tr>
+        </table>
+    </div>
 
 </div>
 

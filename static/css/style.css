@@ -285,7 +285,7 @@ main {
 .cee-search-container input.form-control,
 .cee-search-container .input-group-text {
     text-decoration: none !important;
-    text-decoration-line: none !important;   /* extra safety for some browsers */
+    text-decoration-line: none !important;   
     text-decoration-style: none !important;
     text-decoration-color: transparent !important;
 }
@@ -348,23 +348,22 @@ main {
 footer {
     margin-top: auto;          
 }
-/* Payment radio group container */
+
 .cee-form-group .payment-options {
     display: flex;
-    gap: 1.5rem;           /* space between options */
+    gap: 1.5rem;         
     margin-top: 0.5rem;
-    flex-wrap: wrap;        /* wrap on smaller screens */
+    flex-wrap: wrap;        
 }
 
-/* Hide default radio button */
+
 .cee-form-group .payment-options input[type="radio"] {
     display: none;
 }
 
-/* Custom radio button */
 .cee-form-group .payment-options label {
     position: relative;
-    padding-left: 28px;       /* space for circle */
+    padding-left: 28px;      
     cursor: pointer;
     font-weight: 500;
     color: #444;
@@ -373,23 +372,23 @@ footer {
     align-items: center;
 }
 
-/* Outer circle */
+
 .cee-form-group .payment-options label::before {
     content: "";
     position: absolute;
     left: 0;
     top: 50%;
     transform: translateY(-50%);
-    width: 20px;               /* uniform size */
+    width: 20px;               
     height: 20px;
-    border: 2px solid #1C4D8D; /* primary color */
-    border-radius: 50%;         /* perfect circle */
+    border: 2px solid #1C4D8D; 
+    border-radius: 50%;        
     background: white;
     box-sizing: border-box;
     transition: all 0.2s;
 }
 
-/* Inner dot when selected */
+
 .cee-form-group .payment-options input[type="radio"]:checked + label::after {
     content: "";
     position: absolute;
@@ -398,20 +397,20 @@ footer {
     transform: translateY(-50%);
     width: 10px;
     height: 10px;
-    border-radius: 50%;         /* perfect circle */
-    background: #1C4D8D;        /* primary color */
+    border-radius: 50%;        
+    background: #1C4D8D;  
 }
 
-/* Hover effect */
+
 .cee-form-group .payment-options label:hover::before {
     box-shadow: 0 0 0 3px rgba(28, 77, 141, 0.2);
 }
-/* ===== ITEMS SECTION ===== */
+
 #items-wrapper {
     margin-top: 10px;
 }
 
-/* Each item row as a card */
+
 #items-wrapper .cee-form-row {
     background: #f9fbfd;
     border: 1px solid #e3e8ef;
@@ -426,12 +425,11 @@ footer {
     box-shadow: 0 4px 12px rgba(0,0,0,0.08);
 }
 
-/* Form groups inside item row */
+
 #items-wrapper .cee-form-group {
     min-width: 150px;
 }
 
-/* Inputs & select */
 #items-wrapper select,
 #items-wrapper input[type="number"] {
     height: 38px;
@@ -441,14 +439,14 @@ footer {
     font-size: 14px;
 }
 
-/* Readonly total field */
+
 #items-wrapper input[readonly] {
     background-color: #eef3f8;
     font-weight: 600;
     color: #2c3e50;
 }
 
-/* ===== REMOVE (X) BUTTON ===== */
+
 #items-wrapper .btn-danger {
     position: absolute;
     top: -10px;
@@ -464,12 +462,12 @@ footer {
     box-shadow: 0 2px 6px rgba(0,0,0,0.2);
 }
 
-/* Hover effect for remove */
+
 #items-wrapper .btn-danger:hover {
     background-color: #c82333;
 }
 
-/* ===== ADD ITEM BUTTON ===== */
+
 button[onclick="addItemRow()"] {
     border-radius: 20px;
     padding: 6px 16px;
@@ -499,7 +497,7 @@ button[onclick="addItemRow()"] {
     }
 }
 
-/* Responsive for small screens */
+
 @media (max-width: 576px) {
     .cee-form-group .payment-options {
         gap: 1rem;
@@ -542,7 +540,7 @@ button[onclick="addItemRow()"] {
 
     .cee-action-btn {
         width: 52px;
-        height: 52px;   /* slightly bigger touch target */
+        height: 52px;   
         font-size: 1.5rem;
     }
 
@@ -591,7 +589,7 @@ button[onclick="addItemRow()"] {
   }
 }
 
-@media (max-width: 576px) {  /* ← extra small phones */
+@media (max-width: 576px) { 
     .navbar-brand {
         font-size: 1.25rem;
     }
@@ -611,7 +609,7 @@ button[onclick="addItemRow()"] {
 }
         
 
-/* Desktop – NO scroll */
+
 @media (min-width: 992px) {
     .table-wrapper {
         overflow-x: visible;
@@ -629,7 +627,7 @@ button[onclick="addItemRow()"] {
     }
 }
 
-/* Tablet & Mobile – ENABLE scroll */
+
 @media (max-width: 991.98px) {
     .table-wrapper {
         overflow-x: auto;
@@ -637,7 +635,7 @@ button[onclick="addItemRow()"] {
     }
 
     .table-wrapper table {
-        min-width: 1200px;   /* keeps columns readable */
+        min-width: 1200px;  
         table-layout: auto;
     }
 

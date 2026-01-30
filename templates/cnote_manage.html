@@ -139,23 +139,48 @@
                 <label>Date</label>
                 <input type="date" name="date" id="cnote-date">
             </div>
-
-            <div class="cee-form-group">
-                <label>Reference No</label>
-                <input type="text" name="reference_no">
-            </div>
-
             <div class="cee-form-group">
                 <label>Payment</label>
-                <select name="payment">
+                <select name="payment" required>
                     <option value="">Select</option>
                     <option value="TOPAY">To Pay</option>
                     <option value="PAID">Paid</option>
                     <option value="CREDIT">Credit</option>
                 </select>
             </div>
+           
+            <div class="cee-form-group">
+                <label>Shipper*</label>
+                <input type="text" id="consignor-input" required>
+                <input type="hidden" name="consignor" id="consignor-id">
+                <div id="consignor-suggestions" class="suggestion-box"></div>
+                <a href="{% url 'shipper_manage' %}?mode=add" id="add-shipper-link" style="display:none;"><p style="font-size: 10px;">Add Shipper</p></a>
+            </div>
 
+            <div class="cee-form-group">
+                <label>Receiver*</label>
+                <input type="text" id="consignee-input" required>
+                <input type="hidden" name="consignee" id="consignee-id">
+                <div id="consignee-suggestions" class="suggestion-box"></div>
+                <a href="{% url 'receiver_manage' %}?mode=add"><p style="font-size: 10px;">Add Receiver</p></a>
+            </div>
+
+            <div class="cee-form-group">
+                <label>Location*</label>
+                <input type="text" id="location-input">
+                <input type="hidden" name="location" id="location-id">
+                <div id="location-suggestions" class="suggestion-box"></div>
+            </div>
             
+        </div>
+
+        <div class="cee-form-row">
+            
+
+             <div class="cee-form-group">
+                <label>Reference No</label>
+                <input type="text" name="reference_no">
+            </div>
 
             <div class="cee-form-group">
                 <label>LR Charge</label>
@@ -166,37 +191,14 @@
                 <label>Invoice No*</label>
                 <input type="number" name="invoice_no" required>
             </div>
-        </div>
-
-        <div class="cee-form-row">
             <div class="cee-form-group">
                 <label>Invoice Amount</label>
                 <input type="number" name="invoice_amt" >
             </div>
+            
             <div class="cee-form-group">
-                <label>Shipper*</label>
-                <input type="text" id="consignor-input">
-                <input type="hidden" name="consignor" id="consignor-id">
-                <div id="consignor-suggestions" class="suggestion-box"></div>
-            </div>
-
-            <div class="cee-form-group">
-                <label>Receiver*</label>
-                <input type="text" id="consignee-input">
-                <input type="hidden" name="consignee" id="consignee-id">
-                <div id="consignee-suggestions" class="suggestion-box"></div>
-            </div>
-
-            <div class="cee-form-group">
-                <label>Location*</label>
-                <input type="text" id="location-input">
-                <input type="hidden" name="location" id="location-id">
-                <div id="location-suggestions" class="suggestion-box"></div>
-            </div>
-            <div class="cee-form-group">
-                <label>Delivery</label>
-                <select name="delivery_type">
-                    <option value="">Select</option>
+                <label>Delivery Type</label>
+                <select name="delivery_type" required>
                     <option>Door Delivery</option>
                     <option>Godown Delivery</option>
                 </select>
@@ -221,23 +223,23 @@
             <div class="cee-form-row">
                 <div class="cee-form-group">
                     <label>Pickup Charge</label>
-                    <input type="number" name="pickup_charge" value="0">
+                    <input type="number" name="pickup_charge" value="0" oninput="updateSummary()">
                 </div>
                 <div class="cee-form-group">
                     <label>Hamali Charge</label>
-                    <input type="number" name="hamali_charge" value="0">
+                    <input type="number" name="hamali_charge" value="0" oninput="updateSummary()">
                 </div>
                 <div class="cee-form-group">
                     <label>Unloading Charge</label>
-                    <input type="number" name="unloading_charge" value="0">
+                    <input type="number" name="unloading_charge" value="0" oninput="updateSummary()">
                 </div>
                 <div class="cee-form-group">
                     <label>Door Delivery</label>
-                    <input type="number" name="door_delivery" value="0">
+                    <input type="number" name="door_delivery" value="0" oninput="updateSummary()">
                 </div>
                 <div class="cee-form-group">
                     <label>Other Charge</label>
-                    <input type="number" name="other_charge" value="0">
+                    <input type="number" name="other_charge" value="0" oninput="updateSummary()">
                 </div>
             </div>
         </div>
@@ -334,17 +336,16 @@ function loadQuotationRates() {
     fetch(`/staff/get-quotation-rates/${selectedConsignor}/${selectedLocation}/`)
         .then(r => r.json())
         .then(data => {
-            itemsData = allItems.map(i => ({
-                item_id: i.item_id,
-                item_name: i.item_name,
-                rate: 0
-            }));
-
-            data.forEach(q => {
-                const found = itemsData.find(i => i.item_id === q.item_id);
-                if (found) found.rate = q.rate;
-            });
-
+            if (data.length > 0) {
+                itemsData = data.map(i => ({
+                    item_id: i.item_id,
+                    item_name: i.item_name,
+                    rate: i.rate
+                }));
+            } else if (selectedConsignor) {
+                loadConsignorItems(selectedConsignor);
+                return; 
+            }
             document.getElementById("items-wrapper").innerHTML = "";
             addItemRow();
         });
@@ -411,17 +412,37 @@ function updateSummary() {
     let qty = 0, freight = 0;
     const lrChargeInput = document.querySelector('input[name="lr_charge"]');
     const lrCharge = lrChargeInput ? (+lrChargeInput.value || 0) : 0;
+    const pickupChargeInput = document.querySelector('input[name="pickup_charge"]');
+    const pickupCharge = pickupChargeInput ? (+pickupChargeInput.value || 0) : 0;
+    const hamaliChargeInput = document.querySelector('input[name="hamali_charge"]');
+    const hamaliCharge = hamaliChargeInput ? (+hamaliChargeInput.value || 0) : 0;
+    const otherChargeInput = document.querySelector('input[name="other_charge"]');
+    const otherCharge = otherChargeInput ? (+otherChargeInput.value || 0) : 0;
+    const unloadingChargeInput = document.querySelector('input[name="unloading_charge"]');
+    const unloadingCharge = unloadingChargeInput ? (+unloadingChargeInput.value || 0) : 0;
+    const doorChargeInput = document.querySelector('input[name="door_delivery"]');
+    const doorCharge = doorChargeInput ? (+doorChargeInput.value || 0) : 0;
     document.querySelectorAll(".items-row").forEach(r => {
         qty += +r.children[1].value || 0;
         freight += +r.children[3].value || 0;
     });
-    const grandTotal = freight + lrCharge;
+    const grandTotal = freight + lrCharge+pickupCharge+otherCharge+hamaliCharge+doorCharge+unloadingCharge;
     document.getElementById("total-items").value = qty;
     document.getElementById("freight-total").value = freight.toFixed(2);
     document.getElementById("grand-total").value = grandTotal.toFixed(2);
 }
 
+function toggleAddShipper() {
+    const payment = document.querySelector('select[name="payment"]').value;
+    const addShipper = document.getElementById("add-shipper-link");
 
+    if (payment === "TOPAY") {
+        addShipper.style.display = "block";
+    } else {
+        addShipper.style.display = "none";
+    }
+}
+document.querySelector('select[name="payment"]').addEventListener("change", toggleAddShipper);
 
 document.addEventListener("DOMContentLoaded", () => {
     const today = new Date().toISOString().split("T")[0];

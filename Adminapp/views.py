@@ -148,7 +148,6 @@ def branch_manage_view(request, branch_id=None):
         company_id = request.POST['company']
         company=Company.objects.get(comp_id=company_id)
         branch_name = request.POST['branch_name']
-        branch_code=request.POST['branch_code']
         branch_shortname=request.POST['branch_shortname']
         branch_type = request.POST['branch_type']
         branch_address = request.POST['branch_address']
@@ -163,7 +162,6 @@ def branch_manage_view(request, branch_id=None):
             branch = instance
             branch.company = company
             branch.branch_name = branch_name
-            branch.branch_code = branch_code
             branch.branch_shortname = branch_shortname
             branch.branch_type = branch_type
             branch.branch_phone = phone
@@ -176,7 +174,7 @@ def branch_manage_view(request, branch_id=None):
             branch.save()
             return redirect('branch_manage')
         else:
-            branch = Branch(company = company,branch_name = branch_name,branch_code = branch_code,branch_shortname = branch_shortname,
+            branch = Branch(company = company,branch_name = branch_name,branch_shortname = branch_shortname,
                             branch_type = branch_type,branch_phone = phone,branch_email = branch_email,broker = broker,branch_address = branch_address,
                             services = services,category = category,branch_is_active = is_active)
             print("statred to saving..")

@@ -26,7 +26,8 @@ SECRET_KEY = 'django-insecure-x$jc=#srq&53k%2#4w*#w#p&gb(37bet8bl9_l-$^xxhzbkx)$
 DEBUG = True
 
 ALLOWED_HOSTS = []
-
+TIME_ZONE = 'Asia/Kolkata'
+USE_TZ = True
 
 # Application definition
 
@@ -77,7 +78,7 @@ WSGI_APPLICATION = 'Ceejay.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'ceejaycourier',
+        'NAME': 'ceejay_db',
         'USER': 'root',
         'PASSWORD': 'gop1999ika',
         'HOST': 'localhost',
@@ -130,3 +131,5 @@ STATICFILES_DIRS = [
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 AUTH_USER_MODEL = 'Adminapp.UserModel'
+TIME_ZONE = 'Asia/Kolkata'
+USE_TZ = True

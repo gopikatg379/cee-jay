@@ -2,147 +2,178 @@
 {% block content %}
 {% now "Y-m-d" as today %}
 <div class="container-fluid">
-
-<form method="get" class="card p-3 mb-3">
-    <h5>Filter</h5>
-    <div class="row g-3">
-        <div class="col-md-3">
-            <label>From Date</label>
-            <input type="date" name="from_date" class="form-control"
-                   value="{{ filters.from_date }}">
-        </div>
-
-        <div class="col-md-3">
-            <label>To Date</label>
-            <input type="date" name="to_date" class="form-control"
-                   value="{{ filters.to_date|default:today }}">
-        </div>
-
-        <div class="col-md-3">
-            <label>Status</label>
-            <select name="status" class="form-control">
-                <option value="">All</option>
-                {% for key,val in status_choices %}
-                    <option value="{{ key }}"
-                        {% if filters.status == key %}selected{% endif %}>
-                        {{ val }}
-                    </option>
-                {% endfor %}
-            </select>
-        </div>
-
-        <div class="col-md-3 d-flex align-items-end">
-            <button class="btn btn-success w-100">SEARCH</button>
-        </div>
+    <div class="mb-4" style="background-color: #1C4D8D; color: white; padding: 12px 20px; border-radius: 6px; text-align: left; display: flex; align-items: center;">
+        <h4>Manage CNote</h4>
     </div>
-</form>
+    <form method="get" class="card p-3 mb-3">
+        <h5>Filter</h5>
+        <div class="row g-3">
+            <div class="col-md-3">
+                <label>From Date</label>
+                <input type="date" name="from_date" class="form-control"
+                    value="{{ filters.from_date }}" required>
+            </div>
+
+            <div class="col-md-3">
+                <label>To Date</label>
+                <input type="date" name="to_date" class="form-control"
+                    value="{{ filters.to_date|default:today }}">
+            </div>
+
+            <div class="col-md-3">
+                <label>Status</label>
+                <select name="status" class="form-control">
+                    <option value="">All</option>
+                    {% for key,val in status_choices %}
+                        <option value="{{ key }}"
+                            {% if filters.status == key %}selected{% endif %}>
+                            {{ val }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="col-md-3 d-flex align-items-end">
+                <button class="btn btn-success w-100" >SEARCH</button>
+            </div>
+        </div>
+    </form>
 
 
-<div class="d-flex justify-content-between mb-2">
-    <a href="{% url 'download_cnote_excel' %}?from_date={{ filters.from_date }}&to_date={{ filters.to_date }}&status={{ filters.status }}&search={{ filters.search }}" class="btn btn-info btn-sm">DOWNLOAD AS EXCEL</a>
+    <div class="d-flex justify-content-between mb-2">
+        <a href="{% url 'download_cnote_excel' %}?from_date={{ filters.from_date }}&to_date={{ filters.to_date }}&status={{ filters.status }}&search={{ filters.search }}" class="btn btn-info btn-sm disabled" aria-disabled="true" id="downloadBtn">DOWNLOAD AS EXCEL</a>
 
-    <form method="get" id="searchForm">
-    <input type="text"
-           id="searchInput"
-           name="search"
-           placeholder="Search CNote / Invoice"
-           class="form-control form-control-sm"
-           value="{{ filters.search }}"
-           autocomplete="off">
-</form>
-</div>
+        <form method="get" id="searchForm" class="position-relative" style="max-width: 320px;">
+                <input type="text"
+                    id="searchInput"
+                    name="search"
+                    placeholder="Search CNote / Invoice No"
+                    class="form-control form-control-sm"
+                    value="{{ filters.search|default:'' }}"
+                    autocomplete="off"
+                    autofocus>
+            </form>
+    </div>
 
-<div class="card">
-<div class="table-responsive">
-<table class="table table-bordered table-hover">
-    <thead>
-        <tr>
-            <th>#</th>
-            <th><input type="checkbox"></th>
-            <th>LR Date</th>
-            <th>CNote No</th>
-            <th>Operation Status</th>
-            <th>Invoice No</th>
-            <th>Consignor</th>
-            <th>Consignee</th>
-            <th>Destination</th>
-            <th>Qty</th>
-            <th>Status</th>
-            <th>Actions</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for cnote in page_obj %}
-        <tr>
-            <td>{{ forloop.counter }}</td>
-            <td><input type="checkbox"></td>
-            <td>{{ cnote.date|date:"d-m-Y" }}</td>
-            <td>{{ cnote.cnote_id }}</td>
-            {% if cnote.status == "NEW" %}
-            <td>Booked</td>
-            {% elif cnote.status == "DISPATCHED"%}
-            <td>In Transit</td>
-            {% elif cnote.status == "DELIVERED" %}
-            <td>Delivered</td>
-            {% endif %}
-            <td>{{ cnote.invoice_no|default:"-" }}</td>
-            <td>{{ cnote.consignor.consignor_name }}</td>
-            <td>{{ cnote.consignee.consignee_name }}</td>
-            <td>{{ cnote.destination.location_name }}</td>
-            <td>{{ cnote.total_item }}</td>
-            <td>
-                <span class="badge bg-secondary">
-                    {{ cnote.get_status_display }}
-                </span>
-            </td>
-            <td>
-                <a href="#" class="btn btn-sm btn-success">
-                    <i class="bi bi-pencil"></i>
-                </a>
-                <a href="#" class="btn btn-sm btn-danger">
-                    <i class="bi bi-trash"></i>
-                </a>
-                <a href="{% url 'print_cnote' cnote.cnote_id %}" 
-                class="btn btn-sm btn-info" 
-                target="_blank"
-                title="Print Consignment Note">
-                    <i class="bi bi-printer"></i>
-                </a>
-            </td>
-        </tr>
-        {% empty %}
-        <tr>
-            <td colspan="11" class="text-center">No records found</td>
-        </tr>
-        {% endfor %}
-    </tbody>
-</table>
-</div>
-</div>
+    <div class="card">
+    <div class="table-responsive">
+    <table class="table table-bordered table-hover">
+        <thead>
+            <tr>
+                <th>#</th>
+                <th><input type="checkbox"></th>
+                <th>LR Date</th>
+                <th>CNote No</th>
+                <th>Operation Status</th>
+                <th>Invoice No</th>
+                <th>Consignor</th>
+                <th>Consignee</th>
+                <th>Destination</th>
+                <th>Qty</th>
+                <th>Status</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for cnote in page_obj %}
+            <tr>
+                <td>{{ forloop.counter }}</td>
+                <td><input type="checkbox"></td>
+                <td>{{ cnote.date|date:"d-m-Y" }}</td>
+                <td>
+                    <a href="{% url 'cnote_detail' cnote.pk %}" 
+                    class="text-primary fw-bold" 
+                    title="View Basic Info">
+                        {{ cnote.cnote_number }}
+                    </a>
+                </td>
+                {% if cnote.status == "NEW" %}
+                <td>Booked</td>
+                {% elif cnote.status == "RECEIVED"%}
+                <td>Received</td>
+                {% elif cnote.status == "SHIPPED"%}
+                <td>Shipped</td>
+                {% elif cnote.status == "OUT FOR DELIVERY"%}
+                <td>Out for delivery</td>
+                {% elif cnote.status == "DELIVERED" %}
+                <td>Delivered</td>
+                {% endif %}
+                <td>{{ cnote.invoice_no|default:"-" }}</td>
+                <td>{{ cnote.consignor.consignor_name }}</td>
+                <td>{{ cnote.consignee.consignee_name }}</td>
+                <td>{{ cnote.destination.location_name }}</td>
+                <td>{{ cnote.total_item }}</td>
+                <td>
+                    <span class="badge 
+                        {% if cnote.status == 'NEW' %}bg-secondary
+                        {% elif cnote.status == 'RECEIVED' %}bg-primary
+                        {% elif cnote.status == 'SHIPPED' %}bg-warning text-dark
+                        {% elif cnote.status == 'OUT FOR DELIVERY' %}bg-info text-dark
+                        {% elif cnote.status == 'DELIVERED' %}bg-success
+                        {% else %}bg-secondary{% endif %}">
+                        {{ cnote.get_status_display }}
+                    </span>
+                </td>
+                <td>
+                    <a href="#" class="btn btn-sm btn-success">
+                        <i class="bi bi-pencil"></i>
+                    </a>
+                    <a href="{% url 'cnote_delete' cnote.cnote_id %}" class="btn btn-sm btn-danger">
+                        <i class="bi bi-trash"></i>
+                    </a>
+                    <a href="{% url 'print_cnote' cnote.cnote_id %}" 
+                    class="btn btn-sm btn-info" 
+                    target="_blank"
+                    title="Print Consignment Note">
+                        <i class="bi bi-printer"></i>
+                    </a>
+                    {% if cnote.status == "RECEIVED" and cnote.received_branch == request.user.branch %}
+                        <button class="btn btn-sm btn-secondary" disabled title="Already received by your branch">
+                            <i class="bi bi-check-circle"></i>
+                        </button>
+                    {% else %}
+                        <a href="{% url 'receive_cnote' cnote.pk %}"
+                        class="btn btn-sm btn-warning"
+                        title="Receive Consignment">
+                            <i class="bi bi-box-arrow-in-down"></i>
+                        </a>
+                    {% endif %}
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="11" class="text-center">No records found</td>
+            </tr>
+            {% endfor %}
+            
+        </tbody>
+    </table>
+    </div>
+    </div>
 
-<nav class="mt-3">
-<ul class="pagination pagination-sm justify-content-end">
+    <nav class="mt-3">
+    <ul class="pagination pagination-sm justify-content-end">
 
-    {% if page_obj.has_previous %}
-    <li class="page-item">
-        <a class="page-link" href="?page={{ page_obj.previous_page_number }}">Prev</a>
-    </li>
-    {% endif %}
+        {% if page_obj.has_previous %}
+        <li class="page-item">
+            <a class="page-link" href="?page={{ page_obj.previous_page_number }}">Prev</a>
+        </li>
+        {% endif %}
 
-    <li class="page-item active">
-        <span class="page-link">
-            {{ page_obj.number }} / {{ page_obj.paginator.num_pages }}
-        </span>
-    </li>
+        <li class="page-item active">
+            <span class="page-link">
+                {{ page_obj.number }} / {{ page_obj.paginator.num_pages }}
+            </span>
+        </li>
 
-    {% if page_obj.has_next %}
-    <li class="page-item">
-        <a class="page-link" href="?page={{ page_obj.next_page_number }}">Next</a>
-    </li>
-    {% endif %}
+        {% if page_obj.has_next %}
+        <li class="page-item">
+            <a class="page-link" href="?page={{ page_obj.next_page_number }}">Next</a>
+        </li>
+        {% endif %}
 
-</ul>
-</nav>
+    </ul>
+    </nav>
 
 </div>
 <script>
@@ -159,7 +190,8 @@ document.getElementById("searchInput").addEventListener("keyup", function () {
 document.addEventListener('DOMContentLoaded', function () {
     const selectAllCheckbox = document.querySelector('thead input[type="checkbox"]');
     const rowCheckboxes = document.querySelectorAll('tbody input[type="checkbox"]');
-
+    const fromDateInput = document.querySelector('input[name="from_date"]');
+    const downloadBtn = document.getElementById("downloadBtn");
     if (!selectAllCheckbox || rowCheckboxes.length === 0) return;
 
     selectAllCheckbox.addEventListener('change', function () {
@@ -179,6 +211,19 @@ document.addEventListener('DOMContentLoaded', function () {
             selectAllCheckbox.indeterminate = !allChecked && someChecked;
         });
     });
+    function toggleDownloadButton() {
+        if (fromDateInput.value) {
+            downloadBtn.classList.remove("disabled");
+            downloadBtn.removeAttribute("aria-disabled");
+        } else {
+            downloadBtn.classList.add("disabled");
+            downloadBtn.setAttribute("aria-disabled", "true");
+        }
+    }
+
+    toggleDownloadButton();
+
+    fromDateInput.addEventListener("change", toggleDownloadButton);
 });
 </script>
 {% endblock %}

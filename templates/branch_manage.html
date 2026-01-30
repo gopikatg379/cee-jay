@@ -1,10 +1,10 @@
-<!-- templates/brokers/manage.html -->
+
 {% extends 'base.html' %}
 {% block content %}
 
 <div class="cee-manage-broker-wrapper">
 
-    <!-- Always the same header -->
+
     <div class="cee-manage-header">
         <h4>Manage Branch</h4>
         {% if request.GET.mode != 'add' and request.GET.mode != 'edit' %}
@@ -39,7 +39,6 @@
         </div>
     </div>
 
-    <!-- Form View -->
     <div class="view-container {% if active_tab not in 'add edit' %}d-none{% endif %}" id="view-form">
         <div class="cee-broker-form-container">
             <form method="post" enctype="multipart/form-data">
@@ -63,34 +62,32 @@
                         <input type="text" name="branch_name" required style="text-transform: uppercase;" value="{{ branch.branch_name|default:'' }}" placeholder="Enter Branch Name">
                     </div>
                     <div class="cee-form-group">
-                        <label>Branch Code <span style="color:red;">*</span></label>
-                        <input type="text" name="branch_code" required style="text-transform: uppercase;" value="{{ branch.branch_code|default:'' }}" placeholder="Enter Branch Code">
+                        <label>Short Name</label>
+                        <input type="text" name="branch_shortname" style="text-transform: uppercase;" value="{{ branch.branch_shortname|default:'' }}" placeholder="Short Name ">
                     </div>
                 </div>
 
                 <div class="cee-form-row">
-                    <div class="cee-form-group">
-                        <label>Short Name</label>
-                        <input type="text" name="branch_shortname" style="text-transform: uppercase;" value="{{ branch.branch_shortname|default:'' }}" placeholder="Short Name ">
-                    </div>
+                    
                     <div class="cee-form-group">
                         <label>Branch Type <span style="color:red;">*</span></label>
                         <select name="branch_type" required>
                             <option value="">Select an option</option>
-                            <option value="Company"  {% if branch.branch_type == 'Company' %}selected{% endif %}>Company</option>
-                            <option value="Agency" {% if branch.branch_type == 'Agency' %}selected{% endif %}>Agency</option>
+                            <option value="Company"  {% if branch.branch_type == 'COMPANY' %}selected{% endif %}>Company</option>
+                            <option value="Agency" {% if branch.branch_type == 'AGENCY' %}selected{% endif %}>Agency</option>
                         </select>
                     </div>
                     <div class="cee-form-group">
                         <label>Phone</label>
                         <input type="tel" name="branch_phone" maxlength="10" inputmode="numeric" oninput="this.value=this.value.replace(/[^0-9]/g,'').slice(0,10)" pattern="[0-9]{10}" placeholder="9999988888" value="{{ branch.branch_phone|default:'' }}">
                     </div>
-                </div>
-                <div class="cee-form-row">
                     <div class="cee-form-group">
                         <label>Email</label>
                         <input type="text" name="branch_email"  value="{{ branch.branch_email|default:'' }}" placeholder="Enter Your Email">
                     </div>
+                </div>
+                <div class="cee-form-row">
+                    
                     <div class="cee-form-group">
                         <label>Agent <span style="color:red;">*</span></label>
                         <select name="agent" required style="text-transform: uppercase;">
@@ -111,9 +108,9 @@
                         <label>Services</label>
                         <select name="services" required>
                             <option value="">Select an option</option>
-                            <option value="Booking"  {% if branch.services == 'Booking' %}selected{% endif %}>Booking</option>
-                            <option value="Delivery" {% if branch.services == 'Delivery' %}selected{% endif %}>Delivery</option>
-                            <option value="Both"     {% if branch.services == 'Both' %}selected{% endif %}>Both</option>
+                            <option value="Booking"  {% if branch.services == 'BOOKING' %}selected{% endif %}>Booking</option>
+                            <option value="Delivery" {% if branch.services == 'DELIVERY' %}selected{% endif %}>Delivery</option>
+                            <option value="Both"     {% if branch.services == 'BOTH' %}selected{% endif %}>Both</option>
                         </select>
                     </div>
                     <div class="cee-form-group">
@@ -135,7 +132,6 @@
         </div>
     </div>
 
-    <!-- List View -->
     <div class="view-container {% if request.GET.mode == 'add' %}d-none{% endif %}" id="view-list">
         <div class="p-4">
             <div class="table-wrapper">

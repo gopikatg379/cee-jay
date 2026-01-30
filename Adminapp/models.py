@@ -1,6 +1,6 @@
 from django.db import models,transaction
 from django.contrib.auth.models import AbstractUser
-
+from django.db.models import Max
 # Create your models here.
 
 class Company(models.Model):
@@ -51,7 +51,10 @@ class Branch(models.Model):
     branch_id = models.AutoField(primary_key=True)
     company = models.ForeignKey(Company,on_delete=models.CASCADE)
     branch_name = models.CharField(max_length=200)
-    branch_code = models.CharField(max_length=200)
+    branch_code = models.PositiveIntegerField(
+        blank=True,
+        unique=True
+    )
     branch_shortname = models.CharField(max_length=200)
     branch_type = models.CharField(max_length=200)
     branch_phone = models.CharField(max_length=10)
@@ -69,6 +72,13 @@ class Branch(models.Model):
         self.branch_address = (self.branch_address or '').upper().strip()
         self.services = (self.services or '').upper().strip()
         self.category = (self.category or '').upper().strip() if self.category else None
+        if not self.branch_code:
+            with transaction.atomic():
+                last_code = Branch.objects.aggregate(
+                    max_code=Max('branch_code')
+                )['max_code']
+
+                self.branch_code = (last_code or 99) + 1
         super().save(*args, **kwargs)
     class Meta:
         db_table = "branch_table"

@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+{% block content %}
+{% load tz %}
+<div class="container mt-4">
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h3 class="mb-0">Basic Info – LR No: {{ cnote.cnote_number }}</h3>
+        <a href="{% url 'print_cnote' cnote.pk %}" target="_blank" class="btn btn-info btn-sm">
+            <i class="bi bi-printer"></i> Print LR
+        </a>
+    </div>
+
+    <div class="card shadow-sm border-0">
+        <div class="card-header bg-dark text-white">
+            <h5 class="mb-0">Basic Info</h5>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-bordered mb-0">
+                    <tbody>
+                        <tr>
+                            <th width="20%" class="bg-light">LR NO.</th>
+                            <td>{{ cnote.cnote_number }}</td>
+                            <th class="bg-light">LR DATE</th>
+                            <td>{{ cnote.date|date:"d-m-Y" }}</td>
+                        </tr>
+                        <tr>
+                            <th class="bg-light">CONSIGNOR</th>
+                            <td>{{ cnote.consignor.consignor_name|default:"-" }}</td>
+                            <th class="bg-light">CONSIGNEE</th>
+                            <td>{{ cnote.consignee.consignee_name|default:"-" }}</td>
+                        </tr>
+                        <tr>
+                            <th class="bg-light">DESTINATION</th>
+                            <td>{{ cnote.destination.location_name|default:"-" }}</td>
+                            <th class="bg-light">TOTAL QUANTITY</th>
+                            <td>{{ cnote.total_item|default:"1" }}</td>
+                        </tr>
+                        <tr>
+                            <th class="bg-light">DELIVERY BRANCH</th>
+                            <td>CEE JAY ERNAKULAM</td>
+                            <th class="bg-light">DISTRICT</th>
+                            <td>Ernakulam</td>
+                        </tr>
+                        <tr>
+                            <th class="bg-light">LOCATION</th>
+                            <td>ERNAKULAM</td>
+                            <th class="bg-light">STATUS</th>
+                            <td>
+                                <span class="badge bg-success">New</span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th class="bg-light">PAYMENT TYPE</th>
+                            <td>To Pay</td>
+                            <th class="bg-light">CONSIGNOR SUMMARY</th>
+                            <td>{{ cnote.consignor.consignor_name|default:"-" }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% if cnote.received_at %}
+<div class="card shadow-sm border-0 mt-4">
+    <div class="card-header bg-success text-white">
+        <h5 class="mb-0">
+            <i class="bi bi-box-arrow-in-down"></i> Received Info
+        </h5>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-bordered mb-0">
+                <tbody>
+                    <tr>
+                        <th width="25%" class="bg-light">Received Date & Time</th>
+                        <td>
+                            {{ cnote.received_at|localtime|date:"d-m-Y H:i" }}
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="bg-light">Received Branch</th>
+                        <td>
+                            {{ cnote.received_branch.branch_name|default:"-" }}
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="bg-light">Received By</th>
+                        <td>
+                            {{ cnote.received_by.get_full_name|default:cnote.received_by.username }}
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+    <div class="mt-4">
+        <a href="{% url 'cnote_list' %}" class="btn btn-secondary">
+            ← Back to List
+        </a>
+    </div>
+
+</div>
+
+{% endblock %}
