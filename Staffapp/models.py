@@ -1,8 +1,31 @@
 from django.db import models, transaction
 from django.db.models import Max
-from Adminapp.models import Consignee,Consignor,Location,Item,Branch,UserModel
+from Adminapp.models import *
 from decimal import Decimal
 from django.utils import timezone
+
+
+class ManifestModel(models.Model):
+    MANIFEST_BRANCH = 'BRANCH'
+    MANIFEST_DELIVERY = 'DELIVERY'
+
+    MANIFEST_TYPES = [
+        (MANIFEST_BRANCH, 'Branch Transfer'),
+        (MANIFEST_DELIVERY, 'Delivery'),
+    ]
+    manifest_id = models.AutoField(primary_key=True)
+    date = models.DateField()
+    driver = models.ForeignKey(Driver,on_delete=models.PROTECT)
+    vehicle = models.ForeignKey(Vehicle,on_delete=models.PROTECT)
+    branch = models.ForeignKey(Branch,on_delete=models.PROTECT,null=True)
+    manifest_type = models.CharField(max_length=20, choices=MANIFEST_TYPES)
+    
+    class Meta:
+        db_table = 'manifest_table'
+
+    def __str__(self):
+        return f"Manifest {self.manifest_id}"
+    
 
 class CnoteModel(models.Model):
     STATUS_NEW = 'NEW'
@@ -79,6 +102,14 @@ class CnoteModel(models.Model):
     total = models.DecimalField(max_digits=12, decimal_places=2)
 
     remarks = models.TextField(blank=True,null=True)
+
+    manifest = models.ForeignKey(
+        ManifestModel,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="cnotes"
+    )
     class Meta:
         db_table = "cnote_table"
     def save(self, *args, **kwargs):
@@ -124,3 +155,4 @@ class CnoteItem(models.Model):
 
     class Meta:
         db_table = "cnote_item_table"
+

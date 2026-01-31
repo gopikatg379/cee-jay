@@ -80,7 +80,7 @@ def cnote_manage_view(request, pk=None):
 
     if request.method == "POST":
         data = request.POST
-
+        print(data)
         if cnote:
             obj = cnote          
         else:
@@ -104,8 +104,13 @@ def cnote_manage_view(request, pk=None):
         obj.unloading_charge = data.get("unloading_charge") or 0
         obj.door_delivery = data.get("door_delivery") or 0
         obj.other_charge = data.get("other_charge") or 0
-
-        obj.save()
+        obj.remarks = data.get('remarks')
+        
+        if not cnote:
+            obj.total_item = 0
+            obj.freight = 0
+            obj.total = 0
+            obj.save()
 
         if cnote:
             obj.items.all().delete()
@@ -140,7 +145,7 @@ def cnote_manage_view(request, pk=None):
         obj.total = freight + float(obj.lr_charge) + float(obj.pickup_charge) + float(obj.hamali_charge) + float(obj.unloading_charge) + float(obj.door_delivery) + float(obj.other_charge)
         obj.save()
 
-        return redirect("cnote_detail", pk=obj.pk)
+        return redirect("cnote_list")
 
     context = {
         "cnote": cnote,
@@ -334,3 +339,78 @@ def receive_cnote(request, pk):
 
     messages.success(request, "CNote received successfully.")
     return redirect("cnote_list")
+
+def manifest_manage(request):
+
+    cnotes_qs = CnoteModel.objects.filter(
+        manifest__isnull=True,
+        status='RECEIVED'
+    ).order_by("-date")
+
+    paginator = Paginator(cnotes_qs, 10)
+    page_obj = paginator.get_page(request.GET.get('page'))
+
+    if request.method == "POST":
+        cnote_ids = request.POST.getlist("cnotes[]")
+        driver_id = request.POST.get("driver")
+        vehicle_id = request.POST.get("vehicle")
+        manifest_date = request.POST.get("date")
+        manifest_type = request.POST.get("manifest_type")
+        hub_branch_id = request.POST.get("hub_branch")
+
+        if not cnote_ids:
+            messages.error(request, "Please select at least one CNote")
+            return redirect(request.path)
+
+        if manifest_type == "BRANCH" and not hub_branch_id:
+            messages.error(request, "Please select Hub Branch")
+            return redirect(request.path)
+
+        try:
+            with transaction.atomic():
+                manifest = ManifestModel.objects.create(
+                    date=manifest_date,
+                    driver_id=driver_id,
+                    vehicle_id=vehicle_id,
+                    branch_id=hub_branch_id if manifest_type == "BRANCH" else None
+                )
+
+                cnotes = CnoteModel.objects.select_for_update().filter(
+                    cnote_id__in=cnote_ids,
+                    manifest__isnull=True
+                )
+                if cnotes.count() != len(cnote_ids):
+                    raise Exception("Some CNotes already manifested")
+
+                new_status = (
+                    CnoteModel.STATUS_INTRANSIT
+                    if manifest_type == "BRANCH"
+                    else CnoteModel.STATUS_DISPATCHED
+                )
+
+                for c in cnotes:
+                    c.manifest = manifest
+                    c.status = new_status
+                    if manifest_type == "BRANCH":
+                        c.delivery_branch_id = hub_branch_id
+                    c.save()
+
+                messages.success(
+                    request,
+                    f"Manifest {manifest.manifest_id} created successfully"
+                )
+                return redirect("cnote_list")
+
+        except Exception as e:
+            messages.error(request, str(e))
+            return redirect(request.path)
+
+    context = {
+        'page_obj': page_obj,
+        'drivers': Driver.objects.all(),
+        'branches': Branch.objects.all(),
+        'vehicles': Vehicle.objects.all(),
+        'today': timezone.now().date()
+    }
+
+    return render(request, 'manifest_manage.html', context)

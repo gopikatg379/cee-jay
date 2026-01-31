@@ -90,7 +90,7 @@
                 {% if cnote.status == "NEW" %}
                 <td>Booked</td>
                 {% elif cnote.status == "RECEIVED"%}
-                <td>Received</td>
+                <td>Received at {{cnote.received_branch}}</td>
                 {% elif cnote.status == "SHIPPED"%}
                 <td>Shipped</td>
                 {% elif cnote.status == "OUT FOR DELIVERY"%}

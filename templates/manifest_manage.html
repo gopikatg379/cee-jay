@@ -1,0 +1,378 @@
+{% extends "base.html" %}
+{% block content %}
+{% now "Y-m-d" as today %}
+
+<style>
+
+#truck {
+    position: fixed;
+    bottom: 20px;
+    left: 20px;
+    font-size: 48px;
+    cursor: pointer;
+    transition: transform 1.2s ease-in-out;
+    z-index: 9999;
+}
+
+#truckBadge {
+    position: absolute;
+    top: -8px;
+    right: -10px;
+    background: red;
+    color: white;
+    font-size: 14px;
+    padding: 2px 7px;
+    border-radius: 50%;
+    font-weight: bold;
+}
+
+
+.fly-item {
+    position: fixed;
+    background: #1C4D8D;
+    color: white;
+    padding: 6px 10px;
+    border-radius: 6px;
+    font-size: 12px;
+    z-index: 9999;
+    transition: all 0.8s ease-in-out;
+}
+
+.truck-move {
+    transform: translateX(120vw);
+}
+
+#loadMessage {
+    position: fixed;
+    bottom: 90px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #198754;
+    color: white;
+    padding: 10px 20px;
+    border-radius: 6px;
+    display: none;
+}
+</style>
+{% if messages %}
+  <div class="alert alert-success">
+    {% for message in messages %}
+      {{ message }}
+    {% endfor %}
+  </div>
+{% endif %}
+<div class="container-fluid">
+
+    <div class="mb-4" style="background:#1C4D8D;color:#fff;padding:12px 20px;border-radius:6px;">
+        <h4>Manage Manifest</h4>
+    </div>
+    <form method="POST">
+        {% csrf_token %}
+    <div class="card mb-3 p-3">
+        <div class="row g-3 align-items-end">
+
+            <div class="col-md-2">
+                <label class="fw-semibold">Manifest Type</label>
+                <select class="form-select" id="manifestType" name="manifest_type">
+                    <option value="">Select</option>
+                    <option value="DELIVERY">Delivery(DRS)</option>
+                    <option value="BRANCH">Branch Transfer</option>
+                </select>
+            </div>
+
+            <div class="col-md-2">
+                <label class="fw-semibold">Date</label>
+                <input type="date" class="form-control" value="{{ today }}" name="date">
+            </div>
+
+            <div class="col-md-2">
+                <label class="fw-semibold">Driver</label>
+                <select class="form-select" id="driverSelect" name="driver">
+                    <option value="">Select</option>
+                    {% for d in drivers %}
+                        <option value="{{ d.driver_id }}">{{ d.driver_name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="col-md-2">
+                <label class="fw-semibold">Vehicle</label>
+                <select class="form-select" id="vehicleSelect" name="vehicle">
+                    <option value="">Select</option>
+                    {% for v in vehicles %}
+                        <option value="{{ v.vehicle_id }}">{{ v.registration_no }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="col-md-2 d-none" id="hubField">
+                <label class="fw-semibold">Hub</label>
+                <select class="form-select" name="hub_branch">
+                    <option value="">Select</option>
+                    {% for b in branches %}
+                        <option value="{{ b.branch_id }}">{{ b.branch_name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- MODE SELECTION -->
+    <div class="card mb-3 p-3 d-none" id="modeSelector">
+        <label class="fw-semibold mb-2">Load Mode</label>
+        <div class="d-flex gap-4">
+            <div>
+                <input type="radio" name="loadMode" id="manualMode" value="manual">
+                <label for="manualMode">Manual</label>
+            </div>
+            <div>
+                <input type="radio" name="loadMode" id="qrMode" value="qr">
+                <label for="qrMode">QR Scanner</label>
+            </div>
+        </div>
+    </div>
+
+    <!-- QR SCAN INPUT -->
+    <div class="card mb-3 p-3 d-none" id="qrSection">
+        <label class="fw-semibold">Scan / Enter CNote</label>
+        <input type="text" id="qrInput" class="form-control" placeholder="Scan QR or enter CNote number">
+    </div>
+
+    <!-- TABLE -->
+    <div class="card d-none" id="cnoteTable">
+        <div class="table-responsive">
+            <table class="table table-bordered table-hover">
+                <thead>
+                    <tr data-cnote="{{ c.cnote_number }}">
+                        <th>#</th>
+                        <th><input type="checkbox" id="selectAll"></th>
+                        <th>LR Date</th>
+                        <th>CNote</th>
+                        <th>Invoice</th>
+                        <th>Consignor</th>
+                        <th>Consignee</th>
+                        <th>Destination</th>
+                        <th>Qty</th>
+                        <th>Remarks</th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% for c in page_obj %}
+                    <tr>
+                        <td>{{ forloop.counter }}</td>
+                        <td><input type="checkbox" class="item-checkbox" name="cnotes[]" value="{{ c.cnote_id }}"></td>
+                        <td>{{ c.date|date:"d-m-Y" }}</td>
+                        <td>{{ c.cnote_number }}</td>
+                        <td>{{ c.invoice_no|default:"-" }}</td>
+                        <td>{{ c.consignor.consignor_name }}</td>
+                        <td>{{ c.consignee.consignee_name }}</td>
+                        <td>{{ c.destination.location_name }}</td>
+                        <td>{{ c.total_item }}</td>
+                        <td>{{ c.remarks }}</td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <div class="p-3 text-end">
+            <button id="saveManifest" type="submit" class="btn btn-success" disabled>
+                Save Manifest
+            </button>
+        </div>
+    </div>
+    </form>
+</div>
+
+<div id="truck">🚚 <span id="truckBadge">0</span></div>
+<div id="loadMessage">Items loaded successfully!</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+
+    const manifestType = document.getElementById('manifestType');
+    const driver = document.getElementById('driverSelect');
+    const vehicle = document.getElementById('vehicleSelect');
+    const hubField = document.getElementById('hubField');
+    const hubSelect = document.querySelector('[name="hub_branch"]');
+
+    const table = document.getElementById('cnoteTable');
+    const modeBox = document.getElementById('modeSelector');
+    const qrSection = document.getElementById('qrSection');
+
+    const truck = document.getElementById('truck');
+    const badge = document.getElementById('truckBadge');
+    const saveBtn = document.getElementById('saveManifest');
+    const message = document.getElementById('loadMessage');
+
+    const selectAllCheckbox = document.getElementById('selectAll');
+    const itemCheckboxes = document.querySelectorAll('.item-checkbox');
+
+    let loadedCnotes = new Set();
+    let count = 0;
+
+    function toggleMain() {
+        const isBranchTransfer = manifestType.value === 'BRANCH';
+
+        if (isBranchTransfer) {
+            hubField.classList.remove('d-none');
+        } else {
+            hubField.classList.add('d-none');
+            hubSelect.value = '';
+        }
+
+        const hubOk = !isBranchTransfer || hubSelect.value;
+
+        if (manifestType.value && driver.value && vehicle.value && hubOk) {
+            modeBox.classList.remove('d-none'); 
+        } else {
+            modeBox.classList.add('d-none');   
+            table.classList.add('d-none');    
+            qrSection.classList.add('d-none'); 
+        }
+    }
+
+
+    manifestType.addEventListener('change', toggleMain);
+    driver.addEventListener('change', toggleMain);
+    vehicle.addEventListener('change', toggleMain);
+    hubSelect.addEventListener('change', toggleMain);
+
+    document.querySelectorAll('input[name="loadMode"]').forEach(radio => {
+        radio.addEventListener('change', function () {
+            if (this.value === 'manual') {
+                qrSection.classList.add('d-none'); 
+            } else {
+                qrSection.classList.remove('d-none'); 
+                document.getElementById('qrInput').focus();
+            }
+            
+            table.classList.remove('d-none');
+        });
+    });
+
+
+   document.querySelectorAll('.item-checkbox').forEach(cb => {
+    cb.addEventListener('change', function () {
+
+        const row = this.closest('tr');
+        const cnote = row.querySelector('td:nth-child(4)').innerText.trim();
+
+        if (this.checked) {
+
+            if (!loadedCnotes.has(cnote)) {
+                loadToTruck(this, cnote);
+            }
+        } else {
+            if (loadedCnotes.has(cnote)) {
+                loadedCnotes.delete(cnote);
+                count = Math.max(0, count - 1); 
+                badge.innerText = count;
+            }
+        }
+    });
+});
+
+ selectAllCheckbox.addEventListener('change', function () {
+    const checked = this.checked;
+    itemCheckboxes.forEach(cb => {
+        cb.checked = checked;
+        const row = cb.closest('tr');
+        const cnote = row.querySelector('td:nth-child(4)').innerText.trim();
+
+        if (checked) {
+            if (!loadedCnotes.has(cnote)) {
+                loadToTruck(cb, cnote);
+            }
+        } else {
+            if (loadedCnotes.has(cnote)) {
+                loadedCnotes.delete(cnote);
+                count = Math.max(0, count - 1);
+                badge.innerText = count;
+            }
+        }
+    });
+});
+
+    document.getElementById('qrInput').addEventListener('keydown', function (e) {
+
+        if (e.key !== 'Enter') return;
+
+        const code = this.value.trim();
+        if (!code || loadedCnotes.has(code)) return;
+
+        const row = [...document.querySelectorAll('tbody tr')]
+            .find(r => r.children[3].innerText.trim() === code);
+
+        if (!row) {
+            alert("CNote not found");
+            this.value = '';
+            return;
+        }
+
+        loadToTruck(row, code);
+        this.value = '';
+    });
+
+    function loadToTruck(source, cnote) {
+
+    if (source.type === "checkbox") {
+        source.checked = true;
+    } else {
+        const cb = source.querySelector('.item-checkbox');
+        if (cb) cb.checked = true;
+    }
+
+    const fly = document.createElement('div');
+    fly.className = 'fly-item';
+    fly.innerText = '📦';
+
+    const rect = source.getBoundingClientRect();
+    fly.style.top = rect.top + 'px';
+    fly.style.left = rect.left + 'px';
+
+    document.body.appendChild(fly);
+
+    const truckRect = truck.getBoundingClientRect();
+
+    setTimeout(() => {
+        fly.style.top = truckRect.top + 'px';
+        fly.style.left = truckRect.left + 'px';
+        fly.style.opacity = 0;
+    }, 50);
+
+    setTimeout(() => {
+        fly.remove();
+        loadedCnotes.add(cnote);
+        count++;
+        badge.innerText = count;
+        saveBtn.disabled = false;
+    }, 900);
+}
+
+
+    saveBtn.addEventListener('click', function () {
+        if (!count) return;
+
+        truck.classList.add('truck-move');
+
+        setTimeout(() => {
+            message.style.display = 'block';
+        }, 800);
+
+        setTimeout(() => {
+            truck.classList.remove('truck-move');
+            message.style.display = 'none';
+            badge.innerText = 0;
+            count = 0;
+            loadedCnotes.clear();
+            saveBtn.disabled = true;
+        }, 2500);
+    });
+
+});
+</script>
+
+
+{% endblock %}

@@ -12,4 +12,5 @@ urlpatterns = [
     path('cnote/delete/<int:cnote_id>/',cnote_delete,name='cnote_delete'),
     path('cnote/<int:pk>/', cnote_detail, name='cnote_detail'),
     path("cnote/receive/<int:pk>/", receive_cnote, name="receive_cnote"),
+    path('manifest/manage/',manifest_manage,name='manifest_manage')
 ]

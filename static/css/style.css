@@ -232,7 +232,7 @@ main {
 .cee-form-group input,
 .cee-form-group select {
     width: 100%;
-    padding: 10px 14px;
+    padding: 4px 10px;
     border: 1px solid #d1d5db;
     border-radius: 6px;
     font-size: 0.97rem;
@@ -302,7 +302,7 @@ main {
     text-decoration: none !important;
 }
 .input-group.rounded-pill {
-    overflow: hidden;
+    overflow: visible;
     transition: all 0.25s ease;
 }
 

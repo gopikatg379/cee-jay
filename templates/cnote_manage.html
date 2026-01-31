@@ -22,16 +22,19 @@
 
 .items-row {
     display: grid;
-    grid-template-columns: 2.5fr 1fr 1fr 1.2fr 40px;
+    grid-template-columns: 3.5fr 1fr 1fr 1.2fr 40px;
     gap: 10px;
     align-items: center;
 }
-.items-row {
-    display: grid;
-    grid-template-columns: 2fr 1fr 1fr 1fr auto;
-    gap: 10px;
-    align-items: end;
-    margin-bottom: 10px;
+.items-row select,
+.items-row input {
+    width: 100%;
+    min-width: 0; 
+}
+.items-row select {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 .cee-form-group {
     position: relative;
@@ -259,8 +262,11 @@
                 <label>Grand Total</label>
                 <input type="number" id="grand-total" readonly>
             </div>
+            <div class="cee-form-group">
+                <label>Remarks</label>
+                <input type="text" name="remarks" value="{{ cnote.remarks}}"> 
+            </div>
         </div>
-
         <button type="submit" class="cee-btn-save mt-3">Save CNote</button>
 </form>
 </div>
@@ -373,7 +379,7 @@ function addItemRow() {
     div.className = "items-row";
 
     div.innerHTML = `
-        <select onchange="setRate(this)">
+        <select onchange="setRate(this)" name="item[]">
             <option value="">Item</option>
             ${itemsData.map(i =>
                 `<option value="${i.item_id}">${i.item_name}</option>`
