@@ -177,40 +177,41 @@
 
 </div>
 <script>
-let searchTimer = null;
-
-document.getElementById("searchInput").addEventListener("keyup", function () {
-    clearTimeout(searchTimer);
-
-    searchTimer = setTimeout(() => {
-        document.getElementById("searchForm").submit();
-    }, 400);
-});
-
 document.addEventListener('DOMContentLoaded', function () {
+    // SEARCH INPUT - submit only on Enter key
+    const searchInput = document.getElementById("searchInput");
+    const searchForm = document.getElementById("searchForm");
+
+    searchInput.addEventListener("keyup", function (e) {
+        if (e.key === "Enter") {  // Only submit when Enter is pressed
+            searchForm.submit();
+        }
+    });
+
+    // SELECT ALL CHECKBOX LOGIC
     const selectAllCheckbox = document.querySelector('thead input[type="checkbox"]');
     const rowCheckboxes = document.querySelectorAll('tbody input[type="checkbox"]');
     const fromDateInput = document.querySelector('input[name="from_date"]');
     const downloadBtn = document.getElementById("downloadBtn");
-    if (!selectAllCheckbox || rowCheckboxes.length === 0) return;
 
-    selectAllCheckbox.addEventListener('change', function () {
-        const isChecked = this.checked;
+    if (selectAllCheckbox && rowCheckboxes.length > 0) {
 
-        rowCheckboxes.forEach(checkbox => {
-            checkbox.checked = isChecked;
+        selectAllCheckbox.addEventListener('change', function () {
+            const isChecked = this.checked;
+            rowCheckboxes.forEach(cb => cb.checked = isChecked);
         });
-    });
 
-    rowCheckboxes.forEach(checkbox => {
-        checkbox.addEventListener('change', function () {
-            const allChecked = Array.from(rowCheckboxes).every(cb => cb.checked);
-            const someChecked = Array.from(rowCheckboxes).some(cb => cb.checked);
-
-            selectAllCheckbox.checked = allChecked;
-            selectAllCheckbox.indeterminate = !allChecked && someChecked;
+        rowCheckboxes.forEach(cb => {
+            cb.addEventListener('change', function () {
+                const allChecked = Array.from(rowCheckboxes).every(cb => cb.checked);
+                const someChecked = Array.from(rowCheckboxes).some(cb => cb.checked);
+                selectAllCheckbox.checked = allChecked;
+                selectAllCheckbox.indeterminate = !allChecked && someChecked;
+            });
         });
-    });
+    }
+
+    // TOGGLE DOWNLOAD BUTTON
     function toggleDownloadButton() {
         if (fromDateInput.value) {
             downloadBtn.classList.remove("disabled");
@@ -222,8 +223,8 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     toggleDownloadButton();
-
     fromDateInput.addEventListener("change", toggleDownloadButton);
 });
 </script>
+
 {% endblock %}
