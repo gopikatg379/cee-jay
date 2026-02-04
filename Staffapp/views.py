@@ -72,6 +72,15 @@ def cnote_manage_view(request, pk=None):
     consignees = Consignee.objects.all()
     locations = Location.objects.all()
     items = Item.objects.all()
+    allowed_payments = []
+
+    if user.role == "ADMIN":
+        allowed_payments = ["TOPAY", "PAID", "CREDIT"]
+    else:
+        # staff user → branch → broker
+        branch = Branch.objects.filter(branch_id=user.branch_id).select_related("broker").first()
+        if branch and branch.broker:
+            allowed_payments = branch.broker.booking_type or []
 
     if user.role == 'ADMIN':
         branches = Branch.objects.all()
@@ -154,6 +163,7 @@ def cnote_manage_view(request, pk=None):
         "branches": branches,
         "locations": locations,
         "items": items,
+        "allowed_payments": allowed_payments,
         "is_edit": bool(cnote),
     }
     return render(request, "cnote_manage.html", context)
@@ -266,7 +276,16 @@ def download_cnote_excel(request):
         "Consignee",
         "Destination",
         "Quantity",
-        "Status"
+        "Status",
+        "Booking Branch",
+        "Delivery Branch",
+        "Reference No",
+        "Remarks",
+        "Pickup Charge",
+        "Hamali Charge",
+        "Unloading Charge",
+        "Door Delivery",
+        "Other Charge"
     ]
     ws.append(headers)
 
@@ -290,6 +309,15 @@ def download_cnote_excel(request):
             c.destination.location_name,
             c.total_item,
             c.get_status_display(),
+            c.booking_branch.branch_name,
+            c.delivery_branch.branch_name,
+            c.reference_no,
+            c.remarks,
+            c.pickup_charge,
+            c.hamali_charge,
+            c.unloading_charge,
+            c.door_delivery,
+            c.other_charge
         ])
     response = HttpResponse(
         content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"

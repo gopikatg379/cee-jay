@@ -109,8 +109,14 @@
 <div class="cee-broker-form-container">
 <div class="cee-manage-broker-wrapper">
 
-    <div class="cee-manage-header">
+    <div class="cee-manage-header d-flex justify-content-between align-items-center">
         <h4>Manage CNote</h4>
+
+        {% if is_edit %}
+            <span class="text-white fs-6 fw-bold">
+                LR No: <strong>{{ cnote.cnote_number }}</strong>
+            </span>
+        {% endif %}
     </div>
 
     <div class="cee-broker-form-container">
@@ -120,23 +126,27 @@
             <div class="cee-form-group">
                 <label>Booking Branch</label>
                 {% if user.role == 'ADMIN' %}
-                    <select name="booking_branch" required>
-                        <option value="">Select an option</option>
-                        {% for branch in branches %}
-                            <option value="{{ branch.branch_id }}">
+                <select name="booking_branch" required>
+                    <option value="">Select an option</option>
+                    {% for branch in branches %}
+                        <option value="{{ branch.branch_id }}"
+                            {% if cnote.booking_branch and cnote.booking_branch.branch_id == branch.branch_id %}
+                                selected
+                                {% endif %}>
                                 {{ branch.branch_name }}
                             </option>
                         {% endfor %}
                     </select>
                 {% else %}
                     <input type="text"
-                        value="{{ branches.0.branch_name }}"
+                        value="{{ cnote.booking_branch.branch_name }}"
                         readonly>
 
                     <input type="hidden"
                         name="booking_branch"
-                        value="{{ branches.0.branch_id }}">
+                        value="{{ cnote.booking_branch.branch_id }}">
                 {% endif %}
+
             </div>
             <div class="cee-form-group">
                 <label>Date</label>
@@ -147,16 +157,20 @@
                 <input type="text" id="consignor-input" value="{{ cnote.consignor.consignor_name|default:'' }}" required>
                 <input type="hidden" name="consignor" id="consignor-id" value="{{ cnote.consignor.consignor_id|default:'' }}">
                 <div id="consignor-suggestions" class="suggestion-box"></div>
-                <a href="{% url 'shipper_manage' %}?mode=add" id="add-shipper-link" style="display:none;"><p style="font-size: 10px;">Add Shipper</p></a>
             </div>
             <div class="cee-form-group">
                 <label>Payment</label>
                 <select name="payment" required>
                     <option value="">Select</option>
-                    <option value="TOPAY" {% if cnote.payment == "TOPAY" %}selected{% endif %}>To Pay</option>
-                    <option value="PAID"  {% if cnote.payment == "PAID" %}selected{% endif %}>Paid</option>
-                    <option value="CREDIT"  {% if cnote.payment == "CREDIT" %}selected{% endif %}>Credit</option>
+
+                    {% for p in allowed_payments %}
+                        <option value="{{ p }}"
+                            {% if cnote.payment == p %}selected{% endif %}>
+                            {{ p|title }}
+                        </option>
+                    {% endfor %}
                 </select>
+
             </div>
            
             
@@ -188,7 +202,7 @@
 
             <div class="cee-form-group">
                 <label>LR Charge</label>
-                <input type="number" name="lr_charge" value="{{ cnote.lr_charge|default:'20' }}">
+                <input type="number" name="lr_charge" value="{{ cnote.lr_charge|default:'20' }}" oninput="updateSummary()">
             </div>
             
             <div class="cee-form-group">
@@ -309,10 +323,17 @@ function setupAutocomplete(inputId, hiddenId, boxId, data, onSelect) {
     input.oninput = () => {
         box.innerHTML = "";
         box.style.display = "none";
-        if (!input.value) return;
+        hidden.value = "";
 
-        data.filter(d => d.name.toLowerCase().includes(input.value.toLowerCase()))
-            .forEach(d => {
+        const value = input.value.trim().toLowerCase();
+        if (!value) return;
+
+        const matches = data.filter(d =>
+            d.name.toLowerCase().includes(value)
+        );
+
+        if (matches.length) {
+            matches.forEach(d => {
                 const div = document.createElement("div");
                 div.className = "suggestion-item";
                 div.textContent = d.name;
@@ -324,8 +345,24 @@ function setupAutocomplete(inputId, hiddenId, boxId, data, onSelect) {
                 };
                 box.appendChild(div);
             });
+        } else {
 
-        if (box.children.length) box.style.display = "block";
+            const noResult = document.createElement("div");
+            noResult.className = "suggestion-item text-muted";
+            noResult.style.cursor = "default";
+            noResult.innerText = "No results found";
+            box.appendChild(noResult);
+
+            const addLink = document.createElement("div");
+            addLink.className = "suggestion-item text-primary fw-bold";
+            addLink.innerHTML = "+ Add Shipper";
+            addLink.onclick = () => {
+                window.location.href = "{% url 'shipper_add' %}?mode=add";
+            };
+            box.appendChild(addLink);
+        }
+
+        box.style.display = "block";
     };
 }
 
@@ -409,23 +446,24 @@ function addItemRow() {
     document.getElementById("items-wrapper").appendChild(div);
 }
 function updatePaymentOptions(consignorType) {
-    const paymentSelect = document.querySelector('select[name="payment"]');
+    {% if user.role == "ADMIN" %}
+        const paymentSelect = document.querySelector('select[name="payment"]');
+        paymentSelect.innerHTML = '<option value="">Select</option>';
 
-    paymentSelect.innerHTML = '<option value="">Select</option>';
-
-    if (consignorType === "PERMANENT") {
-        paymentSelect.innerHTML += `
-            <option value="TOPAY">To Pay</option>
-            <option value="CREDIT">Credit</option>
-        `;
-    } else {
-        paymentSelect.innerHTML += `
-            <option value="TOPAY">To Pay</option>
-            <option value="PAID">Paid</option>
-            <option value="CREDIT">Credit</option>
-        `;
-    }
+        if (consignorType === "PERMANENT") {
+            paymentSelect.innerHTML += `
+                <option value="TOPAY">To Pay</option>
+                <option value="CREDIT">Credit</option>
+            `;
+        } else {
+            paymentSelect.innerHTML += `
+                <option value="TOPAY">To Pay</option>
+                <option value="PAID">Paid</option>
+            `;
+        }
+    {% endif %}
 }
+
 
 function setRate(sel) {
     const row = sel.parentElement;
@@ -459,7 +497,7 @@ function updateSummary() {
         qty += +r.children[1].value || 0;
         freight += +r.children[3].value || 0;
     });
-    const grandTotal = freight + lrCharge+pickupCharge+otherCharge+hamaliCharge+doorCharge+unloadingCharge;
+    const grandTotal = freight+lrCharge+pickupCharge+otherCharge+hamaliCharge+doorCharge+unloadingCharge;
     document.getElementById("total-items").value = qty;
     document.getElementById("freight-total").value = freight.toFixed(2);
     document.getElementById("grand-total").value = grandTotal.toFixed(2);

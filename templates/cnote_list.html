@@ -61,8 +61,8 @@
         <thead>
             <tr>
                 <th>#</th>
-                <th><input type="checkbox"></th>
                 <th>LR Date</th>
+                <th>Booking Branch</th>
                 <th>CNote No</th>
                 <th>Operation Status</th>
                 <th>Invoice No</th>
@@ -70,6 +70,7 @@
                 <th>Consignee</th>
                 <th>Destination</th>
                 <th>Qty</th>
+                <th>Delivery Branch</th>
                 <th>Status</th>
                 <th>Actions</th>
             </tr>
@@ -78,8 +79,8 @@
             {% for cnote in page_obj %}
             <tr>
                 <td>{{ forloop.counter }}</td>
-                <td><input type="checkbox"></td>
                 <td>{{ cnote.date|date:"d-m-Y" }}</td>
+                <td>{{cnote.booking_branch.branch_name}}</td>
                 <td>
                     <a href="{% url 'cnote_detail' cnote.pk %}" 
                     class="text-primary fw-bold" 
@@ -103,6 +104,7 @@
                 <td>{{ cnote.consignee.consignee_name }}</td>
                 <td>{{ cnote.destination.location_name }}</td>
                 <td>{{ cnote.total_item }}</td>
+                <td>{{cnote.delivery_branch.branch_name}}</td>
                 <td>
                     <span class="badge 
                         {% if cnote.status == 'NEW' %}bg-secondary

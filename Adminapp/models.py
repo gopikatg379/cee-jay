@@ -74,7 +74,6 @@ class Branch(models.Model):
     branch_is_active = models.BooleanField(default=True)
     def save(self, *args, **kwargs):
         self.branch_name = (self.branch_name or '').upper().strip()
-        self.branch_code = (self.branch_code or '').upper().strip()
         self.branch_shortname = (self.branch_shortname or '').upper().strip()
         self.branch_type = (self.branch_type or '').upper().strip()
         self.branch_address = (self.branch_address or '').upper().strip()
