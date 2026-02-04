@@ -143,6 +143,13 @@
                 <input type="date" name="date" id="cnote-date">
             </div>
             <div class="cee-form-group">
+                <label>Shipper*</label>
+                <input type="text" id="consignor-input" value="{{ cnote.consignor.consignor_name|default:'' }}" required>
+                <input type="hidden" name="consignor" id="consignor-id" value="{{ cnote.consignor.consignor_id|default:'' }}">
+                <div id="consignor-suggestions" class="suggestion-box"></div>
+                <a href="{% url 'shipper_manage' %}?mode=add" id="add-shipper-link" style="display:none;"><p style="font-size: 10px;">Add Shipper</p></a>
+            </div>
+            <div class="cee-form-group">
                 <label>Payment</label>
                 <select name="payment" required>
                     <option value="">Select</option>
@@ -152,13 +159,7 @@
                 </select>
             </div>
            
-            <div class="cee-form-group">
-                <label>Shipper*</label>
-                <input type="text" id="consignor-input" value="{{ cnote.consignor.consignor_name|default:'' }}" required>
-                <input type="hidden" name="consignor" id="consignor-id" value="{{ cnote.consignor.consignor_id|default:'' }}">
-                <div id="consignor-suggestions" class="suggestion-box"></div>
-                <a href="{% url 'shipper_manage' %}?mode=add" id="add-shipper-link" style="display:none;"><p style="font-size: 10px;">Add Shipper</p></a>
-            </div>
+            
 
             <div class="cee-form-group">
                 <label>Receiver*</label>
@@ -282,7 +283,15 @@ const allItems = [
 ];
 console.log(allItems)
 
-const consignors = [{% for c in consignors %}{id:{{c.consignor_id}},name:"{{c.consignor_name|escapejs}}"}, {% endfor %}];
+const consignors = [
+{% for c in consignors %}
+{
+    id: {{ c.consignor_id }},
+    name: "{{ c.consignor_name|escapejs }}",
+    type: "{{ c.type|upper }}"
+},
+{% endfor %}
+];
 const consignees = [{% for c in consignees %}{id:{{c.consignee_id}},name:"{{c.consignee_name|escapejs}}"}, {% endfor %}];
 const locations  = [{% for l in locations %}{id:{{l.location_id}},name:"{{l.location_name|escapejs}}"}, {% endfor %}];
 
@@ -311,7 +320,7 @@ function setupAutocomplete(inputId, hiddenId, boxId, data, onSelect) {
                     input.value = d.name;
                     hidden.value = d.id;
                     box.style.display = "none";
-                    if (onSelect) onSelect(d.id);
+                    if (onSelect) onSelect(d);
                 };
                 box.appendChild(div);
             });
@@ -399,6 +408,24 @@ function addItemRow() {
 
     document.getElementById("items-wrapper").appendChild(div);
 }
+function updatePaymentOptions(consignorType) {
+    const paymentSelect = document.querySelector('select[name="payment"]');
+
+    paymentSelect.innerHTML = '<option value="">Select</option>';
+
+    if (consignorType === "PERMANENT") {
+        paymentSelect.innerHTML += `
+            <option value="TOPAY">To Pay</option>
+            <option value="CREDIT">Credit</option>
+        `;
+    } else {
+        paymentSelect.innerHTML += `
+            <option value="TOPAY">To Pay</option>
+            <option value="PAID">Paid</option>
+            <option value="CREDIT">Credit</option>
+        `;
+    }
+}
 
 function setRate(sel) {
     const row = sel.parentElement;
@@ -457,13 +484,23 @@ document.addEventListener("DOMContentLoaded", () => {
     dateInput.value = today;   
     dateInput.min = today; 
 
-    setupAutocomplete("consignor-input","consignor-id","consignor-suggestions",consignors,
-        id => { selectedConsignor = id;loadConsignorItems(id);    if (selectedLocation) loadQuotationRates(); });
+    setupAutocomplete(
+        "consignor-input",
+        "consignor-id",
+        "consignor-suggestions",
+        consignors,
+        consignor => {
+            selectedConsignor = consignor.id;
+            loadConsignorItems(consignor.id);
+            updatePaymentOptions(consignor.type);
+            if (selectedLocation) loadQuotationRates();
+        }
+    );
 
     setupAutocomplete("consignee-input","consignee-id","consignee-suggestions",consignees);
 
     setupAutocomplete("location-input","location-id","location-suggestions",locations,
-        id => { selectedLocation = id;loadBranchByLocation(id); if (selectedConsignor) loadQuotationRates(); });
+        location  => { selectedLocation = location.id;loadBranchByLocation(location.id); if (selectedConsignor) loadQuotationRates(); });
 });
 
 </script>
@@ -471,8 +508,7 @@ document.addEventListener("DOMContentLoaded", () => {
 <script>
 document.addEventListener("DOMContentLoaded", () => {
     if (!itemsData.length) {
-        // Load itemsData first from consignor if needed
-        itemsData = allItems; // or fetch dynamically
+        itemsData = allItems; 
     }
 
     const existingItems = [
