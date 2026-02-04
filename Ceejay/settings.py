@@ -27,7 +27,12 @@ SECRET_KEY = os.getenv('SECRET_KEY')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = [
+    'ceejaycourier.mysmeclabs.com',
+    'www.ceejaycourier.mysmeclabs.com',
+    'localhost',
+    '127.0.0.1',
+]
 TIME_ZONE = 'Asia/Kolkata'
 USE_TZ = True
 
