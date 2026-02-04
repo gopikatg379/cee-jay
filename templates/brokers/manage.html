@@ -60,12 +60,13 @@
                 <div class="cee-form-row">
                     <div class="cee-form-group">
                         <label>Booking Type <span style="color:red;">*</span></label>
-                        <select name="booking_type" required>
-                            <option value="">Select an option</option>
-                            <option value="Topay" {% if broker.booking_type == 'TOPAY' %}selected{% endif %}>Topay</option>
-                            <option value="Paid" {% if broker.booking_type == 'PAID' %}selected{% endif %}>Paid</option>
-                            <option value="Credit" {% if broker.booking_type == 'CREDIT' %}selected{% endif %}>Credit</option>
+                        <select name="booking_type" multiple required>
+                            <option value="TOPAY" {% if 'TOPAY' in broker.booking_type %}selected{% endif %}>Topay</option>
+                            <option value="PAID" {% if 'PAID' in broker.booking_type %}selected{% endif %}>Paid</option>
+                            <option value="CREDIT" {% if 'CREDIT' in broker.booking_type %}selected{% endif %}>Credit</option>
                         </select>
+
+                        <small class="text-muted">Hold Ctrl (Windows) / Cmd (Mac) to select multiple</small>
                     </div>
                     <div class="cee-form-group">
                         <label>Address</label>

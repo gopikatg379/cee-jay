@@ -1,6 +1,7 @@
 from django.db import models,transaction
 from django.contrib.auth.models import AbstractUser
 from django.db.models import Max
+from multiselectfield import MultiSelectField
 # Create your models here.
 
 class Company(models.Model):
@@ -26,18 +27,25 @@ class Company(models.Model):
     def __str__(self):
         return self.comp_name
 class Broker(models.Model):
+    BOOKING_CHOICES = (
+        ('TOPAY', 'Topay'),
+        ('PAID', 'Paid'),
+        ('CREDIT', 'Credit'),
+    )
     broker_id = models.AutoField(primary_key=True)
     broker_name = models.CharField(max_length=200)
     borker_shortname = models.CharField(max_length=200)
     broker_phone = models.CharField(max_length=200)
-    booking_type = models.CharField(max_length=200)
+    booking_type = MultiSelectField(
+        choices=BOOKING_CHOICES,
+        max_length=50
+    )
     booking_address = models.CharField(max_length=200)
     is_active = models.BooleanField(default=True)
     document = models.FileField(upload_to='documents/', blank=True, null=True)
     def save(self, *args, **kwargs):
         self.broker_name = (self.broker_name or '').upper().strip()
         self.borker_shortname = (self.borker_shortname or '').upper().strip()  # note: typo in field name
-        self.booking_type = (self.booking_type or '').upper().strip()
         self.booking_address = (self.booking_address or '').upper().strip()
         
         super().save(*args, **kwargs)
