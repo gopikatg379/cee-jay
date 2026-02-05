@@ -129,11 +129,11 @@
             </select>
             {% else %}
                 <input type="text"
-                    value="{{ cnote.booking_branch.branch_name }}"
+                    value="{{ user.branch.branch_name }}"
                     readonly>
                 <input type="hidden"
                     name="booking_branch"
-                    value="{{ cnote.booking_branch.branch_id }}">
+                    value="{{ user.branch.branch_id }}" readonly>
             {% endif %}
         </div>
         <div class="cee-form-group">
@@ -200,7 +200,7 @@
         </div>
         <div class="cee-form-group">
             <label>Eway Number</label>
-            <input type="text" name="eway_no" value="{{ cnote.eway_no|default:'' }}">
+            <input type="text" name="eway_no" value="{{ cnote.eway_no|default:'' }}" style="text-transform: uppercase;">
         </div>
         <div class="cee-form-group">
             <label>Delivery Type</label>
@@ -380,7 +380,7 @@ let itemsData = [];
 let selectedConsignor = null;
 let selectedLocation = null;
 
-function setupAutocomplete(inputId, hiddenId, boxId, data, onSelect) {
+function setupAutocomplete(inputId, hiddenId, boxId, data, onSelect, showAddOption = false) {
     const input = document.getElementById(inputId);
     const hidden = document.getElementById(hiddenId);
     const box = document.getElementById(boxId);
@@ -412,13 +412,15 @@ function setupAutocomplete(inputId, hiddenId, boxId, data, onSelect) {
             noResult.innerText = "No results found";
             box.appendChild(noResult);
 
-            const addLink = document.createElement("div");
-            addLink.className = "suggestion-item text-primary fw-bold";
-            addLink.innerHTML = "+ Add Shipper";
-            addLink.onclick = () => {
-                window.location.href = "{% url 'shipper_add' %}?mode=add";
-            };
-            box.appendChild(addLink);
+            if (showAddOption) {
+                const addLink = document.createElement("div");
+                addLink.className = "suggestion-item text-primary fw-bold";
+                addLink.innerHTML = "+ Add Shipper";
+                addLink.onclick = () => {
+                    window.location.href = "{% url 'shipper_add' %}?mode=add";
+                };
+                box.appendChild(addLink);
+            }
         }
         box.style.display = "block";
     };
@@ -530,14 +532,14 @@ document.addEventListener("DOMContentLoaded", () => {
         selectedConsignor = consignor.id;
         itemsData = allItems;
         addItemRow();
-    });
+    },true);
 
     setupAutocomplete("consignee-input","consignee-id","consignee-suggestions",consignees, consignee => {
         document.getElementById("consignee-phone").value =  d.phone || "";
-    });
+    },false);
 
     setupAutocomplete("location-input","location-id","location-suggestions",locations,
-        location  => { selectedLocation = location.id;loadBranchByLocation(location.id); if (selectedConsignor) loadQuotationRates(); });
+        location  => { selectedLocation = location.id;loadBranchByLocation(location.id); if (selectedConsignor) loadQuotationRates(); },false);
 });
 </script>
 

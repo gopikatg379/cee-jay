@@ -93,7 +93,7 @@
                 {% elif cnote.status == "RECEIVED"%}
                 <td>Received at {{cnote.received_branch}}</td>
                 {% elif cnote.status == "SHIPPED"%}
-                <td>Shipped</td>
+                <td>Shipped to {{cnote.manifest.branch.branch_name}}</td>
                 {% elif cnote.status == "OUT FOR DELIVERY"%}
                 <td>Out for delivery</td>
                 {% elif cnote.status == "DELIVERED" %}
