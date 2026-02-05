@@ -13,6 +13,8 @@ from django.http import HttpResponse
 from django.utils import timezone
 from django.contrib import messages
 from django.db.models.functions import Replace
+import json
+from django.views.decorators.csrf import csrf_exempt
 
 def get_consignor_items(request, consignor_id):
     consignor = get_object_or_404(Consignor, pk=consignor_id)
@@ -77,7 +79,6 @@ def cnote_manage_view(request, pk=None):
     if user.role == "ADMIN":
         allowed_payments = ["TOPAY", "PAID", "CREDIT"]
     else:
-        # staff user → branch → broker
         branch = Branch.objects.filter(branch_id=user.branch_id).select_related("broker").first()
         if branch and branch.broker:
             allowed_payments = branch.broker.booking_type or []
@@ -89,7 +90,6 @@ def cnote_manage_view(request, pk=None):
 
     if request.method == "POST":
         data = request.POST
-        print(data)
         if cnote:
             obj = cnote          
         else:
@@ -105,6 +105,7 @@ def cnote_manage_view(request, pk=None):
         obj.destination_id = data.get("location")
         obj.delivery_type = data.get("delivery_type")
 
+        obj.eway_no = data.get('eway_no')
         obj.lr_charge = data.get("lr_charge") or 0
         obj.invoice_no = data.get("invoice_no")
         obj.invoice_amt = data.get("invoice_amt") or 0
@@ -184,7 +185,32 @@ def get_quotation_rates(request, consignor_id, location_id):
             "rate": float(q.rate)
         })
     return JsonResponse(data, safe=False)
+def get_consignee_phone(request):
+    name = request.GET.get("name", "").upper().strip()
+    try:
+        consignee = Consignee.objects.get(consignee_name=name)
+        return JsonResponse({"phone": consignee.consignee_phone})
+    except Consignee.DoesNotExist:
+        return JsonResponse({"phone": ""})
+@csrf_exempt
+def add_receiver_ajax(request):
+    if request.method == "POST":
+        data = json.loads(request.body)
+        name = data.get("name", "").upper().strip()
+        phone = data.get("phone", "")
+        if not name:
+            return JsonResponse({"success": False, "error": "Receiver name is required."})
+        
+        consignee = Consignee.objects.create(
+            consignee_name=name,
+            consignee_phone=phone or "",
+            gst_no="",
+            consignee_address="",
+            consignee_is_active=True
+        )
+        return JsonResponse({"success": True, "id": consignee.consignee_id, "name": consignee.consignee_name})
 
+    return JsonResponse({"success": False, "error": "Invalid request."})
 def cnote_list_view(request):
 
     cnotes = CnoteModel.objects.select_related(

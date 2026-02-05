@@ -93,6 +93,7 @@ class CnoteModel(models.Model):
 
     delivery_type = models.CharField(max_length=30)
 
+    eway_no = models.CharField(max_length=50,null=True)
     actual_weight = models.DecimalField(max_digits=10, decimal_places=2,null=True)
     charged_weight = models.DecimalField(max_digits=10, decimal_places=2,null=True)
 
