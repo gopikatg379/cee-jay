@@ -211,6 +211,46 @@ def add_receiver_ajax(request):
         return JsonResponse({"success": True, "id": consignee.consignee_id, "name": consignee.consignee_name})
 
     return JsonResponse({"success": False, "error": "Invalid request."})
+
+@csrf_exempt
+def add_shipper_ajax(request):
+    print("hi")
+    if request.method == "POST":
+        print("entered")
+        data = json.loads(request.body)
+
+        name = data.get("name", "").strip()
+        phone = data.get("phone", "").strip()
+
+        if not name:
+            return JsonResponse({"success": False, "error": "Name required"})
+
+        consignor = Consignor.objects.create(
+            consignor_name=name,
+            consignor_phone=phone,
+            type="TEMPORARY",
+            lr_charge=0,
+            gst_no="",
+            gst_type="",
+            address="",
+            billing_address=""
+        )
+
+        default_items = Item.objects.filter(is_default=True)
+        consignor.items.set(default_items)
+        print("done")
+        return JsonResponse({
+            "success": True,
+            "id": consignor.consignor_id,
+            "name": consignor.consignor_name,
+            "items": [
+                {"item_id": i.item_id, "item_name": i.item_name, "rate": 0}
+                for i in default_items
+            ]
+        })
+
+    return JsonResponse({"success": False})
+
 def cnote_list_view(request):
 
     cnotes = CnoteModel.objects.select_related(

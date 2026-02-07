@@ -13,7 +13,7 @@ urlpatterns = [
     path('cnote/<int:pk>/', cnote_detail, name='cnote_detail'),
     path("cnote/receive/<int:pk>/", receive_cnote, name="receive_cnote"),
     path('manifest/manage/',manifest_manage,name='manifest_manage'),
-    path('staff/get-consignee-phone/', get_consignee_phone, name='get_consignee_phone'),
-    path('staff/add-receiver-ajax/', add_receiver_ajax, name='add_receiver_ajax')
-
+    path('get-consignee-phone/', get_consignee_phone, name='get_consignee_phone'),
+    path('add-receiver-ajax/', add_receiver_ajax, name='add_receiver_ajax'),
+    path("add-shipper-ajax/", add_shipper_ajax, name="add_shipper_ajax"),
 ]

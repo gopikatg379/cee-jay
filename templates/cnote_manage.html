@@ -273,7 +273,7 @@
 </form>
 </div>
 </div>
-
+<!-- Add Receiver Modal -->
 <div class="modal fade" id="addReceiverModal" tabindex="-1" aria-labelledby="addReceiverModalLabel" aria-hidden="true">
   <div class="modal-dialog">
     <div class="modal-content">
@@ -294,6 +294,35 @@
         </div>
         <div class="modal-footer">
           <button type="submit" class="btn btn-primary">Add Receiver</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+<!-- Add Shipper Modal -->
+<div class="modal fade" id="addShipperModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form id="add-shipper-form">
+        <div class="modal-header">
+          <h5 class="modal-title">Add Shipper</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label">Shipper Name</label>
+            <input type="text" class="form-control" id="shipper-name" style="text-transform: uppercase;" required>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">Phone</label>
+            <input type="text" class="form-control" id="shipper-phone" maxlength="10" inputmode="numeric">
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="submit" class="btn btn-primary">Add Shipper</button>
         </div>
       </form>
     </div>
@@ -354,7 +383,49 @@ document.getElementById("add-receiver-form").addEventListener("submit", (e) => {
         }
     });
 });
+document.getElementById("add-shipper-form").addEventListener("submit", function(e){
+    e.preventDefault();
+    console.log("hi")
+    const name = document.getElementById("shipper-name").value.trim();
+    const phone = document.getElementById("shipper-phone").value.trim();
+    console.log(name,phone)
+    fetch("{% url 'add_shipper_ajax' %}", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "X-CSRFToken": "{{ csrf_token }}"
+        },
+        body: JSON.stringify({ name, phone })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if(data.success){
+            consignors.push({
+                id: data.id,
+                name: data.name,
+                phone: data.phone
+            });
 
+            document.getElementById("consignor-input").value = data.name;
+            document.getElementById("consignor-id").value = data.id;
+
+            selectedConsignor = data.id;
+
+            itemsData = data.items;
+            document.getElementById("items-wrapper").innerHTML = "";
+            addItemRow();
+
+            bootstrap.Modal.getInstance(
+                document.getElementById("addShipperModal")
+            ).hide();
+
+            document.getElementById("shipper-name").value = "";
+            document.getElementById("shipper-phone").value = "";
+        } else {
+            alert(data.error);
+        }
+    });
+});
 const allItems = [
 {% for i in items %}
     { item_id: {{ i.item_id }}, item_name: "{{ i.item_name|escapejs }}" },
@@ -417,7 +488,11 @@ function setupAutocomplete(inputId, hiddenId, boxId, data, onSelect, showAddOpti
                 addLink.className = "suggestion-item text-primary fw-bold";
                 addLink.innerHTML = "+ Add Shipper";
                 addLink.onclick = () => {
-                    window.location.href = "{% url 'shipper_add' %}?mode=add";
+                    box.style.display = "none";
+                    const modal = new bootstrap.Modal(
+                        document.getElementById("addShipperModal")
+                    );
+                    modal.show();
                 };
                 box.appendChild(addLink);
             }
@@ -566,5 +641,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 });
 </script>
+
+
 {% endif %}
 {% endblock %}
