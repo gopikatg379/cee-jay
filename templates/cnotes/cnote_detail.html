@@ -1,5 +1,76 @@
 {% extends "base.html" %}
 {% block content %}
+<style>
+    .basic-info-table th,
+    .basic-info-table td {
+        padding: 6px 10px;
+        font-size: 13px;
+        vertical-align: middle;
+    }
+
+    .basic-info-table th {
+        font-weight: 600;
+        white-space: nowrap;
+    }
+
+    .basic-info-card .card-header {
+        padding: 8px 12px;
+    }
+
+    .basic-info-card h5 {
+        font-size: 14px;
+        margin: 0;
+    }
+        .timeline {
+    position: relative;
+    margin-left: 20px;
+}
+
+.timeline::before {
+    content: "";
+    position: absolute;
+    left: 8px;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+    background: #dee2e6;
+}
+
+.timeline-item {
+    position: relative;
+    padding-left: 30px;
+    margin-bottom: 25px;
+}
+
+.timeline-dot {
+    position: absolute;
+    left: 0;
+    top: 3px;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #dee2e6;
+}
+
+.timeline-item.completed .timeline-dot {
+    background: #198754;
+}
+
+.timeline-content {
+    font-size: 13px;
+}
+
+.timeline-status {
+    font-weight: 600;
+}
+
+.timeline-meta {
+    font-size: 11px;
+    color: #6c757d;
+}
+    
+</style>
+
 {% load tz %}
 <div class="container mt-4">
 
@@ -10,13 +81,13 @@
         </a>
     </div>
 
-    <div class="card shadow-sm border-0">
+    <div class="card shadow-sm border-0 basic-info-card">
         <div class="card-header bg-dark text-white">
             <h5 class="mb-0">Basic Info</h5>
         </div>
         <div class="card-body p-0">
             <div class="table-responsive">
-                <table class="table table-bordered mb-0">
+                <table class="table table-bordered mb-0 basic-info-table">
                     <tbody>
                         <tr>
                             <th width="20%" class="bg-light">LR NO.</th>
@@ -61,41 +132,55 @@
             </div>
         </div>
     </div>
-    {% if cnote.received_at %}
-<div class="card shadow-sm border-0 mt-4">
-    <div class="card-header bg-success text-white">
-        <h5 class="mb-0">
-            <i class="bi bi-box-arrow-in-down"></i> Received Info
-        </h5>
+<div class="card mt-4 shadow-sm">
+    <div class="card-header bg-light">
+        <strong>Consignment Tracking</strong>
     </div>
-    <div class="card-body p-0">
-        <div class="table-responsive">
-            <table class="table table-bordered mb-0">
-                <tbody>
-                    <tr>
-                        <th width="25%" class="bg-light">Received Date & Time</th>
-                        <td>
-                            {{ cnote.received_at|localtime|date:"d-m-Y H:i" }}
-                        </td>
-                    </tr>
-                    <tr>
-                        <th class="bg-light">Received Branch</th>
-                        <td>
-                            {{ cnote.received_branch.branch_name|default:"-" }}
-                        </td>
-                    </tr>
-                    <tr>
-                        <th class="bg-light">Received By</th>
-                        <td>
-                            {{ cnote.received_by.get_full_name|default:cnote.received_by.username }}
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
+
+    <div class="card-body">
+        <div class="timeline">
+            <div class="timeline-item completed">
+            <div class="timeline-dot"></div>
+
+            <div class="timeline-content">
+                <div class="timeline-status">
+                    Booked
+                </div>
+
+                <div class="timeline-meta">
+                    {{ cnote.booking_branch.branch_name }} <br>
+                    logged in : {{ cnote.user.username }} <br>
+                    {{ cnote.created_at|date:"d-m-Y H:i" }}
+                </div>
+            </div>
+        </div>
+            {% for t in trackings %}
+            <div class="timeline-item completed">
+                <div class="timeline-dot"></div>
+
+                <div class="timeline-content">
+                    <div class="timeline-status">
+                        {{ t.status }}
+                    </div>
+
+                    <div class="timeline-meta">
+                        {{ t.branch.branch_name }} <br>
+                        logged in : {{t.created_by.username}}<br>
+                        {{ t.created_at|date:"d-m-Y H:i" }}
+                    </div>
+
+                    {% if t.remarks %}
+                    <div class="timeline-meta">
+                        {{ t.remarks }}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+
         </div>
     </div>
 </div>
-{% endif %}
 
     <div class="mt-4">
         <a href="{% url 'cnote_list' %}" class="btn btn-secondary">

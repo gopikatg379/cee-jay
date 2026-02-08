@@ -19,6 +19,9 @@
     height: 36px;
     font-size: 14px;
 }
+.remarks-wide {
+    grid-column: span 3; 
+}
 .cee-form-row:first-of-type {
     margin-bottom: 0;
 }
@@ -114,7 +117,7 @@
     {% csrf_token %}
     <div class="cee-form-row">
         <div class="cee-form-group">
-            <label>Booking Branch</label>
+            <label>Booking Branch <span style="color: red;">*</span></label>
             {% if user.role == 'ADMIN' %}
             <select name="booking_branch" required>
                 <option value="">Select an option</option>
@@ -137,23 +140,22 @@
             {% endif %}
         </div>
         <div class="cee-form-group">
-            <label>Date</label>
-            <input type="date" name="date" id="cnote-date">
+            <label>Date <span style="color: red;">*</span></label>
+            <input type="date" name="date" id="cnote-date" required>
         </div>
         <div class="cee-form-group">
             <label>Reference No</label>
             <input type="text" name="reference_no" value="{{ cnote.reference_no|default:'' }}">
         </div>
         <div class="cee-form-group">
-            <label>Shipper*</label>
-            <input type="text" id="consignor-input" value="{{ cnote.consignor.consignor_name|default:'' }}" required>
+            <label>Shipper <span style="color: red;">*</span></label>
+            <input type="text" id="consignor-input" value="{{ cnote.consignor.consignor_name|default:'' }}" required style="text-transform: uppercase;">
             <input type="hidden" name="consignor" id="consignor-id" value="{{ cnote.consignor.consignor_id|default:'' }}">
             <div id="consignor-suggestions" class="suggestion-box"></div>
         </div>
         <div class="cee-form-group">
-            <label>Payment</label>
-            <select name="payment" required>
-                <option value="">Select</option>
+            <label>Payment <span style="color: red;">*</span></label>
+            <select name="payment" id="payment-select" required>
                 {% for p in allowed_payments %}
                     <option value="{{ p }}"
                         {% if cnote.payment == p %}selected{% endif %}>
@@ -163,9 +165,9 @@
             </select>
         </div>
         <div class="cee-form-group">
-            <label>Receiver*</label>
-            <input type="text" id="consignee-input" value="{{ cnote.consignee.consignee_name|default:'' }}" required>
-            <input type="hidden" name="consignee" id="consignee-id" value="{{ cnote.consignee.consignee_id|default:'' }}">
+            <label>Receiver<span style="color: red;">*</span></label>
+            <input type="text" id="consignee-input" value="{{ cnote.consignee.consignee_name|default:'' }}" style="text-transform: uppercase;" required>
+            <input type="hidden" name="consignee" id="consignee-id" value="{{ cnote.consignee.consignee_id|default:'' }}" style="text-transform: uppercase;">
             <div id="consignee-suggestions" class="suggestion-box"></div>
             <p style="font-size: 10px; color:blue; cursor:pointer;" data-bs-toggle="modal" data-bs-target="#addReceiverModal">
                 + Add Receiver
@@ -177,11 +179,11 @@
 
     <div class="cee-form-row">
         <div class="cee-form-group">
-            <label>Receiver Phone</label>
-            <input type="text" id="consignee-phone" value="{{ cnote.consignee.consignee_phone|default:'' }}" readonly>
+            <label>Receiver Phone <span style="color: red;">*</span></label>
+            <input type="text" id="consignee-phone" name="receiver_phone" value="{{ cnote.consignee_phone|default:'' }}" maxlength="10" inputmode="numeric" required>
         </div>
         <div class="cee-form-group">
-            <label>Location*</label>
+            <label>Location<span style="color: red;">*</span></label>
             <input type="text" id="location-input" value="{{ cnote.destination.location_name|default:'' }}">
             <input type="hidden" name="location" id="location-id" value="{{ cnote.destination.location_id|default:'' }}">
             <div id="location-suggestions" class="suggestion-box"></div>
@@ -191,29 +193,19 @@
             <input type="number" name="lr_charge" value="{{ cnote.lr_charge|default:'20' }}" oninput="updateSummary()">
         </div>
         <div class="cee-form-group">
-            <label>Invoice No*</label>
-            <input type="number" name="invoice_no" value="{{ cnote.invoice_no|default:'' }}" required>
+            <label>Invoice No <span style="color: red;">*</span></label>
+            <input type="text" name="invoice_no" value="{{ cnote.invoice_no|default:'' }}" required>
         </div>
         <div class="cee-form-group">
-            <label>Invoice Amount</label>
-            <input type="number" name="invoice_amt" value="{{ cnote.invoice_amt|default:'' }}">
+            <label>Invoice Amount <span style="color: red;">*</span></label>
+            <input type="text" name="invoice_amt" value="{{ cnote.invoice_amt|default:'' }}" required>
         </div>
         <div class="cee-form-group">
             <label>Eway Number</label>
             <input type="text" name="eway_no" value="{{ cnote.eway_no|default:'' }}" style="text-transform: uppercase;">
         </div>
-        <div class="cee-form-group">
-            <label>Delivery Type</label>
-            <select name="delivery_type" required>
-                <option>Door Delivery</option>
-                <option>Godown Delivery</option>
-            </select>
-        </div>
-        <div class="cee-form-group">
-            <label>Delivery Branch</label>
-            <input type="text" id="branch-input" value="{{ cnote.delivery_branch.branch_name|default:'' }}" readonly>
-            <input type="hidden" name="branch" id="branch-id" value="{{ cnote.delivery_branch.branch_id|default:'' }}">
-        </div>
+        
+        
     </div>
 
     <h6>Items</h6>
@@ -264,12 +256,29 @@
             <label>Grand Total</label>
             <input type="number" id="grand-total" readonly>
         </div>
-        <div class="cee-form-group">
-            <label>Remarks</label>
-            <input type="text" name="remarks" value="{{ cnote.remarks}}"> 
-        </div>
+        
     </div>
-    <button type="submit" class="cee-btn-save mt-3">Save CNote</button>
+    <div class="cee-form-row">
+        <div class="cee-form-group remarks-wide">
+            <label>Remarks</label>
+            <input type="text" name="remarks" value="{{ cnote.remarks }}">
+        </div>
+        <div class="cee-form-group">
+            <label>Delivery Type</label>
+            <select name="delivery_type" required>
+                <option>Door Delivery</option>
+                <option>Godown Delivery</option>
+            </select>
+        </div>
+        <div class="cee-form-group">
+            <label>Delivery Branch</label>
+            <input type="text" id="branch-input" value="{{ cnote.delivery_branch.branch_name|default:'' }}" readonly>
+            <input type="hidden" name="branch" id="branch-id" value="{{ cnote.delivery_branch.branch_id|default:'' }}">
+        </div>
+        <button type="submit" class="cee-btn-save mt-3">Save LR</button>
+
+    </div>
+    
 </form>
 </div>
 </div>
@@ -285,11 +294,7 @@
         <div class="modal-body">
           <div class="mb-3">
             <label for="receiver-name" class="form-label">Receiver Name</label>
-            <input type="text" class="form-control" id="receiver-name" required>
-          </div>
-          <div class="mb-3">
-            <label for="receiver-phone" class="form-label">Phone Number</label>
-            <input type="text" class="form-control" id="receiver-phone" value="">
+            <input type="text" class="form-control" id="receiver-name" required style="text-transform: uppercase;">
           </div>
         </div>
         <div class="modal-footer">
@@ -317,7 +322,7 @@
 
           <div class="mb-3">
             <label class="form-label">Phone</label>
-            <input type="text" class="form-control" id="shipper-phone" maxlength="10" inputmode="numeric">
+            <input type="text" class="form-control" id="shipper-phone" maxlength="10" inputmode="numeric" required>
           </div>
         </div>
 
@@ -359,24 +364,21 @@ receiverNameInput.addEventListener("input", () => {
 document.getElementById("add-receiver-form").addEventListener("submit", (e) => {
     e.preventDefault();
     const name = receiverNameInput.value.trim();
-    const phone = receiverPhoneInput.value.trim();
     fetch("{% url 'add_receiver_ajax' %}", {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
             "X-CSRFToken": "{{ csrf_token }}"
         },
-        body: JSON.stringify({ name: name, phone: phone })
+        body: JSON.stringify({ name: name})
     })
     .then(res => res.json())
     .then(data => {
         if (data.success) {
-            consignees.push({id: data.id, name: data.name, phone: data.phone});
+            consignees.push({id: data.id, name: data.name});
             document.getElementById("consignee-input").value = data.name;
             document.getElementById("consignee-id").value = data.id;
-            document.getElementById("consignee-phone").value = data.phone;
             receiverNameInput.value = "";
-            receiverPhoneInput.value = "";
             bootstrap.Modal.getInstance(document.getElementById('addReceiverModal')).hide();
         } else {
             alert("Error: " + data.error);
@@ -385,7 +387,6 @@ document.getElementById("add-receiver-form").addEventListener("submit", (e) => {
 });
 document.getElementById("add-shipper-form").addEventListener("submit", function(e){
     e.preventDefault();
-    console.log("hi")
     const name = document.getElementById("shipper-name").value.trim();
     const phone = document.getElementById("shipper-phone").value.trim();
     console.log(name,phone)
@@ -399,32 +400,38 @@ document.getElementById("add-shipper-form").addEventListener("submit", function(
     })
     .then(res => res.json())
     .then(data => {
-        if(data.success){
-            consignors.push({
-                id: data.id,
-                name: data.name,
-                phone: data.phone
-            });
+    if (data.success) {
 
-            document.getElementById("consignor-input").value = data.name;
-            document.getElementById("consignor-id").value = data.id;
+        const newConsignor = {
+            id: data.id,
+            name: data.name,
+            phone: data.phone,
+            type: "TEMPORARY"
+        };
 
-            selectedConsignor = data.id;
+        consignors.push(newConsignor);
 
-            itemsData = data.items;
-            document.getElementById("items-wrapper").innerHTML = "";
-            addItemRow();
+        document.getElementById("consignor-input").value = newConsignor.name;
+        document.getElementById("consignor-id").value = newConsignor.id;
 
-            bootstrap.Modal.getInstance(
-                document.getElementById("addShipperModal")
-            ).hide();
+        selectedConsignor = newConsignor.id;
 
-            document.getElementById("shipper-name").value = "";
-            document.getElementById("shipper-phone").value = "";
-        } else {
-            alert(data.error);
-        }
-    });
+        updatePaymentOptions(newConsignor); 
+
+        itemsData = allItems;
+        document.getElementById("items-wrapper").innerHTML = "";
+        addItemRow();
+
+        bootstrap.Modal.getInstance(
+            document.getElementById("addShipperModal")
+        ).hide();
+
+        document.getElementById("shipper-name").value = "";
+        document.getElementById("shipper-phone").value = "";
+    } else {
+        alert(data.error);
+    }
+});
 });
 const allItems = [
 {% for i in items %}
@@ -555,12 +562,11 @@ function addItemRow() {
     div.className = "items-row";
     div.innerHTML = `
         <select onchange="setRate(this)" name="item[]">
-            <option value="">Item</option>
             ${itemsData.map(i => `<option value="${i.item_id}">${i.item_name}</option>`).join("")}
         </select>
-        <input type="number" name="qty[]" placeholder="Qty" oninput="calcRow(this)">
-        <input type="number" name="rate[]" placeholder="Rate" oninput="calcRow(this)">
-        <input type="number" name="total[]" readonly>
+        <input type="number" name="qty[]" placeholder="Qty" oninput="calcRow(this)" required>
+        <input type="number" name="rate[]" placeholder="Rate" oninput="calcRow(this)" required>
+        <input type="number" name="total[]" readonly required>
         <button type="button" class="btn btn-outline-danger btn-sm">✖</button>
     `;
     div.querySelector("button").onclick = () => { div.remove(); updateSummary(); };
@@ -579,7 +585,23 @@ function calcRow(el) {
     row.children[3].value = ((row.children[1].value || 0) * (row.children[2].value || 0)).toFixed(2);
     updateSummary();
 }
+function updatePaymentOptions(consignor) {
+    const paymentSelect = document.getElementById("payment-select");
 
+    paymentSelect.innerHTML = "";
+
+    if (consignor && consignor.type=== "PERMANENT") {
+        paymentSelect.innerHTML = `
+            <option value="CREDIT">Credit</option>
+            <option value="TOPAY">To Pay</option>
+        `;
+    } else {
+        paymentSelect.innerHTML = `
+            <option value="PAID">Paid</option>
+            <option value="TOPAY">To Pay</option>
+        `;
+    }
+}
 function updateSummary() {
     let qty = 0, freight = 0;
     const lrCharge = +(document.querySelector('input[name="lr_charge"]')?.value || 0);
@@ -607,10 +629,11 @@ document.addEventListener("DOMContentLoaded", () => {
         selectedConsignor = consignor.id;
         itemsData = allItems;
         addItemRow();
+        updatePaymentOptions(consignor);
     },true);
 
     setupAutocomplete("consignee-input","consignee-id","consignee-suggestions",consignees, consignee => {
-        document.getElementById("consignee-phone").value =  d.phone || "";
+        document.getElementById("consignee-phone").value =  consignee.phone || "";
     },false);
 
     setupAutocomplete("location-input","location-id","location-suggestions",locations,

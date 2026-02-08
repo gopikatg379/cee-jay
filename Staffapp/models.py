@@ -33,12 +33,14 @@ class CnoteModel(models.Model):
     STATUS_INTRANSIT = 'SHIPPED'
     STATUS_DISPATCHED = 'OUT FOR DELIVERY'
     STATUS_DELIVERED = 'DELIVERED'
+    STATUS_CANCEL = 'Cancelled'
     STATUS_CHOICES = [
         (STATUS_NEW, 'New'),
         (STATUS_RECEIVED, 'Received'),
         (STATUS_INTRANSIT, 'Shipped'),
         (STATUS_DISPATCHED, 'Out For Delivery'),
         (STATUS_DELIVERED, 'Delivered'),
+        (STATUS_CANCEL,'Cancelled')
     ]
     received_at = models.DateTimeField(null=True, blank=True)
     received_branch = models.ForeignKey(
@@ -64,6 +66,7 @@ class CnoteModel(models.Model):
 
     consignor = models.ForeignKey(Consignor,on_delete=models.PROTECT)
     consignee = models.ForeignKey(Consignee,on_delete=models.PROTECT)
+    consignee_phone = models.CharField(max_length=12,null=True)
     booking_branch = models.ForeignKey(Branch,on_delete=models.PROTECT,related_name="booking_cnotes",null=True)
     delivery_branch = models.ForeignKey(Branch,on_delete=models.PROTECT,null=True,related_name="delivery_cnotes")
 
@@ -103,7 +106,7 @@ class CnoteModel(models.Model):
     total = models.DecimalField(max_digits=12, decimal_places=2)
 
     remarks = models.TextField(blank=True,null=True)
-
+    user = models.ForeignKey(UserModel,on_delete=models.PROTECT,null=True)
     manifest = models.ForeignKey(
         ManifestModel,
         on_delete=models.SET_NULL,
@@ -111,6 +114,7 @@ class CnoteModel(models.Model):
         blank=True,
         related_name="cnotes"
     )
+    created_at = models.DateTimeField(auto_now_add=True,null=True)
     class Meta:
         db_table = "cnote_table"
     def save(self, *args, **kwargs):
@@ -156,4 +160,35 @@ class CnoteItem(models.Model):
 
     class Meta:
         db_table = "cnote_item_table"
+
+class CnoteTracking(models.Model):
+    cnote = models.ForeignKey(
+        CnoteModel,
+        on_delete=models.CASCADE,
+        related_name="trackings"
+    )
+    status = models.CharField(max_length=30)
+    branch = models.ForeignKey(
+        Branch,
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True
+    )
+    manifest = models.ForeignKey(
+        ManifestModel,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    created_by = models.ForeignKey(
+        UserModel,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True
+    )
+
+    class Meta:
+        ordering = ["created_at"]
+
 

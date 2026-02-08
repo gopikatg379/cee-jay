@@ -14,6 +14,7 @@ from django.utils import timezone
 from django.contrib import messages
 from django.db.models.functions import Replace
 import json
+from django.views.decorators.http import require_POST
 from django.views.decorators.csrf import csrf_exempt
 
 def get_consignor_items(request, consignor_id):
@@ -104,7 +105,8 @@ def cnote_manage_view(request, pk=None):
         obj.delivery_branch_id = data.get("branch")
         obj.destination_id = data.get("location")
         obj.delivery_type = data.get("delivery_type")
-
+        obj.consignee_phone = data.get("receiver_phone")
+        obj.user = user
         obj.eway_no = data.get('eway_no')
         obj.lr_charge = data.get("lr_charge") or 0
         obj.invoice_no = data.get("invoice_no")
@@ -197,13 +199,12 @@ def add_receiver_ajax(request):
     if request.method == "POST":
         data = json.loads(request.body)
         name = data.get("name", "").upper().strip()
-        phone = data.get("phone", "")
         if not name:
             return JsonResponse({"success": False, "error": "Receiver name is required."})
         
         consignee = Consignee.objects.create(
             consignee_name=name,
-            consignee_phone=phone or "",
+            consignee_phone="",
             gst_no="",
             consignee_address="",
             consignee_is_active=True
@@ -403,16 +404,27 @@ def print_cnote(request, cnote_id):
     
     return render(request, 'cnotes/print_bill.html', context)
 
-def cnote_delete(request,cnote_id):
-    cnote = get_object_or_404(CnoteModel,cnote_id=cnote_id)
-    cnote.delete()
+@require_POST
+def cnote_cancel(request):
+    cnote_id = request.POST.get("cnote_id")
+    remark = request.POST.get("remark")
+
+    cnote = get_object_or_404(CnoteModel, cnote_id=cnote_id)
+
+    if cnote.status != CnoteModel.STATUS_CANCEL:
+        cnote.status = CnoteModel.STATUS_CANCEL
+        cnote.remarks = remark
+        cnote.save()
+
     return redirect('cnote_list')
 
 def cnote_detail(request, pk):
     cnote = get_object_or_404(CnoteModel, pk=pk)
+    trackings = cnote.trackings.all()
     context = {
         'cnote': cnote,
         'title': f'Basic Info - {cnote.cnote_number}',
+        'trackings': trackings
     }
     return render(request, 'cnotes/cnote_detail.html', context)
 
@@ -421,8 +433,14 @@ def receive_cnote(request, pk):
     cnote = get_object_or_404(CnoteModel, pk=pk)
     user_branch = request.user.branch
 
-    if cnote.status == CnoteModel.STATUS_RECEIVED and cnote.received_branch == user_branch:
-        messages.warning(request, "This CNote is already received by your branch.")
+    if (
+        cnote.status == CnoteModel.STATUS_RECEIVED
+        and cnote.received_branch == user_branch
+    ):
+        messages.warning(
+            request,
+            "This CNote is already received by your branch."
+        )
         return redirect("cnote_manage")
 
     cnote.status = CnoteModel.STATUS_RECEIVED
@@ -431,8 +449,16 @@ def receive_cnote(request, pk):
     cnote.received_by = request.user
     cnote.save()
 
+    CnoteTracking.objects.create(
+        cnote=cnote,
+        branch=user_branch,
+        status=CnoteModel.STATUS_RECEIVED,
+        created_by=request.user
+    )
+
     messages.success(request, "CNote received successfully.")
     return redirect("cnote_list")
+
 
 def manifest_manage(request):
 
@@ -485,9 +511,17 @@ def manifest_manage(request):
                 for c in cnotes:
                     c.manifest = manifest
                     c.status = new_status
+
                     if manifest_type == "BRANCH":
                         c.delivery_branch_id = hub_branch_id
+
                     c.save()
+                    CnoteTracking.objects.create(
+                        cnote=c,
+                        branch=request.user.branch,
+                        status=new_status,
+                        created_by=request.user
+                    )
 
                 messages.success(
                     request,
