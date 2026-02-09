@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Manifest Print</title>
+
+    <style>
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            font-size: 12px;
+            color: #000;
+            margin: 20px;
+        }
+
+        .header {
+            text-align: center;
+            font-weight: bold;
+            font-size: 16px;
+            margin-bottom: 10px;
+        }
+
+        .line {
+            border-top: 1px solid #000;
+            margin: 8px 0;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .info-table td {
+            padding: 4px 6px;
+            vertical-align: top;
+            white-space: nowrap;
+        }
+
+        .info-label {
+            font-weight: bold;
+            width: 120px;
+        }
+
+        .manifest-table th,
+        .manifest-table td {
+            border: 1px solid #000;
+            padding: 6px 6px;
+            text-align: left;
+        }
+
+        .manifest-table th {
+            font-weight: bold;
+            text-transform: uppercase;
+            font-size: 11px;
+        }
+
+        .text-center {
+            text-align: center;
+        }
+
+        .text-right {
+            text-align: right;
+        }
+
+        .total-row td {
+            font-weight: bold;
+        }
+
+        @media print {
+            body {
+                margin: 10mm;
+            }
+        }
+    </style>
+</head>
+
+<body onload="window.print()">
+
+    <div class="header">CEE JAY COURIER</div>
+
+    <div class="line"></div>
+
+    <table class="info-table">
+        <tr>
+            <td class="info-label">DESPATCH NO</td>
+            <td>: CJDESP/{{ manifest.manifest_id }}</td>
+
+            <td class="info-label">DRIVER</td>
+            <td>: {{ manifest.driver.driver_name }}</td>
+
+            <td class="info-label">TIME</td>
+            <td>: {{ manifest.created_at|time:"h:i:s A" }}</td>
+
+            <td class="info-label">LOADED BY</td>
+            <td>: Loading Staff</td>
+        </tr>
+
+        <tr>
+            <td class="info-label">DESPATCH DATE</td>
+            <td>: {{ manifest.date|date:"d-m-Y" }}</td>
+
+            <td class="info-label">VEHICLE</td>
+            <td>: {{ manifest.vehicle.registration_no }}</td>
+
+            <td class="info-label">HUB</td>
+            <td>: {{ manifest.branch.branch_name }}</td>
+
+            <td class="info-label">TRIP SHEET BY</td>
+            <td>: CJBOOKING</td>
+        </tr>
+    </table>
+
+    <div class="line"></div>
+
+    <table class="manifest-table">
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Book Date</th>
+                <th>LR No</th>
+                <th>Inv No</th>
+                <th>Shipper</th>
+                <th>Receiver</th>
+                <th>Destination</th>
+                <th class="text-center">Quantity</th>
+                <th class="text-center">To Pay</th>
+                <th>E-Way Bill</th>
+                <th>Signature</th>
+            </tr>
+        </thead>
+
+        <tbody>
+            {% for cnote in cnotes %}
+            <tr>
+                <td class="text-center">{{ forloop.counter }}</td>
+                <td>{{ cnote.date|date:"d-m-Y" }}</td>
+                <td>{{ cnote.cnote_number }}</td>
+                <td>{{ cnote.invoice_no }}</td>
+                <td>{{ cnote.consignor }}</td>
+                <td>{{ cnote.consignee }}</td>
+                <td>{{ cnote.destination }}</td>
+                <td class="text-center">{{ cnote.total_item }}</td>
+                <td class="text-center">
+                    {% if cnote.payment|upper == "TOPAY" %}
+                        {{ cnote.total }}
+                    {% endif %}
+                </td>
+                <td></td>
+                <td></td>
+            </tr>
+            {% endfor %}
+
+            <tr class="total-row">
+                <td colspan="7" class="text-right">TOTAL</td>
+                <td class="text-center">
+                    {{ total_qty }}
+                </td>
+                <td class="text-center">
+                    {{ total_to_pay }}
+                </td>
+                <td></td>
+                <td></td>
+            </tr>
+        </tbody>
+    </table>
+
+</body>
+</html>

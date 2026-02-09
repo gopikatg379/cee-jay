@@ -14,6 +14,7 @@ from django.utils import timezone
 from django.contrib import messages
 from django.db.models.functions import Replace
 import json
+from django.db.models import Sum
 from django.views.decorators.http import require_POST
 from django.views.decorators.csrf import csrf_exempt
 
@@ -485,14 +486,14 @@ def manifest_manage(request):
         if manifest_type == "BRANCH" and not hub_branch_id:
             messages.error(request, "Please select Hub Branch")
             return redirect(request.path)
-
         try:
             with transaction.atomic():
                 manifest = ManifestModel.objects.create(
                     date=manifest_date,
                     driver_id=driver_id,
                     vehicle_id=vehicle_id,
-                    branch_id=hub_branch_id if manifest_type == "BRANCH" else None
+                    branch_id=hub_branch_id if manifest_type == "BRANCH" else None,
+                    manifest_type=manifest_type
                 )
 
                 cnotes = CnoteModel.objects.select_for_update().filter(
@@ -502,12 +503,13 @@ def manifest_manage(request):
                 if cnotes.count() != len(cnote_ids):
                     raise Exception("Some CNotes already manifested")
 
-                new_status = (
-                    CnoteModel.STATUS_INTRANSIT
-                    if manifest_type == "BRANCH"
-                    else CnoteModel.STATUS_DISPATCHED
-                )
-
+                if manifest_type == "BRANCH":
+                    new_status = CnoteModel.STATUS_INTRANSIT 
+                elif manifest_type == "DELIVERY":
+                    new_status = CnoteModel.STATUS_DISPATCHED  
+                else:
+                    messages.error(request, "Invalid manifest type")
+                    return redirect(request.path)
                 for c in cnotes:
                     c.manifest = manifest
                     c.status = new_status
@@ -527,7 +529,7 @@ def manifest_manage(request):
                     request,
                     f"Manifest {manifest.manifest_id} created successfully"
                 )
-                return redirect("cnote_list")
+                return redirect("manifest_list")
 
         except Exception as e:
             messages.error(request, str(e))
@@ -541,4 +543,133 @@ def manifest_manage(request):
         'today': timezone.now().date()
     }
 
-    return render(request, 'manifest_manage.html', context)
+    return render(request, 'manifest/manifest_manage.html', context)
+
+def manifest_list(request):
+
+    manifest_type = request.GET.get(
+        'manifest_type',
+        ManifestModel.MANIFEST_DELIVERY
+    )
+
+    from_date = request.GET.get('from_date')
+    to_date = request.GET.get('to_date')
+
+    manifests = ManifestModel.objects.filter(
+        manifest_type=manifest_type
+    )
+    print(manifests)
+    if from_date:
+        manifests = manifests.filter(date__gte=from_date)
+
+    if to_date:
+        manifests = manifests.filter(date__lte=to_date)
+
+    manifests = manifests.order_by('-date')
+    for m in manifests:
+        m.can_update_delivery = m.cnotes.filter(
+            status=CnoteModel.STATUS_DISPATCHED
+        ).exists()
+    paginator = Paginator(manifests, 10)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
+    context = {
+        'manifests': page_obj,
+        'page_obj': page_obj,
+        'selected_type': manifest_type,
+        'filters': {
+            'from_date': from_date,
+            'to_date': to_date,
+        }
+    }
+
+    return render(request, 'manifest/manifest_list.html', context)
+
+def manifest_edit(request,manifest_id):
+    return render(request,'manifest/manifest_edit.html')
+
+def print_manifest(request, manifest_id):
+    manifest = get_object_or_404(ManifestModel, manifest_id=manifest_id)
+
+    cnotes = CnoteModel.objects.filter(manifest=manifest)
+
+    total_qty = cnotes.aggregate(
+        Sum('total_item')
+    )['total_item__sum'] or 0
+
+    topay_cnotes = cnotes.filter(payment__iexact="TOPAY")
+
+    total_to_pay = topay_cnotes.aggregate(
+        Sum('total')
+    )['total__sum'] or 0
+
+    context = {
+        'manifest': manifest,
+        'cnotes': cnotes,
+        'total_qty': total_qty,
+        'total_to_pay': total_to_pay,
+    }
+
+    return render(request, 'manifest/print_manifest.html', context)
+
+def manifest_drs_update(request, manifest_id):
+    manifest = get_object_or_404(
+        ManifestModel,
+        manifest_id=manifest_id,
+        manifest_type=ManifestModel.MANIFEST_DELIVERY
+    )
+
+    cnotes = CnoteModel.objects.filter(
+        manifest=manifest,
+        status=CnoteModel.STATUS_DISPATCHED 
+    )
+
+    total_topay = cnotes.filter(
+        payment__iexact="TOPAY"
+    ).aggregate(total=Sum("total"))["total"] or 0
+
+    if request.method == "POST":
+        with transaction.atomic():
+            for c in cnotes:
+
+                if f"return_{c.cnote_id}" in request.POST:
+                    c.is_returned = True
+                    c.status = CnoteModel.STATUS_RETURN
+                    c.delivery_status = None
+                    c.save()
+                    continue
+
+                delivery_status = request.POST.get(
+                    f"status_{c.cnote_id}"
+                )
+
+                if not delivery_status:
+                    continue
+
+                c.delivery_status = delivery_status
+
+                if delivery_status == "DELIVERED":
+                    c.status = CnoteModel.STATUS_DELIVERED
+
+                elif delivery_status in [
+                    "TOPAY_RECEIVABLE",
+                    "CREDIT_ALLOCATED"
+                ]:
+                    c.status = CnoteModel.STATUS_DELIVERED
+
+                c.save()
+
+        messages.success(request, "Delivery status updated successfully")
+        return redirect("manifest_list")
+
+    return render(
+        request,
+        "manifest/drs_update.html",
+        {
+            "manifest": manifest,
+            "cnotes": cnotes,
+            "total_topay": total_topay,
+        }
+    )
+

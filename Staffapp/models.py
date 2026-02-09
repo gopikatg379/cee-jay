@@ -19,7 +19,7 @@ class ManifestModel(models.Model):
     vehicle = models.ForeignKey(Vehicle,on_delete=models.PROTECT)
     branch = models.ForeignKey(Branch,on_delete=models.PROTECT,null=True)
     manifest_type = models.CharField(max_length=20, choices=MANIFEST_TYPES)
-    
+    created_at = models.DateTimeField(auto_now_add=True,null=True)
     class Meta:
         db_table = 'manifest_table'
 
@@ -34,13 +34,15 @@ class CnoteModel(models.Model):
     STATUS_DISPATCHED = 'OUT FOR DELIVERY'
     STATUS_DELIVERED = 'DELIVERED'
     STATUS_CANCEL = 'Cancelled'
+    STATUS_RETURN  = 'RETURN'
     STATUS_CHOICES = [
         (STATUS_NEW, 'New'),
         (STATUS_RECEIVED, 'Received'),
         (STATUS_INTRANSIT, 'Shipped'),
         (STATUS_DISPATCHED, 'Out For Delivery'),
         (STATUS_DELIVERED, 'Delivered'),
-        (STATUS_CANCEL,'Cancelled')
+        (STATUS_CANCEL,'Cancelled'),
+        (STATUS_RETURN,'Return'),
     ]
     received_at = models.DateTimeField(null=True, blank=True)
     received_branch = models.ForeignKey(
@@ -57,7 +59,24 @@ class CnoteModel(models.Model):
         blank=True,
         related_name="received_cnotes"
     )
+    DELIVERY_STATUS_DELIVERED = "DELIVERED"
+    DELIVERY_STATUS_TOPAY = "TOPAY_RECEIVABLE"
+    DELIVERY_STATUS_CREDIT = "CREDIT_ALLOCATED"
 
+    DELIVERY_STATUS_CHOICES = [
+        (DELIVERY_STATUS_DELIVERED, "Delivered"),
+        (DELIVERY_STATUS_TOPAY, "To Pay Receivable"),
+        (DELIVERY_STATUS_CREDIT, "Credit Invoice Allocation"),
+    ]
+
+    delivery_status = models.CharField(
+        max_length=30,
+        choices=DELIVERY_STATUS_CHOICES,
+        null=True,
+        blank=True
+    )
+
+    is_returned = models.BooleanField(default=False)
     cnote_id = models.AutoField(primary_key=True)
     date = models.DateField()
 
@@ -117,6 +136,14 @@ class CnoteModel(models.Model):
     created_at = models.DateTimeField(auto_now_add=True,null=True)
     class Meta:
         db_table = "cnote_table"
+    @property
+    def has_pending_delivery(self):
+        return self.cnotes.filter(
+            status__in=[
+                CnoteModel.STATUS_DISPATCHED,  
+                CnoteModel.STATUS_INTRANSIT   
+            ]
+        ).exists()
     def save(self, *args, **kwargs):
         is_new = self.pk is None
 

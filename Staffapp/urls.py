@@ -16,4 +16,9 @@ urlpatterns = [
     path('get-consignee-phone/', get_consignee_phone, name='get_consignee_phone'),
     path('add-receiver-ajax/', add_receiver_ajax, name='add_receiver_ajax'),
     path("add-shipper-ajax/", add_shipper_ajax, name="add_shipper_ajax"),
+    path('manifest/list/', manifest_list, name='manifest_list'),
+    path('manifest/edit/<int:manifest_id>/',manifest_edit,name="manifest_edit"),
+    path('manifest/print/<int:manifest_id>/',print_manifest,name="manifest_print"),
+    path("manifest/drs/<int:manifest_id>/",manifest_drs_update,name="manifest_drs_update"
+)
 ]

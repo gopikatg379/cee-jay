@@ -106,8 +106,10 @@
                 <td>Shipped to {{cnote.manifest.branch.branch_name}}</td>
                 {% elif cnote.status == "OUT FOR DELIVERY"%}
                 <td>Out for delivery</td>
-                {% elif cnote.status == "DELIVERED" %}
+                {% elif cnote.delivery_status == "DELIVERED" %}
                 <td>Delivered</td>
+                {% elif cnote.is_returned%}
+                <td>Return</td>
                 {% elif cnote.status == "Cancelled" %}
                 <td>Cancelled</td>
                 {% endif %}
@@ -125,6 +127,7 @@
                         {% elif cnote.status == 'OUT FOR DELIVERY' %}bg-info text-dark
                         {% elif cnote.status == 'DELIVERED' %}bg-success
                         {% elif cnote.status == 'Cancelled' %}bg-danger
+                        {% elif cnote.status == 'RETURN' %}bg-danger
                         {% else %}bg-secondary{% endif %}">
                         {{ cnote.get_status_display }}
                     </span>

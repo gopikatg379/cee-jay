@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="container-fluid">
+
+<h4 class="mb-3">Manage Despatch Receipt</h4>
+
+<div class="card p-3 mb-3">
+    <div class="row">
+        <div class="col-md-3">
+            <label>Despatch No</label>
+            <input class="form-control" value="CJDESP/{{ manifest.manifest_id }}" readonly>
+        </div>
+        <div class="col-md-3">
+            <label>Despatch Date</label>
+            <input class="form-control" value="{{ manifest.date }}" readonly>
+        </div>
+        <div class="col-md-3">
+            <label>Vehicle</label>
+            <input class="form-control" value="{{ manifest.vehicle.registration_no }}" readonly>
+        </div>
+        <div class="col-md-3">
+            <label>Driver</label>
+            <input class="form-control" value="{{ manifest.driver.driver_name }}" readonly>
+        </div>
+    </div>
+</div>
+
+<form method="post">
+{% csrf_token %}
+
+<div class="card">
+<div class="table-responsive">
+<table class="table table-bordered">
+
+<thead>
+<tr>
+    <th>#</th>
+    <th>LR No</th>
+    <th>Consignee</th>
+    <th>Destination</th>
+    <th>Total Topay Amount</th>
+    <th>Payment Method</th>
+    <th>Status (Cash Payment)</th>
+    <th>Return</th>
+</tr>
+</thead>
+
+<tbody>
+{% for c in cnotes %}
+<tr>
+    <td>{{ forloop.counter }}</td>
+    <td>{{ c.cnote_number }}</td>
+    <td>{{ c.consignee.consignee_name }}</td>
+    <td>{{ c.destination.location_name }}</td>
+
+    <td>
+        {% if c.payment|upper == "TOPAY" %}
+            {{ c.total }}
+        {% else %}
+            0
+        {% endif %}
+    </td>
+
+    <td>{{ c.payment }}</td>
+
+    <td>
+        <select name="status_{{ c.cnote_id }}" class="form-select">
+            <option value="">Select</option>
+            <option value="DELIVERED"
+                {% if c.delivery_status == "DELIVERED" %}selected{% endif %}>
+                Delivered
+            </option>
+            <option value="TOPAY_RECEIVABLE"
+                {% if c.delivery_status == "TOPAY_RECEIVABLE" %}selected{% endif %}>
+                To Pay Receivable
+            </option>
+            <option value="CREDIT_ALLOCATED"
+                {% if c.delivery_status == "CREDIT_ALLOCATED" %}selected{% endif %}>
+                Credit Invoice Allocation
+            </option>
+        </select>
+    </td>
+
+    <td>
+        <button type="submit"
+                name="return_{{ c.cnote_id }}"
+                value="1"
+                class="btn btn-danger btn-sm">
+            RETURN
+        </button>
+    </td>
+</tr>
+{% endfor %}
+
+<tr class="fw-bold">
+    <td colspan="4" class="text-end">TOTAL</td>
+    <td>{{ total_topay }}</td>
+    <td colspan="3"></td>
+</tr>
+
+</tbody>
+</table>
+</div>
+
+<div class="text-end p-3">
+    <button class="btn btn-success">UPDATE</button>
+</div>
+
+</div>
+</form>
+</div>
+
+{% endblock %}
