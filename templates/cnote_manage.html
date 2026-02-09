@@ -156,6 +156,7 @@
         <div class="cee-form-group">
             <label>Payment <span style="color: red;">*</span></label>
             <select name="payment" id="payment-select" required>
+                <option value="">Select</option>
                 {% for p in allowed_payments %}
                     <option value="{{ p }}"
                         {% if cnote.payment == p %}selected{% endif %}>
@@ -588,15 +589,17 @@ function calcRow(el) {
 function updatePaymentOptions(consignor) {
     const paymentSelect = document.getElementById("payment-select");
 
-    paymentSelect.innerHTML = "";
+    paymentSelect.innerHTML =  `
+        <option value="">Select</option>
+    `;
 
     if (consignor && consignor.type=== "PERMANENT") {
-        paymentSelect.innerHTML = `
+        paymentSelect.innerHTML += `
             <option value="CREDIT">Credit</option>
             <option value="TOPAY">To Pay</option>
         `;
     } else {
-        paymentSelect.innerHTML = `
+        paymentSelect.innerHTML += `
             <option value="PAID">Paid</option>
             <option value="TOPAY">To Pay</option>
         `;

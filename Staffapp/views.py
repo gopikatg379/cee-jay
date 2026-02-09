@@ -638,6 +638,13 @@ def manifest_drs_update(request, manifest_id):
                     c.status = CnoteModel.STATUS_RETURN
                     c.delivery_status = None
                     c.save()
+                    CnoteTracking.objects.create(
+                        cnote=c,
+                        status="RETURNED",
+                        branch=manifest.branch,
+                        manifest=manifest,
+                        created_by=request.user
+                    )
                     continue
 
                 delivery_status = request.POST.get(
@@ -651,7 +658,13 @@ def manifest_drs_update(request, manifest_id):
 
                 if delivery_status == "DELIVERED":
                     c.status = CnoteModel.STATUS_DELIVERED
-
+                    CnoteTracking.objects.create(
+                        cnote=c,
+                        status="DELIVERED",
+                        branch=manifest.branch,
+                        manifest=manifest,
+                        created_by=request.user
+                    )
                 elif delivery_status in [
                     "TOPAY_RECEIVABLE",
                     "CREDIT_ALLOCATED"
