@@ -63,6 +63,19 @@ def get_branch_by_location(request, location_id):
 
     except Location.DoesNotExist:
         return JsonResponse({"branches": []}, status=404)
+@login_required
+def get_lr_charge(request):
+    consignor_id = request.GET.get("consignor_id")
+    lr_charge = 0
+
+    consignor = Consignor.objects.filter(consignor_id=consignor_id).first()
+    if consignor:
+        if consignor.type == "PERMANENT":
+            lr_charge = consignor.lr_charge or 20
+        else:
+            lr_charge = 0
+    print(lr_charge)
+    return JsonResponse({"lr_charge": lr_charge})
 
 @login_required(login_url='/')
 def cnote_manage_view(request, pk=None):
@@ -109,7 +122,19 @@ def cnote_manage_view(request, pk=None):
         obj.consignee_phone = data.get("receiver_phone")
         obj.user = user
         obj.eway_no = data.get('eway_no')
-        obj.lr_charge = data.get("lr_charge") or 0
+        consignor_id = data.get("consignor")
+        consignor = Consignor.objects.filter(consignor_id=consignor_id).first()
+
+        if consignor:
+            if consignor.type == "TEMPORARY":
+                obj.lr_charge = 0
+            elif consignor.type == "PERMANENT":
+                obj.lr_charge = consignor.lr_charge or 20
+
+            else:
+                obj.lr_charge = 0
+        else:
+            obj.lr_charge = 0
         obj.invoice_no = data.get("invoice_no")
         obj.invoice_amt = data.get("invoice_amt") or 0
         obj.pickup_charge = data.get("pickup_charge") or 0
@@ -433,16 +458,7 @@ def cnote_detail(request, pk):
 def receive_cnote(request, pk):
     cnote = get_object_or_404(CnoteModel, pk=pk)
     user_branch = request.user.branch
-
-    if (
-        cnote.status == CnoteModel.STATUS_RECEIVED
-        and cnote.received_branch == user_branch
-    ):
-        messages.warning(
-            request,
-            "This CNote is already received by your branch."
-        )
-        return redirect("cnote_manage")
+    cnote.manifest = None
 
     cnote.status = CnoteModel.STATUS_RECEIVED
     cnote.received_at = timezone.now()
@@ -464,8 +480,9 @@ def receive_cnote(request, pk):
 def manifest_manage(request):
 
     cnotes_qs = CnoteModel.objects.filter(
-        manifest__isnull=True,
-        status='RECEIVED'
+        status=CnoteModel.STATUS_RECEIVED,
+        received_branch=request.user.branch,
+        manifest__isnull=True
     ).order_by("-date")
 
     paginator = Paginator(cnotes_qs, 10)
@@ -513,10 +530,6 @@ def manifest_manage(request):
                 for c in cnotes:
                     c.manifest = manifest
                     c.status = new_status
-
-                    if manifest_type == "BRANCH":
-                        c.delivery_branch_id = hub_branch_id
-
                     c.save()
                     CnoteTracking.objects.create(
                         cnote=c,
@@ -558,7 +571,6 @@ def manifest_list(request):
     manifests = ManifestModel.objects.filter(
         manifest_type=manifest_type
     )
-    print(manifests)
     if from_date:
         manifests = manifests.filter(date__gte=from_date)
 

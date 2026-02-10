@@ -21,33 +21,39 @@
         font-size: 14px;
         margin: 0;
     }
-        .timeline {
+
+.timeline {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
     position: relative;
-    margin-left: 20px;
+    margin: 30px 0;
+    padding-top: 20px;
 }
 
 .timeline::before {
     content: "";
     position: absolute;
-    left: 8px;
-    top: 0;
-    bottom: 0;
-    width: 3px;
+    top: 28px;
+    left: 0;
+    right: 0;
+    height: 3px;
     background: #dee2e6;
+    z-index: 1;
 }
 
 .timeline-item {
     position: relative;
-    padding-left: 30px;
-    margin-bottom: 25px;
+    text-align: center;
+    flex: 1;
+    z-index: 2;
+    padding: 0 10px;
 }
 
 .timeline-dot {
-    position: absolute;
-    left: 0;
-    top: 3px;
     width: 18px;
     height: 18px;
+    margin: 0 auto 8px;
     border-radius: 50%;
     background: #dee2e6;
 }
@@ -56,17 +62,25 @@
     background: #198754;
 }
 
-.timeline-content {
-    font-size: 13px;
-}
-
 .timeline-status {
     font-weight: 600;
+    font-size: 13px;
 }
 
 .timeline-meta {
     font-size: 11px;
     color: #6c757d;
+    margin-top: 4px;
+}
+@media (max-width: 768px) {
+    .timeline {
+        overflow-x: auto;
+        white-space: nowrap;
+    }
+
+    .timeline-item {
+        min-width: 200px;
+    }
 }
     
 </style>
@@ -139,46 +153,35 @@
 
     <div class="card-body">
         <div class="timeline">
-            <div class="timeline-item completed">
-            <div class="timeline-dot"></div>
 
-            <div class="timeline-content">
-                <div class="timeline-status">
-                    Booked
-                </div>
-
-                <div class="timeline-meta">
-                    {{ cnote.booking_branch.branch_name }} <br>
-                    logged in : {{ cnote.user.username }} <br>
-                    {{ cnote.created_at|date:"d-m-Y H:i" }}
-                </div>
+    <div class="timeline-item completed">
+        <div class="timeline-dot"></div>
+        <div class="timeline-content">
+            <div class="timeline-status">Booked</div>
+            <div class="timeline-meta">
+                {{ cnote.booking_branch.branch_name }} <br>
+                logged in : {{ cnote.user.username }} <br>
+                {{ cnote.created_at|date:"d-m-Y H:i" }}
             </div>
         </div>
-            {% for t in trackings %}
-            <div class="timeline-item completed">
-                <div class="timeline-dot"></div>
+    </div>
 
-                <div class="timeline-content">
-                    <div class="timeline-status">
-                        {{ t.status }}
-                    </div>
-
-                    <div class="timeline-meta">
-                        {{ t.branch.branch_name }} <br>
-                        logged in : {{t.created_by.username}}<br>
-                        {{ t.created_at|date:"d-m-Y H:i" }}
-                    </div>
-
-                    {% if t.remarks %}
-                    <div class="timeline-meta">
-                        {{ t.remarks }}
-                    </div>
-                    {% endif %}
-                </div>
+    {% for t in trackings %}
+    <div class="timeline-item completed">
+        <div class="timeline-dot"></div>
+        <div class="timeline-content">
+            <div class="timeline-status">{{ t.status }}</div>
+            <div class="timeline-meta">
+                {{ t.branch.branch_name }} <br>
+                logged in : {{ t.created_by.username }} <br>
+                {{ t.created_at|date:"d-m-Y H:i" }}
             </div>
-            {% endfor %}
-
         </div>
+    </div>
+    {% endfor %}
+
+</div>
+
     </div>
 </div>
 

@@ -145,11 +145,11 @@
         </div>
         <div class="cee-form-group">
             <label>Reference No</label>
-            <input type="text" name="reference_no" value="{{ cnote.reference_no|default:'' }}">
+            <input type="text" name="reference_no" value="{{ cnote.reference_no|default:'' }}" inputmode="numeric" pattern="[0-9]*" oninput="this.value = this.value.replace(/[^0-9]/g, '')" required>
         </div>
         <div class="cee-form-group">
             <label>Shipper <span style="color: red;">*</span></label>
-            <input type="text" id="consignor-input" value="{{ cnote.consignor.consignor_name|default:'' }}" required style="text-transform: uppercase;">
+            <input type="text" id="consignor-input" value="{{ cnote.consignor.consignor_name|default:'' }}" required style="text-transform: uppercase;" onchange="fetchLRCharge()">
             <input type="hidden" name="consignor" id="consignor-id" value="{{ cnote.consignor.consignor_id|default:'' }}">
             <div id="consignor-suggestions" class="suggestion-box"></div>
         </div>
@@ -191,7 +191,7 @@
         </div>
         <div class="cee-form-group">
             <label>LR Charge</label>
-            <input type="number" name="lr_charge" value="{{ cnote.lr_charge|default:'20' }}" oninput="updateSummary()">
+            <input type="number" name="lr_charge" id="lr_charge" value="{{ cnote.lr_charge|default:'0' }}" oninput="updateSummary()" inputmode="numeric" pattern="[0-9]*" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
         </div>
         <div class="cee-form-group">
             <label>Invoice No <span style="color: red;">*</span></label>
@@ -199,7 +199,7 @@
         </div>
         <div class="cee-form-group">
             <label>Invoice Amount <span style="color: red;">*</span></label>
-            <input type="text" name="invoice_amt" value="{{ cnote.invoice_amt|default:'' }}" required>
+            <input type="text" name="invoice_amt" value="{{ cnote.invoice_amt|default:'' }}" inputmode="numeric" pattern="[0-9]*" oninput="this.value = this.value.replace(/[^0-9]/g, '')" required>
         </div>
         <div class="cee-form-group">
             <label>Eway Number</label>
@@ -630,6 +630,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     setupAutocomplete("consignor-input","consignor-id","consignor-suggestions",consignors, consignor => {
         selectedConsignor = consignor.id;
+        fetchLRCharge();
         itemsData = allItems;
         addItemRow();
         updatePaymentOptions(consignor);
@@ -641,6 +642,26 @@ document.addEventListener("DOMContentLoaded", () => {
 
     setupAutocomplete("location-input","location-id","location-suggestions",locations,
         location  => { selectedLocation = location.id;loadBranchByLocation(location.id); if (selectedConsignor) loadQuotationRates(); },false);
+});
+function fetchLRCharge() {
+    const consignorId = document.getElementById("consignor-id").value;
+    const lrInput = document.getElementById("lr_charge");
+
+    if (!consignorId) {
+        lrInput.value = 0;
+        return;
+    }
+    fetch(`/staff/get-lr-charge/?consignor_id=${consignorId}`)
+        .then(response => response.json())
+        .then(data => {
+            lrInput.value = data.lr_charge;
+            updateSummary && updateSummary();
+        });
+}
+document.addEventListener("DOMContentLoaded", function () {
+    if (document.getElementById("consignor-id").value) {
+        fetchLRCharge();
+    }
 });
 </script>
 

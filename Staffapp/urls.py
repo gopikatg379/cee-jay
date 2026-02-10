@@ -19,6 +19,8 @@ urlpatterns = [
     path('manifest/list/', manifest_list, name='manifest_list'),
     path('manifest/edit/<int:manifest_id>/',manifest_edit,name="manifest_edit"),
     path('manifest/print/<int:manifest_id>/',print_manifest,name="manifest_print"),
-    path("manifest/drs/<int:manifest_id>/",manifest_drs_update,name="manifest_drs_update"
-)
+    path("manifest/drs/<int:manifest_id>/",manifest_drs_update,name="manifest_drs_update"),
+    path("get-lr-charge/",get_lr_charge, name="get_lr_charge"),
+    
+    
 ]

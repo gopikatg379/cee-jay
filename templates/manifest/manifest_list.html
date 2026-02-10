@@ -93,7 +93,19 @@
                 <tr>
                     <td>{{ forloop.counter }}</td>
                     <td>{{ manifest.date|date:"d-m-Y" }}</td>
-                    <td>CJDESP/{{ manifest.manifest_id }}</td>
+                    <td>
+                        {% if manifest.manifest_type == "DELIVERY" %}
+                            {% with first_cnote=manifest.cnotes.first %}
+                                {% if first_cnote %}
+                                    DRS/{{ first_cnote.delivery_branch.branch_shortname }}/{{ manifest.manifest_id }}
+                                {% else %}
+                                    DRS/{{ manifest.manifest_id }}
+                                {% endif %}
+                            {% endwith %}
+                        {% else %}
+                            TS/{{ manifest.manifest_id }}
+                        {% endif %}
+                    </td>
                     <td>{{ manifest.driver.driver_name }}</td>
                     <td>{{ manifest.vehicle.registration_no }}</td>
                     <td>{{ manifest.branch.branch_name }}</td>
