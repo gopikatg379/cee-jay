@@ -1,0 +1,210 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="container-fluid">
+
+    <div class="mb-4" style="background-color: #1C4D8D; color: white; padding: 12px 20px; border-radius: 6px; text-align: left; display: flex; align-items: center;">
+        <h4>BOOKING REPORT</h4>
+    </div>
+
+    <form method="GET" class="card p-3 mb-4">
+
+        <div class="row g-3 align-items-end">
+
+            <div class="col-md-3">
+                <label>Branch</label>
+                <select name="branch" class="form-select">
+                    <option value="all">All</option>
+                    {% for b in branches %}
+                        <option value="{{ b.branch_id }}"
+                        {% if branch_id == b.branch_id|stringformat:"s" %}selected{% endif %}>
+                            {{ b.branch_name }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="col-md-3">
+                <label>From Date</label>
+                <input type="date" name="from_date"
+                       value="{{ from_date|date:'Y-m-d'  }}"
+                       class="form-control">
+            </div>
+
+            <div class="col-md-3">
+                <label>To Date</label>
+                <input type="date" name="to_date"
+                       value="{{ to_date|date:'Y-m-d'  }}"
+                       class="form-control">
+            </div>
+
+            <div class="col-md-3">
+                <button class="btn btn-success">
+                    SEARCH
+                </button>
+            </div>
+
+        </div>
+    </form>
+
+    <!-- REPORT TABLE -->
+    <div class="card p-3">
+
+        <table class="table table-bordered">
+            <thead class="table-light">
+                <tr>
+                    <th>PARTICULARS</th>
+                    <th>NO OF CONSIGNMENT</th>
+                    <th>TOTAL BOX QTY</th>
+                    <th>TOTAL OF CONSIGNMENT</th>
+                    <th>TOTAL FREIGHT</th>
+                </tr>
+            </thead>
+
+            <tbody>
+
+                <tr>
+                    <td>PAID BOOKING (AGENT)</td>
+                    <td>{{ paid.count|default:0 }}</td>
+                    <td>{{ paid.box_qty|default:0 }}</td>
+                    <td>{{ paid.total_amount|default:0 }}</td>
+                    <td>{{ paid.freight|default:0 }}</td>
+                </tr>
+
+                <tr>
+                    <td>TOPAY BOOKING</td>
+                    <td>{{ topay.count|default:0 }}</td>
+                    <td>{{ topay.box_qty|default:0 }}</td>
+                    <td>{{ topay.total_amount|default:0 }}</td>
+                    <td>{{ topay.freight|default:0 }}</td>
+                </tr>
+
+                <tr>
+                    <td>CREDIT BOOKING</td>
+                    <td>{{ credit.count|default:0 }}</td>
+                    <td>{{ credit.box_qty|default:0 }}</td>
+                    <td>{{ credit.total_amount|default:0 }}</td>
+                    <td>{{ credit.freight|default:0 }}</td>
+                </tr>
+
+                <tr class="fw-bold">
+                    <td>GROSS BOOKING</td>
+                    <td>{{ gross.count|default:0 }}</td>
+                    <td>{{ gross.box_qty|default:0 }}</td>
+                    <td>{{ gross.total_amount|default:0 }}</td>
+                    <td>{{ gross.freight|default:0 }}</td>
+                </tr>
+
+            </tbody>
+            <div class="row mb-4">
+
+            <div class="col-md-3">
+                <div class="card shadow border-0 text-white" style="background: linear-gradient(45deg,#1C4D8D,#3A77D2);">
+                    <div class="card-body">
+                        <h6>Total Consignments</h6>
+                        <h3>{{ gross.count|default:0 }}</h3>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-3">
+                <div class="card shadow border-0 text-white" style="background: linear-gradient(45deg,#198754,#28a745);">
+                    <div class="card-body">
+                        <h6>Total Boxes</h6>
+                        <h3>{{ gross.box_qty|default:0 }}</h3>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-3">
+                <div class="card shadow border-0 text-white" style="background: linear-gradient(45deg,#ffc107,#ff9800);">
+                    <div class="card-body">
+                        <h6>Total Freight</h6>
+                        <h3>₹ {{ gross.freight|default:0 }}</h3>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-3">
+                <div class="card shadow border-0 text-white" style="background: linear-gradient(45deg,#6f42c1,#9c27b0);">
+                    <div class="card-body">
+                        <h6>Total Booking Amount</h6>
+                        <h3>₹ {{ gross.total_amount|default:0 }}</h3>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+        </table>
+        <div class="row mt-4">
+
+    <!-- Booking Count Comparison -->
+    <div class="col-md-6">
+        <div class="card p-3 shadow-sm">
+            <h5 class="mb-3">Booking Count Comparison</h5>
+            <canvas id="countChart"></canvas>
+        </div>
+    </div>
+
+    <!-- Revenue Comparison -->
+    <div class="col-md-6">
+        <div class="card p-3 shadow-sm">
+            <h5 class="mb-3">Revenue Comparison</h5>
+            <canvas id="revenueChart"></canvas>
+        </div>
+    </div>
+
+</div>
+    </div>
+
+</div>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+
+const countCtx = document.getElementById('countChart');
+new Chart(countCtx, {
+    type: 'bar',
+    data: {
+        labels: ['Paid', 'Topay', 'Credit'],
+        datasets: [{
+            label: 'No of Consignments',
+            data: [
+                {{ paid.count|default:0 }},
+                {{ topay.count|default:0 }},
+                {{ credit.count|default:0 }}
+            ],
+            backgroundColor: ['#198754','#ffc107','#0d6efd']
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: {
+            legend: { display: false }
+        }
+    }
+});
+
+
+const revenueCtx = document.getElementById('revenueChart');
+new Chart(revenueCtx, {
+    type: 'bar',
+    data: {
+        labels: ['Paid', 'Topay', 'Credit'],
+        datasets: [{
+            label: 'Total Amount',
+            data: [
+                {{ paid.total_amount|default:0 }},
+                {{ topay.total_amount|default:0 }},
+                {{ credit.total_amount|default:0 }}
+            ],
+            backgroundColor: ['#198754','#ffc107','#0d6efd']
+        }]
+    },
+    options: {
+        responsive: true
+    }
+});
+
+</script>
+{% endblock %}

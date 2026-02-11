@@ -14,7 +14,12 @@ from django.utils import timezone
 from django.contrib import messages
 from django.db.models.functions import Replace
 import json
-from django.db.models import Sum
+import qrcode
+import base64
+from io import BytesIO
+from django.utils.dateparse import parse_date
+from datetime import timedelta
+from django.db.models import Sum, Count
 from django.views.decorators.http import require_POST
 from django.views.decorators.csrf import csrf_exempt
 
@@ -48,9 +53,7 @@ def get_consignor_items(request, consignor_id):
 def get_branch_by_location(request, location_id):
     try:
         location = Location.objects.get(location_id=location_id)
-        print(location)
         branches = location.branch.all()
-        print(branches)
         data = [
             {
                 "branch_id": b.branch_id,
@@ -74,7 +77,6 @@ def get_lr_charge(request):
             lr_charge = consignor.lr_charge or 20
         else:
             lr_charge = 0
-    print(lr_charge)
     return JsonResponse({"lr_charge": lr_charge})
 
 @login_required(login_url='/')
@@ -195,7 +197,7 @@ def cnote_manage_view(request, pk=None):
         "allowed_payments": allowed_payments,
         "is_edit": bool(cnote),
     }
-    return render(request, "cnote_manage.html", context)
+    return render(request, "cnotes/cnote_manage.html", context)
 
 
 def get_quotation_rates(request, consignor_id, location_id):
@@ -241,9 +243,7 @@ def add_receiver_ajax(request):
 
 @csrf_exempt
 def add_shipper_ajax(request):
-    print("hi")
     if request.method == "POST":
-        print("entered")
         data = json.loads(request.body)
 
         name = data.get("name", "").strip()
@@ -265,7 +265,6 @@ def add_shipper_ajax(request):
 
         default_items = Item.objects.filter(is_default=True)
         consignor.items.set(default_items)
-        print("done")
         return JsonResponse({
             "success": True,
             "id": consignor.consignor_id,
@@ -323,7 +322,7 @@ def cnote_list_view(request):
         }
     }
 
-    return render(request, 'cnote_list.html', context)
+    return render(request, 'cnotes/cnote_list.html', context)
 
 def download_cnote_excel(request):
     qs = CnoteModel.objects.select_related(
@@ -423,9 +422,13 @@ def download_cnote_excel(request):
 
 def print_cnote(request, cnote_id):
     cnote = get_object_or_404(CnoteModel, cnote_id=cnote_id)
-    
+    qr = qrcode.make(cnote.cnote_number)
+    buffer = BytesIO()
+    qr.save(buffer, format="PNG")
+    qr_base64 = base64.b64encode(buffer.getvalue()).decode()
     context = {
         'cnote': cnote,
+        'qr_code': qr_base64
     }
     
     return render(request, 'cnotes/print_bill.html', context)
@@ -598,8 +601,99 @@ def manifest_list(request):
 
     return render(request, 'manifest/manifest_list.html', context)
 
-def manifest_edit(request,manifest_id):
-    return render(request,'manifest/manifest_edit.html')
+@login_required
+def manifest_edit(request, manifest_id):
+    manifest = get_object_or_404(ManifestModel, pk=manifest_id)
+
+    existing_cnotes = CnoteModel.objects.filter(manifest=manifest)
+
+    available_cnotes = CnoteModel.objects.filter(
+        status=CnoteModel.STATUS_RECEIVED,
+        received_branch=request.user.branch,
+        manifest__isnull=True
+    ).order_by("-date")
+
+    if request.method == "POST":
+
+        remove_ids = request.POST.getlist("remove_cnotes[]")
+        add_ids = request.POST.getlist("add_cnotes[]")
+
+        manifest_date = request.POST.get("date")
+        driver_id = request.POST.get("driver")
+        vehicle_id = request.POST.get("vehicle")
+        hub_branch_id = request.POST.get("hub_branch")
+
+        try:
+            with transaction.atomic():
+
+                manifest.date = manifest_date
+                manifest.driver_id = driver_id
+                manifest.vehicle_id = vehicle_id
+
+                if manifest.manifest_type == "BRANCH":
+                    manifest.branch_id = hub_branch_id
+                else:
+                    manifest.branch = None
+
+                manifest.save()
+
+                for cid in remove_ids:
+                    c = CnoteModel.objects.select_for_update().get(pk=cid)
+
+                    if c.manifest_id != manifest.manifest_id:
+                        continue
+
+                    c.manifest = None
+                    c.status = CnoteModel.STATUS_RECEIVED
+                    c.save()
+
+                    CnoteTracking.objects.create(
+                        cnote=c,
+                        branch=request.user.branch,
+                        status=CnoteModel.STATUS_RECEIVED,
+                        created_by=request.user
+                    )
+
+                for cid in add_ids:
+                    c = CnoteModel.objects.select_for_update().get(pk=cid)
+
+                    if c.manifest is not None:
+                        continue
+
+                    if manifest.manifest_type == "BRANCH":
+                        new_status = CnoteModel.STATUS_INTRANSIT
+                    else:
+                        new_status = CnoteModel.STATUS_DISPATCHED
+
+                    c.manifest = manifest
+                    c.status = new_status
+                    c.save()
+
+                    CnoteTracking.objects.create(
+                        cnote=c,
+                        branch=request.user.branch,
+                        status=new_status,
+                        created_by=request.user
+                    )
+
+                messages.success(request, "Manifest updated successfully")
+                return redirect("manifest_list")
+
+        except Exception as e:
+            messages.error(request, str(e))
+            return redirect(request.path)
+
+    context = {
+        "manifest": manifest,
+        "existing_cnotes": existing_cnotes,
+        "available_cnotes": available_cnotes,
+        "drivers": Driver.objects.all(),
+        "vehicles": Vehicle.objects.all(),
+        "branches": Branch.objects.all(),
+        "today": timezone.now().date()
+    }
+
+    return render(request, "manifest/manifest_edit.html", context)
 
 def print_manifest(request, manifest_id):
     manifest = get_object_or_404(ManifestModel, manifest_id=manifest_id)
@@ -698,3 +792,71 @@ def manifest_drs_update(request, manifest_id):
         }
     )
 
+def booking_report(request):
+    today = timezone.now().date()
+    branches = Branch.objects.filter(branch_is_active=True)
+
+    branch_id = request.GET.get("branch")
+    from_date = request.GET.get("from_date")
+    to_date = request.GET.get("to_date")
+    if from_date:
+        from_date = parse_date(from_date)
+    else:
+        from_date = today - timedelta(days=30)
+
+    if to_date:
+        to_date = parse_date(to_date)
+    else:
+        to_date = today
+
+    cnotes = CnoteModel.objects.filter(
+        date__range=(from_date, to_date)
+    )
+
+    if branch_id and branch_id != "all":
+        cnotes = cnotes.filter(booking_branch_id=branch_id)
+
+    paid = cnotes.filter(payment="PAID")
+    paid_data = paid.aggregate(
+        count=Count("cnote_id"),
+        box_qty=Sum("total_item"),
+        total_amount=Sum("total"),
+        freight=Sum("freight")
+    )
+    topay = cnotes.filter(payment="TOPAY")
+
+    topay_data = topay.aggregate(
+        count=Count("cnote_id"),
+        box_qty=Sum("total_item"),
+        total_amount=Sum("total"),
+        freight=Sum("freight")
+    )
+
+    credit = cnotes.filter(payment="CREDIT")
+
+    credit_data = credit.aggregate(
+        count=Count("cnote_id"),
+        box_qty=Sum("total_item"),
+        total_amount=Sum("total"),
+        freight=Sum("freight")
+    )
+    gross_data = cnotes.aggregate(
+        count=Count("cnote_id"),
+        box_qty=Sum("total_item"),
+        total_amount=Sum("total"),
+        freight=Sum("freight")
+    )
+    
+    context = {
+        "branches": branches,
+        "branch_id": branch_id,
+        "from_date": from_date,
+        "to_date": to_date,
+
+        "paid": paid_data,
+        "topay": topay_data,
+        "credit": credit_data,
+        "gross": gross_data,
+    }
+
+    return render(request, "reports/booking_report.html", context)

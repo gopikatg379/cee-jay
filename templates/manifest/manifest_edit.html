@@ -1,0 +1,166 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="container-fluid">
+
+    <div class="mb-4" style="background:#1C4D8D;color:#fff;padding:12px 20px;border-radius:6px;">
+        <h4>Edit Manifest - {{ manifest.manifest_id }}</h4>
+    </div>
+
+    {% if messages %}
+      <div class="alert alert-success">
+        {% for message in messages %}
+          {{ message }}
+        {% endfor %}
+      </div>
+    {% endif %}
+
+    <form method="POST">
+        {% csrf_token %}
+
+        <!-- MANIFEST HEADER DETAILS -->
+        <div class="card mb-4 p-3">
+            <h5 class="mb-3">Manifest Details</h5>
+
+            <div class="row g-3">
+
+                <div class="col-md-3">
+                    <label class="fw-semibold">Manifest Type</label>
+                    <input type="text" class="form-control"
+                           value="{{ manifest.manifest_type }}" readonly>
+                </div>
+
+                <div class="col-md-3">
+                    <label class="fw-semibold">Date</label>
+                    <input type="date" name="date" class="form-control"
+                           value="{{ manifest.date|date:'Y-m-d' }}">
+                </div>
+
+                <div class="col-md-3">
+                    <label class="fw-semibold">Driver</label>
+                    <select name="driver" class="form-select">
+                        {% for d in drivers %}
+                        <option value="{{ d.driver_id }}"
+                            {% if manifest.driver.driver_id == d.driver_id %}selected{% endif %}>
+                            {{ d.driver_name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="col-md-3">
+                    <label class="fw-semibold">Vehicle</label>
+                    <select name="vehicle" class="form-select">
+                        {% for v in vehicles %}
+                        <option value="{{ v.vehicle_id }}"
+                            {% if manifest.vehicle.vehicle_id == v.vehicle_id %}selected{% endif %}>
+                            {{ v.registration_no }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                {% if manifest.manifest_type == "BRANCH" %}
+                <div class="col-md-3">
+                    <label class="fw-semibold">Hub Branch</label>
+                    <select name="hub_branch" class="form-select">
+                        {% for b in branches %}
+                        <option value="{{ b.branch_id }}"
+                            {% if manifest.branch and manifest.branch.branch_id == b.branch_id %}selected{% endif %}>
+                            {{ b.branch_name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                {% endif %}
+
+            </div>
+        </div>
+
+        <!-- REMOVE EXISTING CNOTES -->
+        <div class="card mb-4 p-3">
+            <h5 class="text-danger">Remove Existing CNotes</h5>
+
+            <div class="table-responsive">
+                <table class="table table-bordered">
+                    <thead>
+                        <tr>
+                            <th>Remove</th>
+                            <th>Date</th>
+                            <th>CNote</th>
+                            <th>Consignee</th>
+                            <th>Destination</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for c in existing_cnotes %}
+                        <tr>
+                            <td>
+                                <input type="checkbox" name="remove_cnotes[]" value="{{ c.cnote_id }}">
+                            </td>
+                            <td>{{ c.date|date:"d-m-Y" }}</td>
+                            <td>{{ c.cnote_number }}</td>
+                            <td>{{ c.consignee.consignee_name }}</td>
+                            <td>{{ c.destination.location_name }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="5" class="text-center">No CNotes in this manifest</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- ADD NEW CNOTES -->
+        <div class="card mb-4 p-3">
+            <h5 class="text-success">Add New CNotes</h5>
+
+            <div class="table-responsive">
+                <table class="table table-bordered">
+                    <thead>
+                        <tr>
+                            <th>Add</th>
+                            <th>Date</th>
+                            <th>CNote</th>
+                            <th>Consignee</th>
+                            <th>Destination</th>
+                            <th>Qty</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for c in available_cnotes %}
+                        <tr>
+                            <td>
+                                <input type="checkbox" name="add_cnotes[]" value="{{ c.cnote_id }}">
+                            </td>
+                            <td>{{ c.date|date:"d-m-Y" }}</td>
+                            <td>{{ c.cnote_number }}</td>
+                            <td>{{ c.consignee.consignee_name }}</td>
+                            <td>{{ c.destination.location_name }}</td>
+                            <td>{{ c.total_item }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="6" class="text-center">No available CNotes</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="text-end">
+            <button type="submit" class="btn btn-primary">
+                Update Manifest
+            </button>
+            <a href="{% url 'manifest_list' %}" class="btn btn-secondary">
+                Cancel
+            </a>
+        </div>
+
+    </form>
+</div>
+
+{% endblock %}
