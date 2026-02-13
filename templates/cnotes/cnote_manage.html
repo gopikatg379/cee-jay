@@ -20,7 +20,7 @@
     font-size: 14px;
 }
 .remarks-wide {
-    grid-column: span 3; 
+    grid-column: span 4; 
 }
 .cee-form-row:first-of-type {
     margin-bottom: 0;
@@ -257,25 +257,67 @@
             <label>Grand Total</label>
             <input type="number" id="grand-total" readonly>
         </div>
-        
+        <div class="cee-form-group" style="grid-column: span 2;">
+        <label>Remarks</label>
+        <input type="text" name="remarks" value="{{ cnote.remarks }}">
+    </div>
     </div>
     <div class="cee-form-row">
-        <div class="cee-form-group remarks-wide">
-            <label>Remarks</label>
-            <input type="text" name="remarks" value="{{ cnote.remarks }}">
-        </div>
-        <div class="cee-form-group">
-            <label>Delivery Type</label>
-            <select name="delivery_type" required>
-                <option>Door Delivery</option>
-                <option>Godown Delivery</option>
-            </select>
-        </div>
-        <div class="cee-form-group">
-            <label>Delivery Branch</label>
-            <input type="text" id="branch-input" value="{{ cnote.delivery_branch.branch_name|default:'' }}" readonly>
-            <input type="hidden" name="branch" id="branch-id" value="{{ cnote.delivery_branch.branch_id|default:'' }}">
-        </div>
+
+    <!-- Remarks (Reduced Width) -->
+    
+
+    <!-- Delivery Type -->
+    <div class="cee-form-group">
+        <label>Delivery Type</label>
+        <select name="delivery_type" required>
+            <option>Door Delivery</option>
+            <option>Godown Delivery</option>
+        </select>
+    </div>
+
+    <!-- Delivery Branch -->
+    <div class="cee-form-group">
+        <label>Delivery Branch</label>
+        <input type="text"
+               id="branch-input"
+               value="{{ cnote.delivery_branch.branch_name|default:'' }}"
+               readonly>
+        <input type="hidden"
+               name="branch"
+               id="branch-id"
+               value="{{ cnote.delivery_branch.branch_id|default:'' }}">
+    </div>
+
+    <!-- Booking Commission -->
+    <div class="cee-form-group">
+        <label>Booking %</label>
+        <input type="text"
+               id="booking-commission-percent"
+               class="form-control bg-light"
+               readonly>
+    </div>
+
+    <!-- Delivery Commission -->
+    <div class="cee-form-group">
+        <label>Delivery %</label>
+        <input type="text"
+               id="delivery-commission-percent"
+               class="form-control bg-light"
+               readonly>
+    </div>
+
+    <!-- Deduction -->
+    <div class="cee-form-group">
+        <label>Deduction %</label>
+        <input type="text"
+               id="deduction-percent"
+               class="form-control bg-light"
+               readonly>
+    </div>
+
+</div>
+
         <button type="submit" class="cee-btn-save mt-3">Save LR</button>
 
     </div>
@@ -386,6 +428,11 @@ document.getElementById("add-receiver-form").addEventListener("submit", (e) => {
         }
     });
 });
+document.querySelector('[name="booking_branch"]')?.addEventListener("change", fetchCommissionPercentages);
+document.querySelector('[name="booking_branch"]')
+    ?.addEventListener("change", fetchCommissionPercentages);
+document.getElementById("consignor-id")?.addEventListener("change", fetchCommissionPercentages);
+
 document.getElementById("add-shipper-form").addEventListener("submit", function(e){
     e.preventDefault();
     const name = document.getElementById("shipper-name").value.trim();
@@ -552,12 +599,35 @@ function loadBranchByLocation(locationId) {
                     data.branches[0].branch_name;
                 document.getElementById("branch-id").value =
                     data.branches[0].branch_id;
+                fetchCommissionPercentages();
             } else {
                 document.getElementById("branch-input").value = "";
                 document.getElementById("branch-id").value = "";
             }
         });
 }
+function fetchCommissionPercentages() {
+    const bookingBranch = document.querySelector('[name="booking_branch"]')?.value;
+    const deliveryBranch = document.getElementById("branch-id")?.value;
+    const consignor = document.getElementById("consignor-id")?.value;
+    if (!bookingBranch || !deliveryBranch || !consignor) return;
+    fetch(`/staff/get-commission-percentages/?booking_branch=${bookingBranch}&delivery_branch=${deliveryBranch}&consignor=${consignor}`)
+        .then(res => {
+            console.log("Status:", res.status);
+            return res.json();
+        })
+        .then(data => {
+            document.getElementById("booking-commission-percent").value =
+                data.booking_percentage ? data.booking_percentage + " %" : "0 %";
+
+            document.getElementById("delivery-commission-percent").value =
+                data.delivery_percentage ? data.delivery_percentage + " %" : "0 %";
+
+            document.getElementById("deduction-percent").value =
+                data.deduction_percentage ? data.deduction_percentage + " %" : "0 %";
+        });
+}
+
 function addItemRow() {
     const div = document.createElement("div");
     div.className = "items-row";
@@ -634,6 +704,7 @@ document.addEventListener("DOMContentLoaded", () => {
         itemsData = allItems;
         addItemRow();
         updatePaymentOptions(consignor);
+        fetchCommissionPercentages();
     },true);
 
     setupAutocomplete("consignee-input","consignee-id","consignee-suggestions",consignees, consignee => {
@@ -641,7 +712,7 @@ document.addEventListener("DOMContentLoaded", () => {
     },false);
 
     setupAutocomplete("location-input","location-id","location-suggestions",locations,
-        location  => { selectedLocation = location.id;loadBranchByLocation(location.id); if (selectedConsignor) loadQuotationRates(); },false);
+        location  => { selectedLocation = location.id;loadBranchByLocation(location.id); if (selectedConsignor) loadQuotationRates(); fetchCommissionPercentages();},false);
 });
 function fetchLRCharge() {
     const consignorId = document.getElementById("consignor-id").value;

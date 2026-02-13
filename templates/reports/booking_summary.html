@@ -1,0 +1,207 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="container-fluid">
+
+    <!-- Header -->
+    <div class="mb-4"
+        style="background-color: #1C4D8D; color: white; padding: 12px 20px;
+               border-radius: 6px; display: flex; align-items: center;">
+        <h4>BOOKING SUMMARY - ALL BRANCHES</h4>
+    </div>
+
+    <!-- Filter -->
+    <form method="get" class="card p-3 mb-4">
+        <div class="row g-3 align-items-end">
+
+            <div class="col-md-3">
+                <label>From Date</label>
+                <input type="date" name="from_date"
+                       value="{{ from_date|date:'Y-m-d' }}"
+                       class="form-control">
+            </div>
+
+            <div class="col-md-3">
+                <label>To Date</label>
+                <input type="date" name="to_date"
+                       value="{{ to_date|date:'Y-m-d' }}"
+                       class="form-control">
+            </div>
+
+            <div class="col-md-2">
+                <button class="btn btn-success">
+                    SEARCH
+                </button>
+            </div>
+
+        </div>
+    </form>
+
+    <!-- Summary Cards -->
+    <div class="row mb-4">
+
+        <div class="col-md-3">
+            <div class="card shadow border-0 text-white"
+                 style="background: linear-gradient(45deg,#1C4D8D,#3A77D2);">
+                <div class="card-body text-center">
+                    <h6>Total Consignments</h6>
+                    <h3>{{ gross.total_consignment|default:0 }}</h3>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="card shadow border-0 text-white"
+                 style="background: linear-gradient(45deg,#198754,#28a745);">
+                <div class="card-body text-center">
+                    <h6>Total Boxes</h6>
+                    <h3>{{ gross.total_box_qty|default:0 }}</h3>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="card shadow border-0 text-white"
+                 style="background: linear-gradient(45deg,#ffc107,#ff9800);">
+                <div class="card-body text-center">
+                    <h6>Total Revenue</h6>
+                    <h3>₹ {{ gross.total_amount|default:0 }}</h3>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="card shadow border-0 text-white"
+                 style="background: linear-gradient(45deg,#6f42c1,#9c27b0);">
+                <div class="card-body text-center">
+                    <h6>Paid Revenue</h6>
+                    <h3>₹ {{ gross.paid|default:0 }}</h3>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Branch Table -->
+    <div class="card p-3 shadow-sm">
+        <table class="table table-bordered table-hover">
+
+            <thead class="table-dark text-center">
+                <tr>
+                    <th>#</th>
+                    <th>Branch</th>
+                    <th>No of Consignment</th>
+                    <th>Total Box Qty</th>
+                    <th>Paid</th>
+                    <th>Credit</th>
+                    <th>Topay</th>
+                    <th>Total Amount</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                {% for row in summary %}
+                <tr>
+                    <td>{{ forloop.counter }}</td>
+                    <td>{{ row.booking_branch__branch_name }}</td>
+                    <td class="text-end">{{ row.total_consignment }}</td>
+                    <td class="text-end">{{ row.total_box_qty|default:0 }}</td>
+                    <td class="text-end">{{ row.paid|default:0 }}</td>
+                    <td class="text-end">{{ row.credit|default:0 }}</td>
+                    <td class="text-end">{{ row.topay|default:0 }}</td>
+                    <td class="text-end fw-bold">₹ {{ row.total_amount|default:0 }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="8" class="text-center text-danger">
+                        No Data Found
+                    </td>
+                </tr>
+                {% endfor %}
+
+                <!-- Gross Row -->
+                <tr class="fw-bold table-secondary">
+                    <td></td>
+                    <td>GROSS TOTAL</td>
+                    <td class="text-end">{{ gross.total_consignment }}</td>
+                    <td class="text-end">{{ gross.total_box_qty|default:0 }}</td>
+                    <td class="text-end">{{ gross.paid|default:0 }}</td>
+                    <td class="text-end">{{ gross.credit|default:0 }}</td>
+                    <td class="text-end">{{ gross.topay|default:0 }}</td>
+                    <td class="text-end">₹ {{ gross.total_amount|default:0 }}</td>
+                </tr>
+
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Charts -->
+    <div class="row mt-4">
+
+        <div class="col-md-6">
+            <div class="card p-3 shadow-sm">
+                <h5>Branch-wise Consignments</h5>
+                <canvas id="branchCountChart"></canvas>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card p-3 shadow-sm">
+                <h5>Branch-wise Revenue</h5>
+                <canvas id="branchRevenueChart"></canvas>
+            </div>
+        </div>
+
+    </div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+
+const branchLabels = [
+    {% for row in summary %}
+        "{{ row.booking_branch__branch_name }}",
+    {% endfor %}
+];
+
+const branchCounts = [
+    {% for row in summary %}
+        {{ row.total_consignment }},
+    {% endfor %}
+];
+
+const branchRevenue = [
+    {% for row in summary %}
+        {{ row.total_amount|default:0 }},
+    {% endfor %}
+];
+
+new Chart(document.getElementById('branchCountChart'), {
+    type: 'bar',
+    data: {
+        labels: branchLabels,
+        datasets: [{
+            label: 'No of Consignments',
+            data: branchCounts,
+            backgroundColor: '#0d6efd'
+        }]
+    }
+});
+
+new Chart(document.getElementById('branchRevenueChart'), {
+    type: 'bar',
+    data: {
+        labels: branchLabels,
+        datasets: [{
+            label: 'Revenue',
+            data: branchRevenue,
+            backgroundColor: '#198754'
+        }]
+    }
+});
+
+</script>
+
+{% endblock %}

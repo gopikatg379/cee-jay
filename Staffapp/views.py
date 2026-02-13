@@ -87,7 +87,6 @@ def calculate_commission(cnote):
     booking_branch = cnote.booking_branch
     delivery_branch = cnote.delivery_branch
 
-    # ---------------- BOOKING COMMISSION ----------------
     booking_obj = BookingCommission.objects.filter(
         branch=booking_branch,
         company=cnote.booking_branch.company
@@ -96,8 +95,6 @@ def calculate_commission(cnote):
     booking_amount = 0
     if booking_obj:
         booking_amount = freight * booking_obj.percentage / 100
-
-    # ---------------- DELIVERY COMMISSION ----------------
     delivery_obj = DeliveryCommission.objects.filter(
         branch=delivery_branch,
         company=cnote.delivery_branch.company,
@@ -132,6 +129,40 @@ def calculate_commission(cnote):
 
     return booking_amount, delivery_amount
 
+
+@login_required
+def get_commission_percentages(request):
+    booking_branch_id = request.GET.get("booking_branch")
+    delivery_branch_id = request.GET.get("delivery_branch")
+    consignor_id = request.GET.get("consignor")
+
+    if not (booking_branch_id and delivery_branch_id and consignor_id):
+        return JsonResponse({})
+
+    consignor = Consignor.objects.filter(pk=consignor_id).first()
+    booking_branch = Branch.objects.filter(pk=booking_branch_id).first()
+    delivery_branch = Branch.objects.filter(pk=delivery_branch_id).first()
+
+    if not consignor or not booking_branch or not delivery_branch:
+        return JsonResponse({})
+
+
+    booking_comm = BookingCommission.objects.filter(
+        branch=booking_branch,
+        company=booking_branch.company
+    ).first()
+
+    delivery_comm = DeliveryCommission.objects.filter(
+        branch=delivery_branch,
+        company=delivery_branch.company,
+        from_zone=booking_branch.category
+    ).first()
+
+    return JsonResponse({
+        "booking_percentage": booking_comm.percentage if booking_comm else 0,
+        "delivery_percentage": delivery_comm.percentage if delivery_comm else 0,
+        "deduction_percentage": delivery_comm.deduction_percentage if delivery_comm else 0,
+    })
 
 @login_required(login_url='/')
 def cnote_manage_view(request, pk=None):
@@ -1312,3 +1343,53 @@ def branch_commission_view(request, branch_id):
     }
 
     return render(request, "branch/view_commission.html", context)
+
+
+def booking_summary_view(request):
+    today = timezone.now().date()
+    yesterday = today - timedelta(days=30)
+
+    from_date = request.GET.get("from_date")
+    to_date = request.GET.get("to_date")
+
+
+    if not from_date or not to_date:
+        from_date = yesterday
+        to_date = today
+    else:
+        from_date = datetime.strptime(from_date, "%Y-%m-%d").date()
+        to_date = datetime.strptime(to_date, "%Y-%m-%d").date()
+    cnotes = CnoteModel.objects.filter(
+        date__range=[from_date, to_date]
+    )
+    summary = (
+        cnotes
+        .values("booking_branch__branch_name")
+        .annotate(
+            total_consignment=Count("cnote_id"),
+            total_box_qty=Sum("total_item"),
+            paid=Sum("total", filter=Q(payment="PAID")),
+            credit=Sum("total", filter=Q(payment="CREDIT")),
+            topay=Sum("total", filter=Q(payment="TOPAY")),
+            total_amount=Sum("total"),
+        )
+        .order_by("booking_branch__branch_name")
+    )
+
+    gross_total = cnotes.aggregate(
+        total_consignment=Count("cnote_id"),
+        total_box_qty=Sum("total_item"),
+        paid=Sum("total", filter=Q(payment="PAID")),
+        credit=Sum("total", filter=Q(payment="CREDIT")),
+        topay=Sum("total", filter=Q(payment="TOPAY")),
+        total_amount=Sum("total"),
+    )
+
+    context = {
+        "summary": summary,
+        "gross": gross_total,
+        "from_date": from_date,
+        "to_date": to_date,
+    }
+
+    return render(request, "reports/booking_summary.html", context)

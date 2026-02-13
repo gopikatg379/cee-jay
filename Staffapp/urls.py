@@ -24,10 +24,13 @@ urlpatterns = [
     path("report/booking",booking_report,name="booking_report"),
     path("report/daily",daily_booking_report,name="daily_report"),
     path('report/data',booking_data,name="booking_data"),
+    path("report/booking-summary/",booking_summary_view, name="booking_summary"),
     path("booking/excel/", booking_excel, name="booking_excel"),
     path('branch/<int:branch_id>/commission/',branch_commission, name="branch_commission"),
     path("branch/<int:branch_id>/view-commission/",branch_commission_view,name="branch_view_commission"),
-    path('cnote/commission',cnote_commission_view,name="cnote_commission")
+    path('cnote/commission',cnote_commission_view,name="cnote_commission"),
+    path("get-commission-percentages/", get_commission_percentages, name="get_commission_percentages"),
+
 
 
 ]
