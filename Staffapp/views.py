@@ -16,10 +16,13 @@ from django.db.models.functions import Replace
 import json
 import qrcode
 import base64
+import openpyxl
+from datetime import date
 from io import BytesIO
 from django.utils.dateparse import parse_date
 from datetime import timedelta
-from django.db.models import Sum, Count
+from django.db.models.functions import TruncDate, Coalesce
+from django.db.models import Sum, Count, IntegerField,DecimalField, Case, When
 from django.views.decorators.http import require_POST
 from django.views.decorators.csrf import csrf_exempt
 
@@ -78,6 +81,57 @@ def get_lr_charge(request):
         else:
             lr_charge = 0
     return JsonResponse({"lr_charge": lr_charge})
+def calculate_commission(cnote):
+
+    freight = cnote.freight
+    booking_branch = cnote.booking_branch
+    delivery_branch = cnote.delivery_branch
+
+    # ---------------- BOOKING COMMISSION ----------------
+    booking_obj = BookingCommission.objects.filter(
+        branch=booking_branch,
+        company=cnote.booking_branch.company
+    ).first()
+
+    booking_amount = 0
+    if booking_obj:
+        booking_amount = freight * booking_obj.percentage / 100
+
+    # ---------------- DELIVERY COMMISSION ----------------
+    delivery_obj = DeliveryCommission.objects.filter(
+        branch=delivery_branch,
+        company=cnote.delivery_branch.company,
+        from_zone=booking_branch.category
+    ).first()
+
+    delivery_amount = 0
+
+    if delivery_obj:
+
+
+        deduction_percent = delivery_obj.deduction_percentage or 0
+        deduction_amount = freight * deduction_percent / 100
+        net_freight = freight - deduction_amount
+
+        subtract_booking = False
+
+        if booking_branch.category == "SOUTH":
+            if delivery_branch.category in ["SOUTH", "CENTRAL"]:
+                subtract_booking = True
+
+        elif booking_branch.category == "NORTH":
+            if delivery_branch.category in ["NORTH", "CENTRAL"]:
+                subtract_booking = True
+
+        if subtract_booking:
+            base = net_freight - booking_amount
+        else:
+            base = net_freight
+
+        delivery_amount = base * delivery_obj.percentage / 100
+
+    return booking_amount, delivery_amount
+
 
 @login_required(login_url='/')
 def cnote_manage_view(request, pk=None):
@@ -184,7 +238,12 @@ def cnote_manage_view(request, pk=None):
         obj.freight = freight
         obj.total = freight + float(obj.lr_charge) + float(obj.pickup_charge) + float(obj.hamali_charge) + float(obj.unloading_charge) + float(obj.door_delivery) + float(obj.other_charge)
         obj.save()
+        booking_comm, delivery_comm = calculate_commission(obj)
 
+        obj.booking_commission_amount = booking_comm
+        obj.delivery_commission_amount = delivery_comm
+
+        obj.save()
         return redirect("cnote_list")
 
     context = {
@@ -323,6 +382,16 @@ def cnote_list_view(request):
     }
 
     return render(request, 'cnotes/cnote_list.html', context)
+
+def cnote_commission_view(request):
+    cnotes = CnoteModel.objects.select_related(
+        "booking_branch",
+        "delivery_branch"
+    ).all().order_by("-date")
+
+    return render(request, "cnotes/cnote_commission.html", {
+        "cnotes": cnotes
+    })
 
 def download_cnote_excel(request):
     qs = CnoteModel.objects.select_related(
@@ -821,7 +890,13 @@ def booking_report(request):
         count=Count("cnote_id"),
         box_qty=Sum("total_item"),
         total_amount=Sum("total"),
-        freight=Sum("freight")
+        freight=Sum("freight"),
+        lr_charge = Sum("lr_charge"),
+        pickup_charge=Sum("pickup_charge"),
+        hamali_charge=Sum("hamali_charge"),
+        unloading_charge=Sum("unloading_charge"),
+        door_delivery=Sum("door_delivery"),
+        other_charge=Sum("other_charge")
     )
     topay = cnotes.filter(payment="TOPAY")
 
@@ -829,7 +904,13 @@ def booking_report(request):
         count=Count("cnote_id"),
         box_qty=Sum("total_item"),
         total_amount=Sum("total"),
-        freight=Sum("freight")
+        freight=Sum("freight"),
+        lr_charge = Sum("lr_charge"),
+        pickup_charge=Sum("pickup_charge"),
+        hamali_charge=Sum("hamali_charge"),
+        unloading_charge=Sum("unloading_charge"),
+        door_delivery=Sum("door_delivery"),
+        other_charge=Sum("other_charge")
     )
 
     credit = cnotes.filter(payment="CREDIT")
@@ -838,15 +919,30 @@ def booking_report(request):
         count=Count("cnote_id"),
         box_qty=Sum("total_item"),
         total_amount=Sum("total"),
-        freight=Sum("freight")
+        freight=Sum("freight"),
+        lr_charge = Sum("lr_charge"),
+        pickup_charge=Sum("pickup_charge"),
+        hamali_charge=Sum("hamali_charge"),
+        unloading_charge=Sum("unloading_charge"),
+        door_delivery=Sum("door_delivery"),
+        other_charge=Sum("other_charge")
     )
     gross_data = cnotes.aggregate(
         count=Count("cnote_id"),
         box_qty=Sum("total_item"),
         total_amount=Sum("total"),
-        freight=Sum("freight")
+        freight=Sum("freight"),
+        lr_charge = Sum("lr_charge"),
+        pickup_charge=Sum("pickup_charge"),
+        hamali_charge=Sum("hamali_charge"),
+        unloading_charge=Sum("unloading_charge"),
+        door_delivery=Sum("door_delivery"),
+        other_charge=Sum("other_charge"),
     )
-    
+    if gross_data["box_qty"]:
+        gross_data["avg_box_rate"] = gross_data["freight"] // gross_data["box_qty"]
+    else:
+        gross_data["avg_box_rate"] = 0
     context = {
         "branches": branches,
         "branch_id": branch_id,
@@ -860,3 +956,359 @@ def booking_report(request):
     }
 
     return render(request, "reports/booking_report.html", context)
+
+def daily_booking_report(request):
+
+    today = timezone.now().date()
+    branches = Branch.objects.filter(branch_is_active=True)
+
+    branch_id = request.GET.get("branch")
+    from_date = request.GET.get("from_date")
+    to_date = request.GET.get("to_date")
+
+    if from_date:
+        from_date = parse_date(from_date)
+    else:
+        from_date = today - timedelta(days=7)
+
+    if to_date:
+        to_date = parse_date(to_date)
+    else:
+        to_date = today
+
+    if (to_date - from_date).days > 31:
+        messages.error(request, "Maximum 31 days allowed.")
+        to_date = from_date + timedelta(days=31)
+
+    cnotes = CnoteModel.objects.filter(
+        date__isnull=False,
+        date__range=(from_date, to_date)
+    )
+
+    if branch_id and branch_id != "all":
+        cnotes = cnotes.filter(booking_branch_id=branch_id)
+    if (to_date - from_date).days > 31:
+        messages.error(request, "Maximum 31 days allowed.")
+        to_date = from_date + timedelta(days=31)
+    daily_data = (
+        cnotes
+        .values("date")
+        .annotate(
+            count=Count("cnote_id"),
+            box_qty=Coalesce(
+                Sum("total_item"),
+                Value(0, output_field=IntegerField())
+            ),
+            total_amount=Coalesce(
+                Sum("total"),
+                Value(0, output_field=DecimalField())
+            ),
+            paid=Coalesce(
+                Sum(
+                    Case(
+                        When(payment="PAID", then="total"),
+                        output_field=DecimalField()
+                    )
+                ),
+                Value(0, output_field=DecimalField())
+            ),
+
+            topay=Coalesce(
+                Sum(
+                    Case(
+                        When(payment="TOPAY", then="total"),
+                        output_field=DecimalField()
+                    )
+                ),
+                Value(0, output_field=DecimalField())
+            ),
+
+            credit=Coalesce(
+                Sum(
+                    Case(
+                        When(payment="CREDIT", then="total"),
+                        output_field=DecimalField()
+                    )
+                ),
+                Value(0, output_field=DecimalField())
+            ),
+        )
+        .order_by("date")
+    )
+
+    gross_data = cnotes.aggregate(
+        count=Count("cnote_id"),
+        box_qty=Coalesce(
+            Sum("total_item"),
+            Value(0, output_field=IntegerField())
+        ),
+        total_amount=Coalesce(
+            Sum("total"),
+            Value(0, output_field=DecimalField())
+        ),
+        paid=Coalesce(
+            Sum(
+                Case(
+                    When(payment="PAID", then="total"),
+                    output_field=DecimalField()
+                )
+            ),
+            Value(0, output_field=DecimalField())
+        ),
+
+        topay=Coalesce(
+            Sum(
+                Case(
+                    When(payment="TOPAY", then="total"),
+                    output_field=DecimalField()
+                )
+            ),
+            Value(0, output_field=DecimalField())
+        ),
+
+        credit=Coalesce(
+            Sum(
+                Case(
+                    When(payment="CREDIT", then="total"),
+                    output_field=DecimalField()
+                )
+            ),
+            Value(0, output_field=DecimalField())
+        ),
+    )
+
+
+    context = {
+        "branches": branches,
+        "branch_id": branch_id,
+        "from_date": from_date,
+        "to_date": to_date,
+        "daily_data": daily_data,
+        "gross": gross_data,
+    }
+
+    return render(request, "reports/daily_booking_report.html", context)
+
+def booking_data(request):
+
+    bookings = CnoteModel.objects.all().order_by("-date")
+    branch_id = request.GET.get("branch")
+    consignor_id = request.GET.get("consignor")
+    consignee_id = request.GET.get("consignee")
+    payment_type = request.GET.get("payment_type")
+    from_date = request.GET.get("from_date")
+    to_date = request.GET.get("to_date")
+    if not to_date:
+        to_date = date.today().strftime("%Y-%m-%d")
+    if branch_id and branch_id != "all":
+        bookings = bookings.filter(booking_branch_id=branch_id)
+
+    if consignor_id:
+        bookings = bookings.filter(consignor_id=consignor_id)
+
+    if consignee_id:
+        bookings = bookings.filter(consignee_id=consignee_id)
+
+    if payment_type and payment_type != "all":
+        bookings = bookings.filter(payment=payment_type)
+
+    if from_date and to_date:
+        bookings = bookings.filter(date__range=[from_date, to_date])
+    paginator = Paginator(bookings, 20)  
+    page_number = request.GET.get("page")
+    page_obj = paginator.get_page(page_number)
+    query_params = request.GET.copy()
+    if "page" in query_params:
+        query_params.pop("page")
+
+    query_string = query_params.urlencode()
+    context = {
+        "bookings": page_obj,
+        "page_obj": page_obj,
+        "branches": Branch.objects.all(),
+        "consignors": Consignor.objects.all(),
+        "consignees": Consignee.objects.all(),
+        "branch_id": branch_id,
+        "payment_type": payment_type,
+        "from_date": from_date,
+        "to_date": to_date,
+        "query_string": query_string,
+    }
+
+    return render(request, "reports/booking_data.html", context)
+
+def booking_excel(request):
+
+    bookings = CnoteModel.objects.all()
+
+    branch_id = request.GET.get("branch")
+    consignor_id = request.GET.get("consignor")
+    consignee_id = request.GET.get("consignee")
+    payment_type = request.GET.get("payment_type")
+    from_date = request.GET.get("from_date")
+    to_date = request.GET.get("to_date")
+
+    if branch_id and branch_id != "all":
+        bookings = bookings.filter(booking_branch_id=branch_id)
+
+    if consignor_id:
+        bookings = bookings.filter(consignor_id=consignor_id)
+
+    if consignee_id:
+        bookings = bookings.filter(consignee_id=consignee_id)
+
+    if payment_type and payment_type != "all":
+        bookings = bookings.filter(payment_type=payment_type)
+
+    if from_date:
+        bookings = bookings.filter(date__gte=from_date)
+
+    if to_date:
+        bookings = bookings.filter(date__lte=to_date)
+
+    workbook = openpyxl.Workbook()
+    sheet = workbook.active
+    sheet.title = "Booking Data"
+
+    headers = [
+        "Date", "LR No", "Status", "Invoice",
+        "Shipper", "Receiver", "Destination",
+        "Qty", "Payment", "Freight", "LR",
+        "Pickup", "Hamali", "Unloading",
+        "Door Delivery", "Other", "Total"
+    ]
+
+    sheet.append(headers)
+    total_qty = 0
+    total_freight = 0
+    total_lr = 0
+    total_pickup = 0
+    total_hamali = 0
+    total_unloading = 0
+    total_door = 0
+    total_other = 0
+    grand_total = 0
+
+    for b in bookings:
+        total_qty += b.total_item or 0
+        total_freight += b.freight or 0
+        total_lr += b.lr_charge or 0
+        total_pickup += b.pickup_charge or 0
+        total_hamali += b.hamali_charge or 0
+        total_unloading += b.unloading_charge or 0
+        total_door += b.door_delivery or 0
+        total_other += b.other_charge or 0
+        grand_total += b.total or 0
+        sheet.append([
+            b.date.strftime("%d-%m-%Y"),
+            b.cnote_number,
+            b.status,
+            b.invoice_no,
+            b.consignor.consignor_name,
+            b.consignee.consignee_name,
+            str(b.destination) if b.destination else "",
+            b.total_item,
+            b.payment,
+            b.freight,
+            b.lr_charge,
+            b.pickup_charge,
+            b.hamali_charge,
+            b.unloading_charge,
+            b.door_delivery,
+            b.other_charge,
+            b.total,
+        ])
+    sheet.append([])
+    sheet.append([
+        "", "", "", "", "", "", "Grand Total",
+        total_qty,
+        "",
+        total_freight,
+        total_lr,
+        total_pickup,
+        total_hamali,
+        total_unloading,
+        total_door,
+        total_other,
+        grand_total,
+    ])
+    response = HttpResponse(
+        content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
+    response["Content-Disposition"] = "attachment; filename=booking_data.xlsx"
+
+    workbook.save(response)
+    return response
+
+def branch_commission(request, branch_id):
+
+    branch = get_object_or_404(Branch, pk=branch_id)
+    companies = Company.objects.all()
+
+    booking_commissions = BookingCommission.objects.filter(branch=branch)
+    delivery_commissions = DeliveryCommission.objects.filter(branch=branch)
+    booking_data = {}
+    for bc in booking_commissions:
+        booking_data[bc.company.comp_id] = bc.percentage
+
+    delivery_data = {}
+    for dc in delivery_commissions:
+        delivery_data[(dc.company.comp_id, dc.from_zone)] = dc.percentage
+
+    if request.method == "POST":
+        for company in companies:
+
+            percentage = request.POST.get(f"booking_{company.comp_id}")
+            print("entered")
+            if percentage:
+                BookingCommission.objects.update_or_create(
+                    branch=branch,
+                    company=company,
+                    defaults={"percentage": percentage}
+                )
+            for zone in ["NORTH", "CENTRAL", "SOUTH"]:
+
+                percentage = request.POST.get(
+                    f"delivery_{company.comp_id}_{zone}"
+                )
+                deduction = request.POST.get(
+                    f"deduction_{company.comp_id}_{zone}"
+                )
+                if percentage:
+                    DeliveryCommission.objects.update_or_create(
+                        branch=branch,
+                        company=company,
+                        from_zone=zone,
+                        defaults={"percentage": percentage,"deduction_percentage": deduction or 0}
+                    )
+
+        return redirect("branch_manage")
+
+    context = {
+        "branch": branch,
+        "companies": companies,
+        "booking_data": booking_data,
+        "delivery_data": delivery_data,
+    }
+
+    return render(request, "branch/branch_commission.html", context)
+
+def branch_commission_view(request, branch_id):
+
+    branch = get_object_or_404(Branch, pk=branch_id)
+
+    booking_commissions = BookingCommission.objects.filter(
+        branch=branch
+    ).select_related("company")
+
+    delivery_commissions = DeliveryCommission.objects.filter(
+        branch=branch
+    ).select_related("company")
+
+    context = {
+        "branch": branch,
+        "booking_commissions": booking_commissions,
+        "delivery_commissions": delivery_commissions,
+    }
+
+    return render(request, "branch/view_commission.html", context)

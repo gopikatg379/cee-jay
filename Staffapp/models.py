@@ -133,6 +133,18 @@ class CnoteModel(models.Model):
         blank=True,
         related_name="cnotes"
     )
+    booking_commission_amount = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        default=0
+    )
+
+    delivery_commission_amount = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        default=0
+    )
+
     created_at = models.DateTimeField(auto_now_add=True,null=True)
     class Meta:
         db_table = "cnote_table"
@@ -219,3 +231,29 @@ class CnoteTracking(models.Model):
         ordering = ["created_at"]
 
 
+class BookingCommission(models.Model):
+    branch = models.ForeignKey(Branch, on_delete=models.CASCADE)
+    company = models.ForeignKey(Company, on_delete=models.CASCADE)
+    percentage = models.FloatField()
+
+    class Meta:
+        unique_together = ('branch', 'company')
+
+    def __str__(self):
+        return f"{self.branch} - {self.company} - {self.percentage}%"
+
+
+class DeliveryCommission(models.Model):
+
+    branch = models.ForeignKey(Branch, on_delete=models.CASCADE)
+    company = models.ForeignKey(Company, on_delete=models.CASCADE)
+
+    from_zone = models.CharField(max_length=20, choices=Branch.ZONE_CHOICES)
+
+    percentage = models.FloatField()
+    deduction_percentage = models.FloatField(default=0)
+    class Meta:
+        unique_together = ('branch', 'company', 'from_zone')
+
+    def __str__(self):
+        return f"{self.branch} - {self.company} - {self.from_zone}"

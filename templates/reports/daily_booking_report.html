@@ -1,0 +1,140 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container-fluid">
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-danger alert-dismissible fade show">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        {% endfor %}
+    {% endif %}
+    <div class="mb-4" style="background-color: #1C4D8D; color: white; padding: 12px 20px; border-radius: 6px; text-align: left; display: flex; align-items: center;">
+        <h4>DAILY BOOKING REPORT</h4>
+    </div>
+    <form method="GET" class="card p-3 mb-4">
+    <div class="row g-3 align-items-end">
+
+        <div class="col-md-3">
+            <label>Branch</label>
+            <select name="branch" class="form-select">
+                <option value="all">All</option>
+                {% for b in branches %}
+                    <option value="{{ b.branch_id }}"
+                    {% if branch_id == b.branch_id|stringformat:"s" %}selected{% endif %}>
+                        {{ b.branch_name }}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="col-md-3">
+            <label>From Date</label>
+            <input type="date" name="from_date"
+                   value="{{ from_date|date:'Y-m-d' }}"
+                   class="form-control">
+        </div>
+
+        <div class="col-md-3">
+            <label>To Date</label>
+            <input type="date" name="to_date"
+                   value="{{ to_date|date:'Y-m-d' }}"
+                   class="form-control">
+        </div>
+
+        <div class="col-md-3">
+            <button class="btn btn-success">SEARCH</button>
+        </div>
+
+    </div>
+</form>
+<div class="card p-3">
+<div class="card p-3 shadow-sm">
+    <div class="table-responsive">
+        <table class="table table-bordered table-hover align-middle">
+            <thead class="table-primary text-center">
+                <tr>
+                    <th scope="col">Date</th>
+                    <th scope="col">No of Consignments</th>
+                    <th scope="col">Total Box Qty</th>
+                    <th scope="col">Paid</th>
+                    <th scope="col">To Pay</th>
+                    <th scope="col">Credit</th>
+                    <th scope="col">Total Booking Amount</th>
+                </tr>
+            </thead>
+            <tbody class="text-end">
+                {% for d in daily_data %}
+                <tr>
+                    <td class="text-center fw-medium">{{ d.date|date:"d-M-Y" }}</td>
+                    <td class="pe-3">{{ d.count|default:"0" }}</td>
+                    <td class="pe-3">{{ d.box_qty|default:"0" }}</td>
+                    <td class="pe-3 text-success">₹ {{ d.paid|default:"0"|floatformat:2 }}</td>
+                    <td class="pe-3 text-danger">₹ {{ d.topay|default:"0"|floatformat:2 }}</td>
+                    <td class="pe-3 text-info">₹ {{ d.credit|default:"0"|floatformat:2 }}</td>
+                    <td class="pe-3 fw-bold">₹ {{ d.total_amount|default:"0"|floatformat:2 }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7" class="text-center py-4 text-muted fst-italic">
+                        No bookings found for the selected period
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+</div>
+<div class="card p-3 mt-4">
+    <h5 class="mb-3">Daily Booking Trend</h5>
+    <canvas id="dailyChart"></canvas>
+</div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+const dailyCtx = document.getElementById('dailyChart');
+
+new Chart(dailyCtx, {
+    type: 'line',
+    data: {
+        labels: [
+            {% for d in daily_data %}
+                "{{ d.date|date:'d-m-Y' }}",
+            {% endfor %}
+        ],
+        datasets: [{
+            label: 'Total Booking Amount',
+            data: [
+                {% for d in daily_data %}
+                    {{ d.total_amount|default:0 }},
+                {% endfor %}
+            ],
+            borderColor: '#1C4D8D',
+            backgroundColor: 'rgba(28,77,141,0.1)',
+            fill: true,
+            tension: 0.3
+        }]
+    },
+    options: {
+        responsive: true
+    }
+});
+document.querySelector("form").addEventListener("submit", function(e) {
+
+    const fromDate = new Date(document.querySelector("input[name='from_date']").value);
+    const toDate = new Date(document.querySelector("input[name='to_date']").value);
+
+    const diffTime = toDate - fromDate;
+    const diffDays = diffTime / (1000 * 60 * 60 * 24);
+
+    if (diffDays > 31) {
+        alert("Maximum 31 days allowed.");
+        e.preventDefault();
+    }
+
+});
+</script>
+{% endblock %}

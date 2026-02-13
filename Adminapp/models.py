@@ -56,6 +56,11 @@ class Broker(models.Model):
         return self.broker_name
     
 class Branch(models.Model):
+    ZONE_CHOICES = (
+        ("NORTH", "North"),
+        ("CENTRAL", "Central"),
+        ("SOUTH", "South"),
+    )
     branch_id = models.AutoField(primary_key=True)
     company = models.ForeignKey(Company,on_delete=models.CASCADE)
     branch_name = models.CharField(max_length=200)
@@ -70,7 +75,7 @@ class Branch(models.Model):
     broker = models.ForeignKey(Broker,on_delete=models.CASCADE)
     branch_address = models.CharField(max_length=200)
     services = models.CharField(max_length=200)
-    category = models.CharField(max_length=10,null=True,blank=True)
+    category = models.CharField(max_length=10,null=True,blank=True,choices=ZONE_CHOICES)
     branch_is_active = models.BooleanField(default=True)
     def save(self, *args, **kwargs):
         self.branch_name = (self.branch_name or '').upper().strip()
@@ -90,7 +95,7 @@ class Branch(models.Model):
     class Meta:
         db_table = "branch_table"
     def __str__(self):
-        return self.branch_name
+        return f"{self.branch_name} ({self.category})"
 class State(models.Model):
     state_id = models.AutoField(primary_key=True)
     state_name = models.CharField(max_length=200)

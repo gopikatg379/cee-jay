@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="container mt-4">
+    <div class="mb-4" style="background-color: #1C4D8D; color: white; padding: 12px 20px; border-radius: 6px; text-align: left; display: flex; align-items: center;">
+        <h4>CNote List</h4>
+    </div>
+    <table class="table table-bordered table-striped">
+        <thead class="table-dark">
+            <tr>
+                <th class="text-center align-middle">Date</th>
+                <th class="text-center align-middle">CNote No</th>
+                <th class="text-center align-middle">Shipper</th>
+                <th class="text-center align-middle">Receiver</th>
+                <th class="text-center align-middle">Payment</th>
+                <th class="text-center align-middle">Qty</th>
+                <th class="text-center align-middle">Freight</th>
+                <th class="text-center align-middle">Total</th>
+                <th class="text-center align-middle">Booking Branch</th>
+                <th class="text-center align-middle">Delivery Branch</th>
+                <th class="text-center align-middle">Booking Commission</th>
+                <th class="text-center align-middle">Delivery Commission</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for cnote in cnotes %}
+            <tr>
+                <td>{{cnote.date|date:"d-m-Y"}}</td>
+                <td>{{ cnote.cnote_number }}</td>
+                <td>{{cnote.consignor.consignor_name}}</td>
+                <td>{{cnote.consignee.consignee_name}}</td>
+                <td>{{ cnote.payment }}</td>
+                <td>{{cnote.total_item}}</td>
+                <td>{{ cnote.freight }}</td>
+                <td>{{ cnote.total }}</td>
+                <td>
+                    {{ cnote.booking_branch.branch_name }}
+                </td>
+                <td>
+                    {{ cnote.delivery_branch.branch_name }}
+                </td>
+                <td class="text-success">
+                    {{ cnote.booking_commission_amount }}
+                </td>
+                <td class="text-primary">
+                    {{ cnote.delivery_commission_amount }}
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="8" class="text-center text-danger">
+                    No CNotes Found
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+{% endblock %}

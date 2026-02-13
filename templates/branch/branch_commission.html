@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="container">
+
+<h3>Commission Setup - {{ branch.branch_name }}</h3>
+
+<form method="POST">
+{% csrf_token %}
+
+<div class="card p-3 mb-4">
+    <h5>Booking Commission</h5>
+
+    <table class="table table-bordered">
+        <thead>
+            <tr>
+                <th>Company</th>
+                <th>Percentage (%)</th>
+                
+            </tr>
+        </thead>
+
+        <tbody>
+            {% for c in companies %}
+            <tr>
+                <td>{{ c.comp_name }}</td>
+                <td>
+                    <input type="number"
+                           step="0.01"
+                           name="booking_{{ c.comp_id }}"
+                           class="form-control"
+                           value="{{ booking_data|default:''}}">
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<!-- ================= DELIVERY COMMISSION ================= -->
+
+<div class="card p-3">
+    <h5>Delivery Commission</h5>
+
+    {% for company in companies %}
+
+        <div class="mt-4">
+            <h6 class="text-primary">{{ company.comp_name }}</h6>
+
+            <table class="table table-bordered">
+                <thead>
+                    <tr>
+                        <th>From Zone</th>
+                        <th>Percentage (%)</th>
+                        <th>Deduction (%)</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    {% for value,label in branch.ZONE_CHOICES %}
+                    <tr>
+                        <td>{{ label }}</td>
+                        <td>
+                            <input type="number"
+                                   step="0.01"
+                                   name="delivery_{{ company.comp_id }}_{{ value }}"
+                                   class="form-control"
+                                   placeholder="Enter %"
+                                   value="{{ delivery_data|default:'' }}">
+                        </td>
+                        <td>
+                            <input type="number"
+                                step="0.01"
+                                name="deduction_{{ company.comp_id }}_{{ value }}"
+                                class="form-control"
+                                value="{{ delivery_data|default:'' }}">
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+
+        </div>
+
+    {% endfor %}
+</div>
+
+<button class="btn btn-success mt-3">Save Commission</button>
+
+</form>
+
+</div>
+
+{% endblock %}

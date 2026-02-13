@@ -21,6 +21,13 @@ urlpatterns = [
     path('manifest/print/<int:manifest_id>/',print_manifest,name="manifest_print"),
     path("manifest/drs/<int:manifest_id>/",manifest_drs_update,name="manifest_drs_update"),
     path("get-lr-charge/",get_lr_charge, name="get_lr_charge"),
-    path("report/booking",booking_report,name="booking_report")
-    
+    path("report/booking",booking_report,name="booking_report"),
+    path("report/daily",daily_booking_report,name="daily_report"),
+    path('report/data',booking_data,name="booking_data"),
+    path("booking/excel/", booking_excel, name="booking_excel"),
+    path('branch/<int:branch_id>/commission/',branch_commission, name="branch_commission"),
+    path("branch/<int:branch_id>/view-commission/",branch_commission_view,name="branch_view_commission"),
+    path('cnote/commission',cnote_commission_view,name="cnote_commission")
+
+
 ]
