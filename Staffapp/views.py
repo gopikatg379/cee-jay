@@ -89,7 +89,7 @@ def calculate_commission(cnote):
 
     booking_obj = BookingCommission.objects.filter(
         branch=booking_branch,
-        company=cnote.booking_branch.company
+        company=delivery_branch.company
     ).first()
 
     booking_amount = 0
@@ -113,11 +113,11 @@ def calculate_commission(cnote):
         subtract_booking = False
 
         if booking_branch.category == "SOUTH":
-            if delivery_branch.category in ["SOUTH", "CENTRAL"]:
+            if delivery_branch.category=="NORTH":
                 subtract_booking = True
 
         elif booking_branch.category == "NORTH":
-            if delivery_branch.category in ["NORTH", "CENTRAL"]:
+            if delivery_branch.category=="SOUTH":
                 subtract_booking = True
 
         if subtract_booking:

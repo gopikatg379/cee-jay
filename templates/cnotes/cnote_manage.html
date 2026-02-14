@@ -50,9 +50,12 @@
     top: 100%;
     left: 0;
     width: 100%;
-    background: #fff;
+    background: #f1f3f5; 
     border: 1px solid #ccc;
     z-index: 1000;
+    max-height: 200px;
+    overflow-y: auto;
+    border-radius: 4px;
 }
 .suggestion-item {
     padding: 6px 10px;
@@ -610,21 +613,31 @@ function fetchCommissionPercentages() {
     const bookingBranch = document.querySelector('[name="booking_branch"]')?.value;
     const deliveryBranch = document.getElementById("branch-id")?.value;
     const consignor = document.getElementById("consignor-id")?.value;
+
     if (!bookingBranch || !deliveryBranch || !consignor) return;
+
     fetch(`/staff/get-commission-percentages/?booking_branch=${bookingBranch}&delivery_branch=${deliveryBranch}&consignor=${consignor}`)
-        .then(res => {
-            console.log("Status:", res.status);
-            return res.json();
-        })
+        .then(res => res.json())
         .then(data => {
+
+            const freight = +(document.getElementById("freight-total")?.value || 0);
+
+            const bookingPercent = +(data.booking_percentage || 0);
+            const deliveryPercent = +(data.delivery_percentage || 0);
+            const deductionPercent = +(data.deduction_percentage || 0);
+
+            const bookingAmount = (freight * bookingPercent / 100).toFixed(2);
+            const deliveryAmount = (freight * deliveryPercent / 100).toFixed(2);
+            const deductionAmount = (freight * deductionPercent / 100).toFixed(2);
+
             document.getElementById("booking-commission-percent").value =
-                data.booking_percentage ? data.booking_percentage + " %" : "0 %";
+                `${bookingAmount} (${bookingPercent} %)`;
 
             document.getElementById("delivery-commission-percent").value =
-                data.delivery_percentage ? data.delivery_percentage + " %" : "0 %";
+                `${deliveryAmount} (${deliveryPercent} %)`;
 
             document.getElementById("deduction-percent").value =
-                data.deduction_percentage ? data.deduction_percentage + " %" : "0 %";
+                `${deductionAmount} (${deductionPercent} %)`;
         });
 }
 
@@ -632,7 +645,8 @@ function addItemRow() {
     const div = document.createElement("div");
     div.className = "items-row";
     div.innerHTML = `
-        <select onchange="setRate(this)" name="item[]">
+        <select onchange="setRate(this)" name="item[]" required>
+            <option value="">Select Item</option>
             ${itemsData.map(i => `<option value="${i.item_id}">${i.item_name}</option>`).join("")}
         </select>
         <input type="number" name="qty[]" placeholder="Qty" oninput="calcRow(this)" required>
@@ -691,6 +705,8 @@ function updateSummary() {
     document.getElementById("total-items").value = qty;
     document.getElementById("freight-total").value = freight.toFixed(2);
     document.getElementById("grand-total").value = grandTotal.toFixed(2);
+
+    fetchCommissionPercentages();
 }
 
 document.addEventListener("DOMContentLoaded", () => {
