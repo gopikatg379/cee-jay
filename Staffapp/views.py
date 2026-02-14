@@ -419,7 +419,8 @@ def cnote_commission_view(request):
         "booking_branch",
         "delivery_branch"
     ).all().order_by("-date")
-
+    for x in cnotes:
+        print(x.status)
     return render(request, "cnotes/cnote_commission.html", {
         "cnotes": cnotes
     })
@@ -543,6 +544,9 @@ def cnote_cancel(request):
     if cnote.status != CnoteModel.STATUS_CANCEL:
         cnote.status = CnoteModel.STATUS_CANCEL
         cnote.remarks = remark
+
+        cnote.booking_commission_amount = 0
+        cnote.delivery_commission_amount = 0
         cnote.save()
 
     return redirect('cnote_list')

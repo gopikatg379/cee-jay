@@ -202,7 +202,7 @@
         </div>
         <div class="cee-form-group">
             <label>Invoice Amount <span style="color: red;">*</span></label>
-            <input type="text" name="invoice_amt" value="{{ cnote.invoice_amt|default:'' }}" inputmode="numeric" pattern="[0-9]*" oninput="this.value = this.value.replace(/[^0-9]/g, '')" required>
+            <input type="number" name="invoice_amt" value="{{ cnote.invoice_amt|default:'' }}" inputmode="numeric" pattern="[0-9]*" oninput="this.value = this.value.replace(/[^0-9]/g, '')" required>
         </div>
         <div class="cee-form-group">
             <label>Eway Number</label>

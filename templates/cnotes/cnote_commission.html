@@ -24,7 +24,7 @@
         </thead>
         <tbody>
             {% for cnote in cnotes %}
-            <tr>
+            <tr {% if cnote.status == "Cancelled" %} class="table-danger" {% endif %}>
                 <td>{{cnote.date|date:"d-m-Y"}}</td>
                 <td>{{ cnote.cnote_number }}</td>
                 <td>{{cnote.consignor.consignor_name}}</td>
