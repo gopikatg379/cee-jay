@@ -188,7 +188,7 @@
         </div>
         <div class="cee-form-group">
             <label>Location<span style="color: red;">*</span></label>
-            <input type="text" id="location-input" value="{{ cnote.destination.location_name|default:'' }}">
+            <input type="text" id="location-input" value="{{ cnote.destination.location_name|default:'' }}" required>
             <input type="hidden" name="location" id="location-id" value="{{ cnote.destination.location_id|default:'' }}">
             <div id="location-suggestions" class="suggestion-box"></div>
         </div>
