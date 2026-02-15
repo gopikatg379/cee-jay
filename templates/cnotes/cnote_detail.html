@@ -90,14 +90,27 @@
 
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h3 class="mb-0">Basic Info – LR No: {{ cnote.cnote_number }}</h3>
-        <a href="{% url 'print_cnote' cnote.pk %}" target="_blank" class="btn btn-info btn-sm">
+         <div class="d-flex align-items-center gap-3">
+
+        <a href="#" 
+           data-bs-toggle="modal" 
+           data-bs-target="#ratesModal"
+           class="fw-semibold text-primary text-decoration-none">
+            Rates
+        </a>
+
+        <a href="{% url 'print_cnote' cnote.pk %}" 
+           target="_blank" 
+           class="btn btn-info btn-sm">
             <i class="bi bi-printer"></i> Print LR
         </a>
+
+    </div>
     </div>
 
     <div class="card shadow-sm border-0 basic-info-card">
         <div class="card-header bg-dark text-white">
-            <h5 class="mb-0">Basic Info</h5>
+            <h5 class="mb-0">Basic Info </h5>
         </div>
         <div class="card-body p-0">
             <div class="table-responsive">
@@ -123,23 +136,17 @@
                         </tr>
                         <tr>
                             <th class="bg-light">DELIVERY BRANCH</th>
-                            <td>CEE JAY ERNAKULAM</td>
+                            <td>{{cnote.delivery_branch}}</td>
                             <th class="bg-light">DISTRICT</th>
-                            <td>Ernakulam</td>
-                        </tr>
-                        <tr>
-                            <th class="bg-light">LOCATION</th>
-                            <td>ERNAKULAM</td>
-                            <th class="bg-light">STATUS</th>
-                            <td>
-                                <span class="badge bg-success">{{cnote.status}}</span>
-                            </td>
+                            <td>{{cnote.destination.district}}</td>
                         </tr>
                         <tr>
                             <th class="bg-light">PAYMENT TYPE</th>
                             <td>To Pay</td>
-                            <th class="bg-light">CONSIGNOR SUMMARY</th>
-                            <td>{{ cnote.consignor.consignor_name|default:"-" }}</td>
+                            <th class="bg-light">CURRENT STATUS</th>
+                            <td>
+                                <span class="badge bg-success">{{cnote.status}}</span>
+                            </td>
                         </tr>
                     </tbody>
                 </table>
@@ -148,7 +155,7 @@
     </div>
 <div class="card mt-4 shadow-sm">
     <div class="card-header bg-light">
-        <strong>Consignment Tracking</strong>
+        <strong>Tracking Details</strong>
     </div>
 
     <div class="card-body">
@@ -170,7 +177,22 @@
     <div class="timeline-item completed">
         <div class="timeline-dot"></div>
         <div class="timeline-content">
-            <div class="timeline-status">{{ t.status }}</div>
+            <div class="timeline-status">
+                {% if t.status|upper == "RECEIVED" %}
+                    ARRIVED AT
+                {% elif t.status|upper == "SHIPPED" %}
+                    SHIPPED TO
+                {% elif t.status|upper == "OUT FOR DELIVERY" %}
+                    OUT FOR DELIVERY<br/>
+                <a href="{% url 'manifest_print' t.cnote.manifest.manifest_id %}">DRS/{{t.cnote.manifest.from_branch.branch_shortname}}/{{t.cnote.manifest.manifest_number}}</a>
+                {% elif t.status|upper == "RETURNED" %}
+                RETURN <br>(Delivery not complete)<br/>
+                <a href="{% url 'manifest_print' t.cnote.manifest.manifest_id %}"">DRS/{{t.cnote.manifest.from_branch.branch_shortname}}/{{t.cnote.manifest.manifest_number}}</a>
+                {% else %}
+                    {{ t.status }}
+                {% endif %}
+            </div>
+
             <div class="timeline-meta">
                 {{ t.branch.branch_name }} <br>
                 logged in : {{ t.created_by.username }} <br>
@@ -192,5 +214,67 @@
     </div>
 
 </div>
+<div class="modal fade" id="ratesModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
 
+            <div class="modal-header bg-dark text-white">
+                <h5 class="modal-title">LR Rate Details</h5>
+                <button type="button" class="btn-close btn-close-white" 
+                        data-bs-dismiss="modal"></button>
+            </div>
+
+            <div class="modal-body">
+
+                <table class="table table-bordered table-sm">
+                    <tbody>
+                        <tr>
+                            <th width="30%">Freight</th>
+                            <td>{{ cnote.freight|default:"0.00" }}</td>
+                        </tr>
+
+                        <tr>
+                            <th>LR Charge</th>
+                            <td>{{ cnote.lr_charge|default:"0.00" }}</td>
+                        </tr>
+
+                        <tr>
+                            <th>Door Delivery Charge</th>
+                            <td>{{ cnote.door_delivery|default:"0.00" }}</td>
+                        </tr>
+
+                        <tr>
+                            <th>Unloading Charge</th>
+                            <td>{{ cnote.unloading_charge|default:"0.00" }}</td>
+                        </tr>
+
+                        <tr>
+                            <th>Hamali Charges</th>
+                            <td>{{ cnote.hamali_charge|default:"0.00" }}</td>
+                        </tr>
+
+                        <tr>
+                            <th>Other Charges</th>
+                            <td>{{ cnote.other_charge|default:"0.00" }}</td>
+                        </tr>
+
+                        <tr class="table-success">
+                            <th>Total Amount</th>
+                            <td><strong>{{ cnote.total|default:"0.00" }}</strong></td>
+                        </tr>
+                    </tbody>
+                </table>
+
+            </div>
+
+            <div class="modal-footer">
+                <button class="btn btn-secondary btn-sm" 
+                        data-bs-dismiss="modal">
+                    Close
+                </button>
+            </div>
+
+        </div>
+    </div>
+</div>
 {% endblock %}

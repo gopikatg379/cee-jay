@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+
 {% block content %}
 <div class="cee-manage-broker-wrapper">
     <div class="cee-manage-header">
@@ -106,7 +107,7 @@
                         </small>
                     </div>
                 </div>
-                <div class="cee-form-group">
+                <div>
                     <label>Select Company & Delivery Branch <span style="color:red;">*</span></label>
 
                     <div class="company-branch-wrapper">
@@ -130,7 +131,14 @@
                                     {% endfor %}
                                 </select>
                             </div>
-
+                            <div class="rural-field">
+                                <label class="branch-label">Rural Commission %</label>
+                                <input type="number"
+                                    step="0.01"
+                                    name="rural_commission_percentage"
+                                    class="form-control"
+                                    placeholder="0">
+                            </div>
                         </div>
                         {% endfor %}
                     </div>
@@ -179,7 +187,7 @@
                             {% endfor %}
                         </td>
                         <td>{{ loc.shortname|upper }}</td>
-                        {% if user.role == admin %}
+                        {% if user.role == "ADMIN" %}
                         <td>
                             <a href="{% url 'location_edit' loc.location_id %}" class="btn btn-sm btn-success">
                                 <i class="bi bi-pencil"></i>
@@ -414,7 +422,6 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 });
 </script>
-
 <style>
     .hover-bg-light:hover {
         background-color: #f8f9fa;
@@ -422,44 +429,61 @@ document.addEventListener('DOMContentLoaded', function () {
     #location-suggestions div {
         transition: background-color 0.1s;
     }
-    .company-branch-wrapper {
+<style>
+    .hover-bg-light:hover {
+        background-color: #f8f9fa;
+    }
+    #location-suggestions div {
+        transition: background-color 0.1s;
+    }
+.company-branch-wrapper {
     display: flex;
     flex-direction: column;
-    gap: 22px;
+    gap: 18px;
 }
 
 .company-branch-row {
-    display: grid;
-    grid-template-columns: 1fr 1.2fr;
-    align-items: center;
-    padding: 18px 0;
-    border-bottom: 1px solid #eaeaea;
+    display: flex;
+    align-items: center;      /* important change */
+    gap: 30px;
 }
 
-.company-box {
-    padding: 14px 18px;
-    border: 1px solid #dcdcdc;
-    border-radius: 8px;
+.company-name {
+    width: 220px;
     font-weight: 600;
-    background-color: #f9fafb;
-    color: #000;
     text-transform: uppercase;
+    display: flex;
+    align-items: center;
 }
-.branch-select {
+
+.branch-select,
+.rural-field {
     display: flex;
     flex-direction: column;
 }
 
-.branch-label {
-    font-size: 14px;
-    margin-bottom: 6px;
-    color: #000;
+.branch-select {
+    width: 300px;
 }
 
-.branch-select select {
-    padding: 8px 10px;
-    border-radius: 6px;
+.rural-field {
+    width: 180px;
 }
+
+.branch-label {
+    font-size: 13px;
+    margin-bottom: 6px;
+}
+
+.branch-select select,
+.rural-field input {
+    height: 38px;              /* force same height */
+}
+
 
 </style>
+
+
+</style>
+
 {% endblock %}

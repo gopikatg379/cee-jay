@@ -11,12 +11,33 @@
             margin: 20px;
         }
 
-        .header {
+        .header-box {
             text-align: center;
-            font-weight: bold;
-            font-size: 16px;
-            margin-bottom: 10px;
+            margin-bottom: 15px;
         }
+
+        .company-name {
+            font-size: 20px;
+            font-weight: bold;
+            letter-spacing: 1px;
+        }
+
+        .branch-name {
+            font-size: 14px;
+            margin-top: 4px;
+            font-weight: bold;
+        }
+
+        .document-title {
+            font-size: 18px;
+            margin-top: 8px;
+            padding: 6px 0;
+            border-top: 2px solid #000;
+            border-bottom: 2px solid #000;
+            font-weight: bold;
+            letter-spacing: 1px;
+        }
+
 
         .line {
             border-top: 1px solid #000;
@@ -74,37 +95,68 @@
 
 <body onload="window.print()">
 
-    <div class="header">CEE JAY COURIER</div>
+    <div class="header-box">
+        <div class="company-name">CEE JAY COURIER</div>
+
+        <div class="branch-name">
+            {{ manifest.from_branch.branch_name }}
+        </div>
+
+        <div class="document-title">
+            {% if manifest.manifest_type == "DELIVERY" %}
+                DELIVERY RUNSHEET
+            {% else %}
+                TRIP SHEET
+            {% endif %}
+        </div>
+    </div>
 
     <div class="line"></div>
 
     <table class="info-table">
         <tr>
-            <td class="info-label">DESPATCH NO</td>
-            <td>: CJDESP/{{ manifest.manifest_id }}</td>
-
-            <td class="info-label">DRIVER</td>
-            <td>: {{ manifest.driver.driver_name }}</td>
-
-            <td class="info-label">TIME</td>
-            <td>: {{ manifest.created_at|time:"h:i:s A" }}</td>
-
-            <td class="info-label">LOADED BY</td>
-            <td>: Loading Staff</td>
-        </tr>
-
-        <tr>
-            <td class="info-label">DESPATCH DATE</td>
-            <td>: {{ manifest.date|date:"d-m-Y" }}</td>
+            <td class="info-label">{% if manifest.manifest_type == "DELIVERY" %}
+                    DRS NO
+                {% else %}
+                    TS NO
+                {% endif %}</td>
+            
+            <td>
+                :
+                {% if manifest.manifest_type == "DELIVERY" %}
+                    DRS/{{ manifest.from_branch.branch_shortname }}/{{ manifest.manifest_number }}
+                {% else %}
+                    TS/{{ manifest.from_branch.branch_shortname }}/{{ manifest.manifest_number }}
+                {% endif %}
+            </td>
 
             <td class="info-label">VEHICLE</td>
             <td>: {{ manifest.vehicle.registration_no }}</td>
 
-            <td class="info-label">HUB</td>
-            <td>: {{ manifest.branch.branch_name }}</td>
+            
 
-            <td class="info-label">TRIP SHEET BY</td>
-            <td>: CJBOOKING</td>
+            <td class="info-label">LOADED BY</td>
+            <td>: {{ manifest.loaded_by.username }}</td>
+        </tr>
+
+        <tr>
+            <td class="info-label">DATE,TIME</td>
+            <td>: {{ manifest.date|date:"d-m-Y" }},{{ manifest.created_at|time:"h:i:s A" }}</td>
+
+            <td class="info-label">DRIVER</td>
+            <td>: {{ manifest.driver.driver_name }}</td>
+
+            {% if manifest.manifest_type != "DELIVERY" %}
+                <td class="info-label">Shipping To</td>
+                <td>:{{ manifest.branch.branch_name }}</td>
+            {% endif %}
+
+            <td class="info-label">{% if manifest.manifest_type == "DELIVERY" %}
+                    DRS BY
+                {% else %}
+                    TRIPSHEET BY
+                {% endif %}</td>
+            <td>:{{ manifest.user.username }}</td>
         </tr>
     </table>
 

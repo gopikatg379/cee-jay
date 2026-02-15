@@ -69,57 +69,88 @@
     <form method="POST">
         {% csrf_token %}
     <div class="card mb-3 p-3">
-        <div class="row g-3 align-items-end">
-
-            <div class="col-md-2">
-                <label class="fw-semibold">Manifest Type</label>
-                <select class="form-select" id="manifestType" name="manifest_type">
-                    <option value="">Select</option>
-                    <option value="DELIVERY">Delivery(DRS)</option>
-                    <option value="BRANCH">Branch Transfer</option>
-                </select>
-            </div>
-
-            <div class="col-md-2">
-                <label class="fw-semibold">Date</label>
-                <input type="date" class="form-control" value="{{ today }}" name="date">
-            </div>
-
-            <div class="col-md-2">
-                <label class="fw-semibold">Driver</label>
-                <select class="form-select" id="driverSelect" name="driver">
-                    <option value="">Select</option>
-                    {% for d in drivers %}
-                        <option value="{{ d.driver_id }}">{{ d.driver_name }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-
-            <div class="col-md-2">
-                <label class="fw-semibold">Vehicle</label>
-                <select class="form-select" id="vehicleSelect" name="vehicle">
-                    <option value="">Select</option>
-                    {% for v in vehicles %}
-                        <option value="{{ v.vehicle_id }}">{{ v.registration_no }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-
-            <div class="col-md-2 d-none" id="hubField">
-                <label class="fw-semibold">Hub</label>
-                <select class="form-select" name="hub_branch">
-                    <option value="">Select</option>
-                    {% for b in branches %}
-                        <option value="{{ b.branch_id }}">{{ b.branch_name }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-
+    <div class="row g-3 align-items-end">
+        <div class="cee-form-group">
+            <label>Booking Branch <span style="color: red;">*</span></label>
+            {% if user.role == 'ADMIN' %}
+            <select name="booking_branch" required>
+                <option value="">Select an option</option>
+                {% for branch in branches %}
+                    <option value="{{ branch.branch_id }}"
+                        {% if cnote.booking_branch and cnote.booking_branch.branch_id == branch.branch_id %}
+                            selected
+                        {% endif %}>
+                        {{ branch.branch_name }}
+                    </option>
+                {% endfor %}
+            </select>
+            {% else %}
+                <input type="text"
+                    value="{{ user.branch.branch_name }}"
+                    readonly>
+                <input type="hidden"
+                    name="booking_branch"
+                    value="{{ user.branch.branch_id }}" readonly>
+            {% endif %}
         </div>
+    <!-- Manifest Type -->
+    <div class="col-md-2">
+        <label>Manifest Type</label>
+        <select name="manifest_type" id="manifestType" class="form-select">
+            <option value="">Select</option>
+            <option value="DELIVERY">Delivery (DRS)</option>
+            <option value="BRANCH">Branch Transfer</option>
+        </select>
     </div>
 
-    <!-- MODE SELECTION -->
-    <div class="card mb-3 p-3 d-none" id="modeSelector">
+    <!-- Tripping To (Only for Branch) -->
+    <div class="col-md-2 d-none" id="hubField">
+        <label>Tripping To</label>
+        <select name="hub_branch" id="hubSelect" class="form-select">
+            <option value="">Select Hub</option>
+            {% for hub in branches %}
+                <option value="{{ hub.branch_id }}">{{ hub.branch_name }}</option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <!-- Date -->
+    <div class="col-md-2 d-none" id="dateField">
+        <label>Date</label>
+        <input type="date" name="date" class="form-control" value="{{ today }}">
+    </div>
+
+    <!-- Driver -->
+    <div class="col-md-2 d-none" id="driverField">
+        <label>Driver</label>
+        <select name="driver" id="driver" class="form-select">
+            <option value="">Select Driver</option>
+            {% for d in drivers %}
+                <option value="{{ d.driver_id }}">{{ d.driver_name }}</option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <!-- Vehicle -->
+    <div class="col-md-2 d-none" id="vehicleField">
+        <label>Vehicle</label>
+        <select name="vehicle" id="vehicle" class="form-select">
+            <option value="">Select Vehicle</option>
+            {% for v in vehicles %}
+                <option value="{{ v.vehicle_id }}">{{ v.registration_no }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="col-md-2 d-none" id="loadedByField">
+    <label>Loaded By</label>
+    <select name="loaded_by" id="loadedBy" class="form-select">
+        <option value="">Select User</option>
+        {% for u in branch_users %}
+            <option value="{{ u.id }}">{{ u.username }}</option>
+        {% endfor %}
+    </select>
+</div>
+        <div class="card mb-3 p-3 d-none" id="modeBox">
         <label class="fw-semibold mb-2">Load Mode</label>
         <div class="d-flex gap-4">
             <div>
@@ -132,6 +163,11 @@
             </div>
         </div>
     </div>
+</div>
+
+    </div>
+
+
 
     <!-- QR SCAN INPUT -->
     <div class="card mb-3 p-3 d-none" id="qrSection">
@@ -187,192 +223,220 @@
 
 <div id="truck">🚚 <span id="truckBadge">0</span></div>
 <div id="loadMessage">Items loaded successfully!</div>
-
 <script>
 document.addEventListener('DOMContentLoaded', function () {
 
     const manifestType = document.getElementById('manifestType');
-    const driver = document.getElementById('driverSelect');
-    const vehicle = document.getElementById('vehicleSelect');
     const hubField = document.getElementById('hubField');
-    const hubSelect = document.querySelector('[name="hub_branch"]');
+    const hubSelect = document.getElementById('hubSelect');
 
-    const table = document.getElementById('cnoteTable');
-    const modeBox = document.getElementById('modeSelector');
-    const qrSection = document.getElementById('qrSection');
+    const dateField = document.getElementById('dateField');
+    const driverField = document.getElementById('driverField');
+    const vehicleField = document.getElementById('vehicleField');
+    const loadedByField = document.getElementById('loadedByField');
+    const loadedBy = document.getElementById('loadedBy');
+    const driver = document.getElementById('driver');
+    const vehicle = document.getElementById('vehicle');
 
-    const truck = document.getElementById('truck');
-    const badge = document.getElementById('truckBadge');
-    const saveBtn = document.getElementById('saveManifest');
-    const message = document.getElementById('loadMessage');
+    const modeBox = document.getElementById('modeBox');
 
-    const selectAllCheckbox = document.getElementById('selectAll');
-    const itemCheckboxes = document.querySelectorAll('.item-checkbox');
+function toggleMain() {
 
-    let loadedCnotes = new Set();
-    let count = 0;
+    const type = manifestType.value;
+    const isBranch = type === "BRANCH";
 
-    function toggleMain() {
-        const isBranchTransfer = manifestType.value === 'BRANCH';
+    hubField.classList.add('d-none');
+    dateField.classList.add('d-none');
+    driverField.classList.add('d-none');
+    vehicleField.classList.add('d-none');
+    loadedByField.classList.add('d-none');
+    modeBox.classList.add('d-none');
 
-        if (isBranchTransfer) {
-            hubField.classList.remove('d-none');
-        } else {
-            hubField.classList.add('d-none');
-            hubSelect.value = '';
+    if (!type) return;
+
+
+    if (!isBranch) {
+
+        dateField.classList.remove('d-none');
+        driverField.classList.remove('d-none');
+        vehicleField.classList.remove('d-none');
+        loadedByField.classList.remove('d-none');
+
+  
+        if (driver.value && vehicle.value) {
+            modeBox.classList.remove('d-none');
         }
 
-        const hubOk = !isBranchTransfer || hubSelect.value;
-
-        if (manifestType.value && driver.value && vehicle.value && hubOk) {
-            modeBox.classList.remove('d-none'); 
-        } else {
-            modeBox.classList.add('d-none');   
-            table.classList.add('d-none');    
-            qrSection.classList.add('d-none'); 
-        }
+        return;
     }
 
 
-    manifestType.addEventListener('change', toggleMain);
-    driver.addEventListener('change', toggleMain);
-    vehicle.addEventListener('change', toggleMain);
-    hubSelect.addEventListener('change', toggleMain);
+    if (isBranch) {
 
-    document.querySelectorAll('input[name="loadMode"]').forEach(radio => {
-        radio.addEventListener('change', function () {
-            if (this.value === 'manual') {
-                qrSection.classList.add('d-none'); 
-            } else {
-                qrSection.classList.remove('d-none'); 
-                document.getElementById('qrInput').focus();
-            }
-            
-            table.classList.remove('d-none');
-        });
-    });
+        hubField.classList.remove('d-none');
 
+        if (hubSelect.value) {
+            dateField.classList.remove('d-none');
+            driverField.classList.remove('d-none');
+            vehicleField.classList.remove('d-none');
 
-   document.querySelectorAll('.item-checkbox').forEach(cb => {
-    cb.addEventListener('change', function () {
-
-        const row = this.closest('tr');
-        const cnote = row.querySelector('td:nth-child(4)').innerText.trim();
-
-        if (this.checked) {
-
-            if (!loadedCnotes.has(cnote)) {
-                loadToTruck(this, cnote);
-            }
-        } else {
-            if (loadedCnotes.has(cnote)) {
-                loadedCnotes.delete(cnote);
-                count = Math.max(0, count - 1); 
-                badge.innerText = count;
+            if (driver.value && vehicle.value) {
+                modeBox.classList.remove('d-none');
             }
         }
-    });
-});
-
- selectAllCheckbox.addEventListener('change', function () {
-    const checked = this.checked;
-    itemCheckboxes.forEach(cb => {
-        cb.checked = checked;
-        const row = cb.closest('tr');
-        const cnote = row.querySelector('td:nth-child(4)').innerText.trim();
-
-        if (checked) {
-            if (!loadedCnotes.has(cnote)) {
-                loadToTruck(cb, cnote);
-            }
-        } else {
-            if (loadedCnotes.has(cnote)) {
-                loadedCnotes.delete(cnote);
-                count = Math.max(0, count - 1);
-                badge.innerText = count;
-            }
-        }
-    });
-});
-
-    document.getElementById('qrInput').addEventListener('keydown', function (e) {
-
-        if (e.key !== 'Enter') return;
-
-        const code = this.value.trim();
-        if (!code || loadedCnotes.has(code)) return;
-
-        const row = [...document.querySelectorAll('tbody tr')]
-            .find(r => r.children[3].innerText.trim() === code);
-
-        if (!row) {
-            alert("CNote not found");
-            this.value = '';
-            return;
-        }
-
-        loadToTruck(row, code);
-        this.value = '';
-    });
-
-    function loadToTruck(source, cnote) {
-
-    if (source.type === "checkbox") {
-        source.checked = true;
-    } else {
-        const cb = source.querySelector('.item-checkbox');
-        if (cb) cb.checked = true;
     }
-
-    const fly = document.createElement('div');
-    fly.className = 'fly-item';
-    fly.innerText = '📦';
-
-    const rect = source.getBoundingClientRect();
-    fly.style.top = rect.top + 'px';
-    fly.style.left = rect.left + 'px';
-
-    document.body.appendChild(fly);
-
-    const truckRect = truck.getBoundingClientRect();
-
-    setTimeout(() => {
-        fly.style.top = truckRect.top + 'px';
-        fly.style.left = truckRect.left + 'px';
-        fly.style.opacity = 0;
-    }, 50);
-
-    setTimeout(() => {
-        fly.remove();
-        loadedCnotes.add(cnote);
-        count++;
-        badge.innerText = count;
-        saveBtn.disabled = false;
-    }, 900);
 }
 
 
-    saveBtn.addEventListener('click', function () {
-        if (!count) return;
 
-        truck.classList.add('truck-move');
+    manifestType.addEventListener('change', toggleMain);
+    hubSelect.addEventListener('change', toggleMain);
+    driver.addEventListener('change', toggleMain);
+    vehicle.addEventListener('change', toggleMain);
+    loadedBy.addEventListener('change', toggleMain);
+    const manualMode = document.getElementById('manualMode');
+    const qrMode = document.getElementById('qrMode');
+    const table = document.getElementById('cnoteTable');
+    const qrSection = document.getElementById('qrSection');
+    const saveBtn = document.getElementById('saveManifest');
+    const checkboxes = document.querySelectorAll('.item-checkbox');
+    const selectAll = document.getElementById('selectAll');
 
-        setTimeout(() => {
-            message.style.display = 'block';
-        }, 800);
+function toggleLoadMode() {
 
-        setTimeout(() => {
-            truck.classList.remove('truck-move');
-            message.style.display = 'none';
-            badge.innerText = 0;
-            count = 0;
-            loadedCnotes.clear();
-            saveBtn.disabled = true;
-        }, 2500);
+    table.classList.add('d-none');
+    qrSection.classList.add('d-none');
+
+    if (manualMode.checked) {
+        table.classList.remove('d-none');
+    }
+
+    if (qrMode.checked) {
+        qrSection.classList.remove('d-none');
+    }
+
+    updateSaveButton();
+}
+
+
+function updateSaveButton() {
+
+    let anyChecked = false;
+
+    checkboxes.forEach(cb => {
+        if (cb.checked) anyChecked = true;
+    });
+
+    saveBtn.disabled = !anyChecked;
+}
+selectAll.addEventListener('change', function () {
+
+    document.querySelectorAll('.item-checkbox').forEach(checkbox => {
+
+        checkbox.checked = this.checked;
+
+        const row = checkbox.closest('tr');
+        const cnoteNumber = row.children[3].innerText;
+
+        if (this.checked) {
+            animateToTruck(row, cnoteNumber);
+        } else {
+            if (loadedCount > 0) {
+                loadedCount--;
+                truckBadge.innerText = loadedCount;
+            }
+        }
+
+    });
+
+    updateSaveButton();
+});
+
+checkboxes.forEach(cb => {
+    cb.addEventListener('change', updateSaveButton);
+});
+
+manualMode.addEventListener('change', toggleLoadMode);
+qrMode.addEventListener('change', toggleLoadMode);
+const truck = document.getElementById('truck');
+const truckBadge = document.getElementById('truckBadge');
+const loadMessage = document.getElementById('loadMessage');
+
+let loadedCount = 0;
+
+// =============================
+// Animate item to truck
+// =============================
+function animateToTruck(element, cnoteNumber) {
+
+    const rect = element.getBoundingClientRect();
+    const truckRect = truck.getBoundingClientRect();
+
+    const flyItem = document.createElement('div');
+    flyItem.className = 'fly-item';
+    flyItem.innerText = cnoteNumber;
+
+    document.body.appendChild(flyItem);
+
+    flyItem.style.left = rect.left + 'px';
+    flyItem.style.top = rect.top + 'px';
+
+    setTimeout(() => {
+        flyItem.style.left = truckRect.left + 'px';
+        flyItem.style.top = truckRect.top + 'px';
+        flyItem.style.opacity = '0.5';
+        flyItem.style.transform = 'scale(0.5)';
+    }, 50);
+
+    setTimeout(() => {
+        flyItem.remove();
+        loadedCount++;
+        truckBadge.innerText = loadedCount;
+        showLoadMessage();
+    }, 900);
+}
+
+// =============================
+// Show success message
+// =============================
+function showLoadMessage() {
+    loadMessage.style.display = 'block';
+
+    setTimeout(() => {
+        loadMessage.style.display = 'none';
+    }, 1500);
+}
+
+// =============================
+// Checkbox change animation
+// =============================
+document.querySelectorAll('.item-checkbox').forEach(checkbox => {
+
+    checkbox.addEventListener('change', function () {
+
+        if (this.checked) {
+
+            const row = this.closest('tr');
+            const cnoteNumber = row.children[3].innerText;
+
+            animateToTruck(row, cnoteNumber);
+
+        } else {
+
+            // If unchecked, reduce count
+            if (loadedCount > 0) {
+                loadedCount--;
+                truckBadge.innerText = loadedCount;
+            }
+        }
+
     });
 
 });
+
+});
 </script>
+
 
 
 {% endblock %}

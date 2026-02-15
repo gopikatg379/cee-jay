@@ -246,6 +246,7 @@ def location_manage_view(request,location_id=None):
         state = request.POST['state_name']
         pincode = request.POST['pincode']
         location_name = request.POST['location_name']
+        rural_percentage = request.POST['rural_commission_percentage']
         shortname = request.POST.get('shortname', '').strip().upper()
         branches_data = {
             key.replace('branches[', '').replace(']', ''): value
@@ -261,6 +262,7 @@ def location_manage_view(request,location_id=None):
         loc.pincode = pincode
         loc.location_name = location_name
         loc.shortname = shortname
+        loc.rural_commission_percentage = rural_percentage
         loc.save()
         loc.company.clear()
         loc.branch.clear()

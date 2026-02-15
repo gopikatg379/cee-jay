@@ -15,8 +15,8 @@
         <thead>
             <tr>
                 <th>Company</th>
-                <th>Percentage (%)</th>
-                
+                <th>Freight Percentage (%)</th>
+                <th>LR Commission (%)</th>
             </tr>
         </thead>
 
@@ -26,10 +26,19 @@
                 <td>{{ c.comp_name }}</td>
                 <td>
                     <input type="number"
+                        step="0.01"
+                        name="booking_{{ c.comp_id }}"
+                        class="form-control percentage"
+                        data-id="{{ c.comp_id }}"
+                        value="">
+                </td>
+                <td>
+                    <input type="number"
                            step="0.01"
-                           name="booking_{{ c.comp_id }}"
-                           class="form-control"
-                           value="{{ booking_data|default:''}}">
+                           name="lr_{{ c.comp_id }}"
+                           class="form-control lr"
+                           data-id="{{ c.comp_id }}"
+                           value="{{ booking_data.c.comp_id.lr|default:'' }}">
                 </td>
             </tr>
             {% endfor %}

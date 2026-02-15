@@ -13,15 +13,20 @@ class ManifestModel(models.Model):
         (MANIFEST_BRANCH, 'Branch Transfer'),
         (MANIFEST_DELIVERY, 'Delivery'),
     ]
+    manifest_number = models.PositiveIntegerField(null=True)
     manifest_id = models.AutoField(primary_key=True)
     date = models.DateField()
     driver = models.ForeignKey(Driver,on_delete=models.PROTECT)
     vehicle = models.ForeignKey(Vehicle,on_delete=models.PROTECT)
+    from_branch = models.ForeignKey(Branch,on_delete=models.PROTECT,null=True,related_name="manifests_sent")
     branch = models.ForeignKey(Branch,on_delete=models.PROTECT,null=True)
     manifest_type = models.CharField(max_length=20, choices=MANIFEST_TYPES)
     created_at = models.DateTimeField(auto_now_add=True,null=True)
+    loaded_by = models.ForeignKey(UserModel,on_delete=models.PROTECT,null=True)
+    user = models.ForeignKey(UserModel,on_delete=models.PROTECT,null=True,related_name="created")
     class Meta:
         db_table = 'manifest_table'
+        unique_together = ('from_branch', 'manifest_number')
 
     def __str__(self):
         return f"Manifest {self.manifest_id}"
@@ -235,12 +240,14 @@ class BookingCommission(models.Model):
     branch = models.ForeignKey(Branch, on_delete=models.CASCADE)
     company = models.ForeignKey(Company, on_delete=models.CASCADE)
     percentage = models.FloatField()
+    lr_commission = models.FloatField(default=0)
 
     class Meta:
         unique_together = ('branch', 'company')
-
+    def total_commission(self):
+        return self.percentage + self.lr_commission
     def __str__(self):
-        return f"{self.branch} - {self.company} - {self.percentage}%"
+        return f"{self.branch} - {self.company} - {self.total_commission()}%"
 
 
 class DeliveryCommission(models.Model):

@@ -77,13 +77,14 @@
                     <th>Manifest ID</th>
                     <th>Driver</th>
                     <th>Vehicle</th>
-                    <th>
-                        {% if selected_type == "DELIVERY" %}
-                            Delivery Branch
-                        {% else %}
-                            Destination Branch
-                        {% endif %}
-                    </th>
+
+                    {% if selected_type == "DELIVERY" %}
+                        <th>Delivery Branch</th>
+                    {% else %}
+                        <th>Shipping From</th>
+                        <th>Shipping To</th>
+                    {% endif %}
+
                     <th>Actions</th>
                 </tr>
                 </thead>
@@ -95,21 +96,20 @@
                     <td>{{ manifest.date|date:"d-m-Y" }}</td>
                     <td>
                         {% if manifest.manifest_type == "DELIVERY" %}
-                            {% with first_cnote=manifest.cnotes.first %}
-                                {% if first_cnote %}
-                                    DRS/{{ first_cnote.delivery_branch.branch_shortname }}/{{ manifest.manifest_id }}
-                                {% else %}
-                                    DRS/{{ manifest.manifest_id }}
-                                {% endif %}
-                            {% endwith %}
+                            DRS/{{ manifest.from_branch.branch_shortname}}/{{manifest.manifest_number }}
                         {% else %}
-                            TS/{{ manifest.manifest_id }}
+                            TS/{{ manifest.from_branch.branch_shortname}}/{{ manifest.manifest_number }}
                         {% endif %}
                     </td>
                     <td>{{ manifest.driver.driver_name }}</td>
                     <td>{{ manifest.vehicle.registration_no }}</td>
-                    <td>{{ manifest.branch.branch_name }}</td>
-
+                    
+                    {% if selected_type == "DELIVERY" %}
+                        <td>{{ manifest.from_branch.branch_name }}</td>
+                    {% else %}
+                        <td>{{ manifest.from_branch.branch_name }}</td>
+                        <td>{{ manifest.branch.branch_name }}</td>
+                    {% endif %}
                     <td>
                         <a href="{% url 'manifest_edit' manifest.manifest_id %}"
                            class="btn btn-sm btn-success">
@@ -123,7 +123,7 @@
                         </a>
                         {% if selected_type == "DELIVERY" and manifest.can_update_delivery %}
                             <a href="{% url 'manifest_drs_update' manifest.manifest_id %}"
-                            class="btn btn-sm btn-success">
+                            class="btn btn-sm btn-danger">
                                 Update Delivery
                             </a>
                         {% endif %}

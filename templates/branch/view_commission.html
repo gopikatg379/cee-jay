@@ -13,7 +13,8 @@
         <thead>
             <tr>
                 <th>Company</th>
-                <th>Percentage (%)</th>
+                <th>Booking Freight Percentage (%)</th>
+                <th>LR Commissoin Percentage (%)</th>
             </tr>
         </thead>
         <tbody>
@@ -21,6 +22,7 @@
             <tr>
                 <td>{{ bc.company.comp_name }}</td>
                 <td>{{ bc.percentage }} %</td>
+                <td>{{ bc.lr_commission }} %</td>
             </tr>
             {% empty %}
             <tr>
@@ -41,8 +43,8 @@
             <tr>
                 <th>Company</th>
                 <th>From Zone</th>
-                <th>Commission (%)</th>
-                <th>Deduction (%)</th>
+                <th>Delivery Freight Commission (%)</th>
+                <th>Inter Zone Deduction (%)</th>
             </tr>
         </thead>
         <tbody>

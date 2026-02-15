@@ -26,7 +26,13 @@
             {% for cnote in cnotes %}
             <tr {% if cnote.status == "Cancelled" %} class="table-danger" {% endif %}>
                 <td>{{cnote.date|date:"d-m-Y"}}</td>
-                <td>{{ cnote.cnote_number }}</td>
+                <td>
+                    <a href="{% url 'cnote_detail' cnote.pk %}" 
+                    class="text-primary fw-bold" 
+                    title="View Basic Info">
+                        {{ cnote.cnote_number }}
+                    </a>
+                </td>
                 <td>{{cnote.consignor.consignor_name}}</td>
                 <td>{{cnote.consignee.consignee_name}}</td>
                 <td>{{ cnote.payment }}</td>

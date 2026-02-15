@@ -144,6 +144,7 @@ class Location(models.Model):
     pincode = models.CharField(max_length=20)
     company = models.ManyToManyField(Company)
     branch = models.ManyToManyField(Branch)
+    rural_commission_percentage = models.FloatField(default=0)
     def save(self, *args, **kwargs):
         self.district = (self.district or '').upper().strip()
         self.location_name = (self.location_name or '').upper().strip()

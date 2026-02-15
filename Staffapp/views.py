@@ -72,18 +72,19 @@ def get_branch_by_location(request, location_id):
 @login_required
 def get_lr_charge(request):
     consignor_id = request.GET.get("consignor_id")
-    lr_charge = 0
+    lr_charge = 20
 
     consignor = Consignor.objects.filter(consignor_id=consignor_id).first()
     if consignor:
         if consignor.type == "PERMANENT":
             lr_charge = consignor.lr_charge or 20
         else:
-            lr_charge = 0
+            lr_charge = 20
     return JsonResponse({"lr_charge": lr_charge})
 def calculate_commission(cnote):
-
+    
     freight = cnote.freight
+    lr_charge = float(cnote.lr_charge or 0)
     booking_branch = cnote.booking_branch
     delivery_branch = cnote.delivery_branch
 
@@ -93,8 +94,14 @@ def calculate_commission(cnote):
     ).first()
 
     booking_amount = 0
+
     if booking_obj:
-        booking_amount = freight * booking_obj.percentage / 100
+        freight_percent = booking_obj.percentage or 0
+        lr_percent = booking_obj.lr_commission or 0 
+        freight_commission = freight * freight_percent / 100
+        lr_commission = lr_charge * lr_percent / 100
+        booking_amount = freight_commission + lr_commission
+        booking_amount = freight_commission + lr_commission
     delivery_obj = DeliveryCommission.objects.filter(
         branch=delivery_branch,
         company=cnote.delivery_branch.company,
@@ -105,7 +112,6 @@ def calculate_commission(cnote):
 
     if delivery_obj:
 
-
         deduction_percent = delivery_obj.deduction_percentage or 0
         deduction_amount = freight * deduction_percent / 100
         net_freight = freight - deduction_amount
@@ -113,21 +119,27 @@ def calculate_commission(cnote):
         subtract_booking = False
 
         if booking_branch.category == "SOUTH":
-            if delivery_branch.category=="NORTH":
+            if delivery_branch.category == "NORTH":
                 subtract_booking = True
 
         elif booking_branch.category == "NORTH":
-            if delivery_branch.category=="SOUTH":
+            if delivery_branch.category == "SOUTH":
                 subtract_booking = True
 
         if subtract_booking:
             base = net_freight - booking_amount
         else:
             base = net_freight
+        normal_delivery = base * delivery_obj.percentage / 100
 
-        delivery_amount = base * delivery_obj.percentage / 100
+        rural_extra = 0
+        if cnote.destination:
+            rural_percent = cnote.destination.rural_commission_percentage or 0
+            rural_extra = base * rural_percent / 100
+        delivery_amount = normal_delivery + rural_extra
 
     return booking_amount, delivery_amount
+
 
 
 @login_required
@@ -135,6 +147,7 @@ def get_commission_percentages(request):
     booking_branch_id = request.GET.get("booking_branch")
     delivery_branch_id = request.GET.get("delivery_branch")
     consignor_id = request.GET.get("consignor")
+    location_id = request.GET.get('location')
 
     if not (booking_branch_id and delivery_branch_id and consignor_id):
         return JsonResponse({})
@@ -142,6 +155,7 @@ def get_commission_percentages(request):
     consignor = Consignor.objects.filter(pk=consignor_id).first()
     booking_branch = Branch.objects.filter(pk=booking_branch_id).first()
     delivery_branch = Branch.objects.filter(pk=delivery_branch_id).first()
+    location = Location.objects.filter(pk=location_id).first()
 
     if not consignor or not booking_branch or not delivery_branch:
         return JsonResponse({})
@@ -149,7 +163,7 @@ def get_commission_percentages(request):
 
     booking_comm = BookingCommission.objects.filter(
         branch=booking_branch,
-        company=booking_branch.company
+        company=delivery_branch.company
     ).first()
 
     delivery_comm = DeliveryCommission.objects.filter(
@@ -157,11 +171,15 @@ def get_commission_percentages(request):
         company=delivery_branch.company,
         from_zone=booking_branch.category
     ).first()
-
+    rural_percentage = 0
+    if location.rural_commission_percentage:
+        rural_percentage = location.rural_commission_percentage or 0
     return JsonResponse({
         "booking_percentage": booking_comm.percentage if booking_comm else 0,
+        "lr_percentage": booking_comm.lr_commission if booking_comm else 0,
         "delivery_percentage": delivery_comm.percentage if delivery_comm else 0,
         "deduction_percentage": delivery_comm.deduction_percentage if delivery_comm else 0,
+        "rural_percentage": rural_percentage,
     })
 
 @login_required(login_url='/')
@@ -214,14 +232,11 @@ def cnote_manage_view(request, pk=None):
 
         if consignor:
             if consignor.type == "TEMPORARY":
-                obj.lr_charge = 0
+                obj.lr_charge = data.get("lr_charge")
             elif consignor.type == "PERMANENT":
                 obj.lr_charge = consignor.lr_charge or 20
-
-            else:
-                obj.lr_charge = 0
         else:
-            obj.lr_charge = 0
+            obj.lr_charge = data.get("lr_charge")
         obj.invoice_no = data.get("invoice_no")
         obj.invoice_amt = data.get("invoice_amt") or 0
         obj.pickup_charge = data.get("pickup_charge") or 0
@@ -419,8 +434,6 @@ def cnote_commission_view(request):
         "booking_branch",
         "delivery_branch"
     ).all().order_by("-date")
-    for x in cnotes:
-        print(x.status)
     return render(request, "cnotes/cnote_commission.html", {
         "cnotes": cnotes
     })
@@ -463,6 +476,7 @@ def download_cnote_excel(request):
     headers = [
         "LR Date",
         "CNote No",
+        "LR Charge",
         "Operation Status",
         "Invoice No",
         "Consignor",
@@ -495,6 +509,7 @@ def download_cnote_excel(request):
         ws.append([
             c.date.strftime("%d-%m-%Y"),
             c.cnote_id,
+            c.lr_charge,
             operation_status,
             c.invoice_no or "",
             c.consignor.consignor_name,
@@ -583,9 +598,9 @@ def receive_cnote(request, pk):
     messages.success(request, "CNote received successfully.")
     return redirect("cnote_list")
 
-
+@login_required
 def manifest_manage(request):
-
+    branch_users = UserModel.objects.filter(branch=request.user.branch)
     cnotes_qs = CnoteModel.objects.filter(
         status=CnoteModel.STATUS_RECEIVED,
         received_branch=request.user.branch,
@@ -602,7 +617,8 @@ def manifest_manage(request):
         manifest_date = request.POST.get("date")
         manifest_type = request.POST.get("manifest_type")
         hub_branch_id = request.POST.get("hub_branch")
-
+        branch = request.POST["booking_branch"]
+        loaded_by = request.POST["loaded_by"]
         if not cnote_ids:
             messages.error(request, "Please select at least one CNote")
             return redirect(request.path)
@@ -612,12 +628,25 @@ def manifest_manage(request):
             return redirect(request.path)
         try:
             with transaction.atomic():
+                branch_obj = Branch.objects.select_for_update().get(branch_id=branch)
+                last_manifest = ManifestModel.objects.filter(
+                    from_branch=branch_obj
+                ).order_by('-manifest_number').first()
+
+                if last_manifest:
+                    next_number = last_manifest.manifest_number + 1
+                else:
+                    next_number = 1000
                 manifest = ManifestModel.objects.create(
+                    manifest_number=next_number,
                     date=manifest_date,
                     driver_id=driver_id,
                     vehicle_id=vehicle_id,
+                    from_branch = Branch.objects.get(branch_id=branch),
                     branch_id=hub_branch_id if manifest_type == "BRANCH" else None,
-                    manifest_type=manifest_type
+                    manifest_type=manifest_type,
+                    loaded_by=UserModel.objects.get(id=loaded_by),
+                    user=request.user
                 )
 
                 cnotes = CnoteModel.objects.select_for_update().filter(
@@ -640,7 +669,7 @@ def manifest_manage(request):
                     c.save()
                     CnoteTracking.objects.create(
                         cnote=c,
-                        branch=request.user.branch,
+                        branch=manifest.branch,
                         status=new_status,
                         created_by=request.user
                     )
@@ -660,6 +689,7 @@ def manifest_manage(request):
         'drivers': Driver.objects.all(),
         'branches': Branch.objects.all(),
         'vehicles': Vehicle.objects.all(),
+        'branch_users':branch_users,
         'today': timezone.now().date()
     }
 
@@ -672,8 +702,8 @@ def manifest_list(request):
         ManifestModel.MANIFEST_DELIVERY
     )
 
-    from_date = request.GET.get('from_date')
-    to_date = request.GET.get('to_date')
+    from_date = request.GET.get("from_date", "").strip()
+    to_date = request.GET.get("to_date", "").strip()
 
     manifests = ManifestModel.objects.filter(
         manifest_type=manifest_type
@@ -684,7 +714,7 @@ def manifest_list(request):
     if to_date:
         manifests = manifests.filter(date__lte=to_date)
 
-    manifests = manifests.order_by('-date')
+    manifests = manifests.order_by('-date',"-manifest_id")
     for m in manifests:
         m.can_update_delivery = m.cnotes.filter(
             status=CnoteModel.STATUS_DISPATCHED
@@ -845,7 +875,7 @@ def manifest_drs_update(request, manifest_id):
 
                 if f"return_{c.cnote_id}" in request.POST:
                     c.is_returned = True
-                    c.status = CnoteModel.STATUS_RETURN
+                    c.status = CnoteModel.STATUS_RECEIVED
                     c.delivery_status = None
                     c.save()
                     CnoteTracking.objects.create(
@@ -868,6 +898,12 @@ def manifest_drs_update(request, manifest_id):
 
                 if delivery_status == "DELIVERED":
                     c.status = CnoteModel.STATUS_DELIVERED
+
+                    if manifest.branch:
+                        c.delivery_branch = manifest.branch
+                    else:
+                        print("WARNING: Manifest branch is None")
+
                     CnoteTracking.objects.create(
                         cnote=c,
                         status="DELIVERED",
@@ -1284,7 +1320,10 @@ def branch_commission(request, branch_id):
     delivery_commissions = DeliveryCommission.objects.filter(branch=branch)
     booking_data = {}
     for bc in booking_commissions:
-        booking_data[bc.company.comp_id] = bc.percentage
+        booking_data[bc.company.comp_id] = {
+            "percentage": bc.percentage,
+            "lr": bc.lr_commission,
+        }
 
     delivery_data = {}
     for dc in delivery_commissions:
@@ -1292,14 +1331,13 @@ def branch_commission(request, branch_id):
 
     if request.method == "POST":
         for company in companies:
-
+            lr = request.POST.get(f"lr_{company.comp_id}")
             percentage = request.POST.get(f"booking_{company.comp_id}")
-            print("entered")
-            if percentage:
+            if percentage or lr:
                 BookingCommission.objects.update_or_create(
                     branch=branch,
                     company=company,
-                    defaults={"percentage": percentage}
+                    defaults={"percentage": percentage,"lr_commission": float(lr or 0),}
                 )
             for zone in ["NORTH", "CENTRAL", "SOUTH"]:
 

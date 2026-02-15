@@ -298,6 +298,7 @@
         <input type="text"
                id="booking-commission-percent"
                class="form-control bg-light"
+               style="width: 200px;"
                readonly>
     </div>
 
@@ -613,33 +614,47 @@ function fetchCommissionPercentages() {
     const bookingBranch = document.querySelector('[name="booking_branch"]')?.value;
     const deliveryBranch = document.getElementById("branch-id")?.value;
     const consignor = document.getElementById("consignor-id")?.value;
+    const location = document.getElementById("location-id")?.value;
 
     if (!bookingBranch || !deliveryBranch || !consignor) return;
 
-    fetch(`/staff/get-commission-percentages/?booking_branch=${bookingBranch}&delivery_branch=${deliveryBranch}&consignor=${consignor}`)
+    fetch(`/staff/get-commission-percentages/?booking_branch=${bookingBranch}&delivery_branch=${deliveryBranch}&consignor=${consignor}&location=${location}`)
         .then(res => res.json())
         .then(data => {
 
             const freight = +(document.getElementById("freight-total")?.value || 0);
+            const lrCharge = +(document.getElementById("lr_charge")?.value || 0);
 
-            const bookingPercent = +(data.booking_percentage || 0);
+            const freightPercent = +(data.booking_percentage || 0);
+            const lrPercent = +(data.lr_percentage || 0);
             const deliveryPercent = +(data.delivery_percentage || 0);
             const deductionPercent = +(data.deduction_percentage || 0);
+            const ruralPercent = +(data.rural_percentage || 0);
 
-            const bookingAmount = (freight * bookingPercent / 100).toFixed(2);
-            const deliveryAmount = (freight * deliveryPercent / 100).toFixed(2);
+            const freightCommission = freight * freightPercent / 100;
+
+            const lrCommission = lrCharge * lrPercent / 100;
+            const bookingAmount = (freightCommission + lrCommission).toFixed(2);
+
+            let deliveryAmount = (freight * deliveryPercent / 100);
+            if (ruralPercent > 0) {
+                deliveryAmount += freight * ruralPercent / 100;
+            }
+
+            deliveryAmount = deliveryAmount.toFixed(2);
             const deductionAmount = (freight * deductionPercent / 100).toFixed(2);
 
             document.getElementById("booking-commission-percent").value =
-                `${bookingAmount} (${bookingPercent} %)`;
+                `${bookingAmount} (Frt ${freightPercent}% + LR ${lrPercent}%)`;
 
             document.getElementById("delivery-commission-percent").value =
-                `${deliveryAmount} (${deliveryPercent} %)`;
+                `${deliveryAmount} (${deliveryPercent} %+Rural${ruralPercent}%)`;
 
             document.getElementById("deduction-percent").value =
                 `${deductionAmount} (${deductionPercent} %)`;
         });
 }
+
 
 function addItemRow() {
     const div = document.createElement("div");
@@ -735,7 +750,7 @@ function fetchLRCharge() {
     const lrInput = document.getElementById("lr_charge");
 
     if (!consignorId) {
-        lrInput.value = 0;
+        lrInput.value = 20;
         return;
     }
     fetch(`/staff/get-lr-charge/?consignor_id=${consignorId}`)

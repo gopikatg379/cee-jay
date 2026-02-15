@@ -137,7 +137,7 @@
                     <a href="{% url 'cnote_edit' cnote.cnote_id %}" class="btn btn-sm btn-success">
                         <i class="bi bi-pencil"></i>
                     </a>
-                    {% if cnote.status == "RECEIVED" and cnote.received_branch == request.user.branch %}
+                    {% if cnote.status == "RECEIVED" and cnote.received_branch == request.user.branch or cnote.status == "DELIVERED" %}
                         <button class="btn btn-sm btn-secondary" disabled title="Already received by your branch">
                             <i class="bi bi-check-circle"></i>
                         </button>
