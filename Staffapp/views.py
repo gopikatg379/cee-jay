@@ -17,6 +17,7 @@ import json
 import qrcode
 import base64
 import openpyxl
+from django.db.models import F
 from datetime import date
 from io import BytesIO
 from django.utils.dateparse import parse_date
@@ -429,14 +430,186 @@ def cnote_list_view(request):
 
     return render(request, 'cnotes/cnote_list.html', context)
 
+@login_required
 def cnote_commission_view(request):
+    today = timezone.now().date()
+    user = request.user
+
+    
+    from_date = request.GET.get("from_date", "").strip()
+    to_date = request.GET.get("to_date", "").strip()
+
+    if from_date:
+        from_date = parse_date(from_date)
+    else:
+        from_date = today - timedelta(days=30)
+
+    if to_date:
+        to_date = parse_date(to_date)
+    else:
+        to_date = today
+
     cnotes = CnoteModel.objects.select_related(
         "booking_branch",
         "delivery_branch"
-    ).all().order_by("-date")
-    return render(request, "cnotes/cnote_commission.html", {
-        "cnotes": cnotes
-    })
+    ).filter(
+        date__range=(from_date, to_date)
+    ).exclude(
+        status="Cancelled"
+    )
+    if user.role == "ADMIN":
+        branch_id = request.GET.get("branch", "").strip()
+        branches = Branch.objects.filter(branch_is_active=True)
+
+        if branch_id and branch_id != "all":
+            cnotes = cnotes.filter(booking_branch_id=branch_id)
+
+        branch_summary = (
+            cnotes
+            .values("booking_branch__branch_name","booking_branch_id")
+            .annotate(
+
+                paid_collection=Sum(
+                    Case(
+                        When(
+                            Q(payment="PAID") &
+                            Q(booking_branch_id=F("booking_branch_id")),
+                            then=F("total")
+                        ),
+                        default=Value(0),
+                        output_field=DecimalField()
+                    )
+                ),
+
+                topay_collection=Sum(
+                    Case(
+                        When(
+                            Q(payment="TOPAY") &
+                            Q(delivery_branch_id=F("booking_branch_id")),
+                            then=F("total")
+                        ),
+                        default=Value(0),
+                        output_field=DecimalField()
+                    )
+                ),
+
+                total_commission=Sum(
+                    F("booking_commission_amount") +
+                    F("delivery_commission_amount")
+                )
+            )
+            .order_by("booking_branch__branch_name")
+        )
+
+        graph_labels = []
+        collection_data = []
+        commission_data = []
+
+        for row in branch_summary:
+            graph_labels.append(row["booking_branch__branch_name"])
+
+            collection_total = (row["paid_collection"] or 0) + (row["topay_collection"] or 0)
+            collection_data.append(float(collection_total))
+
+            commission_data.append(float(row["total_commission"] or 0))
+
+    else:
+        branches = None 
+        branch_id = None
+
+        user_branch = user.branch
+
+        cnotes = cnotes.filter(
+            Q(booking_branch=user_branch) |
+            Q(delivery_branch=user_branch)
+        )
+        date_summary = (
+            cnotes
+            .values("date")
+            .annotate(
+
+                paid_collection=Sum(
+                    Case(
+                        When(
+                            Q(payment="PAID") &
+                            Q(booking_branch_id=F("booking_branch_id")),
+                            then=F("total")
+                        ),
+                        default=Value(0),
+                        output_field=DecimalField()
+                    )
+                ),
+                topay_collection=Sum(
+                    Case(
+                        When(
+                            Q(payment="TOPAY") &
+                            Q(delivery_branch_id=F("booking_branch_id")),
+                            then=F("total")
+                        ),
+                        default=Value(0),
+                        output_field=DecimalField()
+                    )
+                ),
+
+                total_commission=Sum(
+                    F("booking_commission_amount") +
+                    F("delivery_commission_amount")
+                )
+            )
+            .order_by("date")
+        )
+
+        graph_labels = []
+        collection_data = []
+        commission_data = []
+
+        for row in date_summary:
+            graph_labels.append(row["date"].strftime("%d-%m-%Y"))
+
+            collection_total = (row["paid_collection"] or 0) + (row["topay_collection"] or 0)
+            collection_data.append(float(collection_total))
+
+            commission_data.append(float(row["total_commission"] or 0))
+    cnotes = cnotes.order_by("-date")
+    totals = cnotes.aggregate(
+        total_qty=Sum("total_item"),
+        total_freight=Sum("freight"),
+        total_amount=Sum("total"),
+        total_topay=Sum(
+            Case(
+                When(payment="TOPAY", then="freight"),
+                default=Value(0),
+                output_field=DecimalField()
+            )
+        ),
+
+        total_paid=Sum(
+            Case(
+                When(payment="PAID", then="freight"),
+                default=Value(0),
+                output_field=DecimalField()
+            )
+        ),
+        total_booking_commission=Sum("booking_commission_amount"),
+        total_delivery_commission=Sum("delivery_commission_amount"),
+    )
+    paginator = Paginator(cnotes, 10)  
+    page_number = request.GET.get("page")
+    page_obj = paginator.get_page(page_number)
+    context = {
+        "cnotes": page_obj,
+        "page_obj": page_obj,
+        "branches": branches,
+        "branch_id": branch_id,
+        "from_date": from_date,
+        "to_date": to_date,
+        "totals": totals,
+        "graph_labels": graph_labels,
+        "collection_data": collection_data,
+        "commission_data": commission_data,
+    }
+
+    return render(request, "cnotes/cnote_commission.html", context)
 
 def download_cnote_excel(request):
     qs = CnoteModel.objects.select_related(
@@ -1435,3 +1608,194 @@ def booking_summary_view(request):
     }
 
     return render(request, "reports/booking_summary.html", context)
+
+def booking_commission_report(request):
+    today = timezone.now().date()
+    user = request.user
+
+    from_date = request.GET.get("from_date", "").strip()
+    to_date = request.GET.get("to_date", "").strip()
+    branch_id = request.GET.get("branch", "").strip()
+
+    if from_date:
+        from_date = parse_date(from_date)
+    else:
+        from_date = today - timedelta(days=30)
+
+    if to_date:
+        to_date = parse_date(to_date)
+    else:
+        to_date = today
+    
+    cnotes = CnoteModel.objects.select_related(
+        "booking_branch",
+        "delivery_branch"
+    ).filter(
+        date__range=(from_date, to_date)
+    ) 
+    if user.role == "ADMIN":
+        branches = Branch.objects.filter(branch_is_active=True)
+        if branch_id and branch_id != "all":
+            cnotes = cnotes.filter(booking_branch_id=branch_id)
+    else:
+        branches = None
+        branch_id = None
+        cnotes = cnotes.filter(booking_branch=user.branch)
+    date_summary = (
+        cnotes
+        .values('date', 'payment')  
+        .annotate(total=Sum('total'))  
+        .order_by('date')
+    )
+    dates = sorted(list(set(item['date'] for item in date_summary)))
+
+    paid_data = []
+    topay_data = []
+    credit_data = []
+
+    for d in dates:
+        paid_total = 0
+        topay_total = 0
+        credit_total = 0
+
+        for item in date_summary:
+            if item['date'] == d:
+                if item['payment'] == "PAID":
+                    paid_total = item['total'] or 0
+                elif item['payment'] == "TOPAY":
+                    topay_total = item['total'] or 0
+                elif item['payment'] == "CREDIT":
+                    credit_total = item['total'] or 0
+
+        paid_data.append(paid_total)
+        topay_data.append(topay_total)
+        credit_data.append(credit_total)
+    cnotes = cnotes.order_by("-date")
+
+    paginator = Paginator(cnotes, 10)
+    page_obj = paginator.get_page(request.GET.get("page"))
+
+
+    totals = cnotes.aggregate(
+        total_commission=Sum("booking_commission_amount")
+    )
+    gross_total = cnotes.aggregate(
+        total_consignment=Count("cnote_id"),
+        total_box_qty=Sum("total_item"),
+        paid=Sum("total", filter=Q(payment="PAID")),
+        credit=Sum("total", filter=Q(payment="CREDIT")),
+        topay=Sum("total", filter=Q(payment="TOPAY")),
+        total_amount=Sum("total"),
+    )
+    context = {
+        "cnotes": page_obj,
+        "page_obj": page_obj,
+        "branches": branches,
+        "branch_id": branch_id,
+        "from_date": from_date,
+        "to_date": to_date,
+        "totals": totals,
+        "graph_dates": json.dumps(
+            [d.strftime("%d-%m-%Y") for d in dates]
+        ),
+        "paid_data": json.dumps([float(x) for x in paid_data]),
+        "topay_data": json.dumps([float(x) for x in topay_data]),
+        "credit_data": json.dumps([float(x) for x in credit_data]),
+        "gross": gross_total,
+    }
+
+    return render(request, "reports/booking_commission_report.html", context)
+
+def delivery_commission_report(request):
+    today = timezone.now().date()
+    user = request.user
+
+    from_date = request.GET.get("from_date", "").strip()
+    to_date = request.GET.get("to_date", "").strip()
+    branch_id = request.GET.get("branch", "").strip()
+
+    if from_date:
+        from_date = parse_date(from_date)
+    else:
+        from_date = today - timedelta(days=30)
+
+    if to_date:
+        to_date = parse_date(to_date)
+    else:
+        to_date = today
+
+    cnotes = CnoteModel.objects.filter(
+        date__range=(from_date, to_date)
+    )
+
+    if user.role == "ADMIN":
+        branches = Branch.objects.filter(branch_is_active=True)
+        if branch_id and branch_id != "all":
+            cnotes = cnotes.filter(delivery_branch_id=branch_id)
+    else:
+        branches = None
+        branch_id = None
+        cnotes = cnotes.filter(delivery_branch=user.branch)
+    date_summary = (
+        cnotes
+        .values('date', 'payment')  
+        .annotate(total=Sum('total'))  
+        .order_by('date')
+    )
+    dates = sorted(list(set(item['date'] for item in date_summary)))
+
+    paid_data = []
+    topay_data = []
+    credit_data = []
+
+    for d in dates:
+        paid_total = 0
+        topay_total = 0
+        credit_total = 0
+
+        for item in date_summary:
+            if item['date'] == d:
+                if item['payment'] == "PAID":
+                    paid_total = item['total'] or 0
+                elif item['payment'] == "TOPAY":
+                    topay_total = item['total'] or 0
+                elif item['payment'] == "CREDIT":
+                    credit_total = item['total'] or 0
+
+        paid_data.append(paid_total)
+        topay_data.append(topay_total)
+        credit_data.append(credit_total)
+    cnotes = cnotes.order_by("-date")
+
+    paginator = Paginator(cnotes, 10)
+    page_obj = paginator.get_page(request.GET.get("page"))
+
+    totals = cnotes.aggregate(
+        total_commission=Sum("delivery_commission_amount")
+    )
+    gross_total = cnotes.aggregate(
+        total_consignment=Count("cnote_id"),
+        total_box_qty=Sum("total_item"),
+        paid=Sum("total", filter=Q(payment="PAID")),
+        credit=Sum("total", filter=Q(payment="CREDIT")),
+        topay=Sum("total", filter=Q(payment="TOPAY")),
+        total_amount=Sum("total"),
+    )
+    context = {
+        "cnotes": page_obj,
+        "page_obj": page_obj,
+        "branches": branches,
+        "branch_id": branch_id,
+        "from_date": from_date,
+        "to_date": to_date,
+        "totals": totals,
+        "graph_dates": json.dumps(
+            [d.strftime("%d-%m-%Y") for d in dates]
+        ),
+        "paid_data": json.dumps([float(x) for x in paid_data]),
+        "topay_data": json.dumps([float(x) for x in topay_data]),
+        "credit_data": json.dumps([float(x) for x in credit_data]),
+        "gross": gross_total,
+    }
+
+    return render(request, "reports/delivery_commission_report.html", context)

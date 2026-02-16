@@ -2,18 +2,106 @@ from django.shortcuts import render,redirect,get_object_or_404
 from .models import *
 from django.contrib.auth.hashers import make_password
 from django.contrib import messages
-from django.db.models import Q
 from django.db.models import Min
 from collections import defaultdict
 import openpyxl
 from django.http import HttpResponse
 from django.contrib.auth import authenticate,login,logout
 from django.contrib.auth.decorators import login_required
+from django.db.models import Sum, Case, When, Value, DecimalField, F, Q
+from Staffapp.models import *
+
 
 @login_required(login_url='/')
 def dashboard(request):
     user = request.user
-    return render(request,'dashboard.html',{'user':user})
+    if user.role != "ADMIN":
+
+        branch = user.branch
+
+        cnotes = CnoteModel.objects.filter(
+            Q(booking_branch=branch) |
+            Q(delivery_branch=branch)
+        ).exclude(
+            status__iexact="cancelled"
+        )
+
+        commission_data = cnotes.aggregate(
+
+            booking_commission=Sum(
+                Case(
+                    When(
+                        booking_branch=branch,
+                        then=F("booking_commission_amount")
+                    ),
+                    default=Value(0),
+                    output_field=DecimalField()
+                )
+            ),
+
+            delivery_commission=Sum(
+                Case(
+                    When(
+                        delivery_branch=branch,
+                        then=F("delivery_commission_amount")
+                    ),
+                    default=Value(0),
+                    output_field=DecimalField()
+                )
+            )
+        )
+
+        total_commission = (
+            (commission_data["booking_commission"] or 0) +
+            (commission_data["delivery_commission"] or 0)
+        )
+
+        collection_data = cnotes.aggregate(
+
+            paid_collection=Sum(
+                Case(
+                    When(
+                        Q(payment="PAID") &
+                        Q(booking_branch=branch),
+                        then=F("total")
+                    ),
+                    default=Value(0),
+                    output_field=DecimalField()
+                )
+            ),
+
+            topay_collection=Sum(
+                Case(
+                    When(
+                        Q(payment="TOPAY") &
+                        Q(delivery_branch=branch),
+                        then=F("total")
+                    ),
+                    default=Value(0),
+                    output_field=DecimalField()
+                )
+            )
+        )
+
+        total_collection = (
+            (collection_data["paid_collection"] or 0) +
+            (collection_data["topay_collection"] or 0)
+        )
+
+        wallet_balance = total_commission - total_collection
+
+    else:
+
+        wallet_balance = 0
+        total_commission = 0
+        total_collection = 0
+
+    context = {
+        "wallet_balance": wallet_balance,
+        "total_commission": total_commission,
+        "total_collection": total_collection,
+    }
+    return render(request,'dashboard.html',context)
 
 @login_required(login_url='/')
 def broker_manage_view(request, broker_id=None):

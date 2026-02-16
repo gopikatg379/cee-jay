@@ -30,7 +30,6 @@ urlpatterns = [
     path("branch/<int:branch_id>/view-commission/",branch_commission_view,name="branch_view_commission"),
     path('cnote/commission',cnote_commission_view,name="cnote_commission"),
     path("get-commission-percentages/", get_commission_percentages, name="get_commission_percentages"),
-
-
-
+    path("report/delivery_commission",delivery_commission_report,name="delivery_commission"),
+    path("report/booking_commission",booking_commission_report,name="booking_commission")
 ]

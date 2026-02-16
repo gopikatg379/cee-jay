@@ -5,6 +5,38 @@
     <div class="mb-4" style="background-color: #1C4D8D; color: white; padding: 12px 20px; border-radius: 6px; text-align: left; display: flex; align-items: center;">
         <h4>CNote List</h4>
     </div>
+        <form method="GET" class="card p-3 mb-4 shadow-sm">
+        <div class="row g-3">
+            {% if user.role == "ADMIN" %}
+            <div class="col-md-2">
+                <label>Branch</label>
+                <select name="branch" class="form-select">
+                    <option value="all">All</option>
+                    {% for b in branches %}
+                        <option value="{{ b.branch_id }}"
+                        {% if branch_id == b.branch_id|stringformat:"s" %}selected{% endif %}>
+                            {{ b.branch_name }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            {% endif %}
+            <div class="col-md-2">
+                <label>From Date</label>
+                <input type="date" name="from_date" value="{{ from_date|date:'Y-m-d' }}" class="form-control" style="text-transform: uppercase;">
+            </div>
+
+            <div class="col-md-2">
+                <label>To Date</label>
+                <input type="date" name="to_date" value="{{ to_date|date:'Y-m-d' }}" class="form-control" style="text-transform: uppercase;">
+            </div>
+
+            <div class="col-md-12 text-end">
+                <button class="btn btn-success">Search</button>
+            </div>
+
+        </div>
+    </form>
     <table class="table table-bordered table-striped">
         <thead class="table-dark">
             <tr>
@@ -16,6 +48,8 @@
                 <th class="text-center align-middle">Qty</th>
                 <th class="text-center align-middle">Freight</th>
                 <th class="text-center align-middle">Total</th>
+                <th class="text-center align-middle">Topay Amount</th>
+                <th class="text-center align-middle">Paid Amount</th>
                 <th class="text-center align-middle">Booking Branch</th>
                 <th class="text-center align-middle">Delivery Branch</th>
                 <th class="text-center align-middle">Booking Commission</th>
@@ -36,19 +70,33 @@
                 <td>{{cnote.consignor.consignor_name}}</td>
                 <td>{{cnote.consignee.consignee_name}}</td>
                 <td>{{ cnote.payment }}</td>
-                <td>{{cnote.total_item}}</td>
-                <td>{{ cnote.freight }}</td>
-                <td>{{ cnote.total }}</td>
+                <td class="text-end">{{cnote.total_item}}</td>
+                <td class="text-end">{{ cnote.freight }}</td>
+                <td class="text-end">{{ cnote.total }}</td>
+                <td class="text-end">
+                    {% if cnote.payment == "TOPAY" %}
+                        {{ cnote.freight }}
+                    {% else %}
+                        0
+                    {% endif %}
+                </td>
+                <td class="text-end">
+                    {% if cnote.payment == "PAID" %}
+                        {{ cnote.freight }}
+                    {% else %}
+                        0
+                    {% endif %}
+                </td>
                 <td>
                     {{ cnote.booking_branch.branch_name }}
                 </td>
                 <td>
                     {{ cnote.delivery_branch.branch_name }}
                 </td>
-                <td class="text-success">
+                <td class="text-end text-success">
                     {{ cnote.booking_commission_amount }}
                 </td>
-                <td class="text-primary">
+                <td class="text-end text-primary">
                     {{ cnote.delivery_commission_amount }}
                 </td>
             </tr>
@@ -59,8 +107,112 @@
                 </td>
             </tr>
             {% endfor %}
+            <tr class="fw-bold table-warning">
+                <td colspan="5" class="text-end">TOTAL</td>
+
+                <td class="text-end">{{ totals.total_qty|default:0 }}</td>
+                <td class="text-end">{{ totals.total_freight|default:0 }}</td>
+                <td class="text-end">{{ totals.total_amount|default:0 }}</td>
+                <td class="text-end">{{ totals.total_topay|default:0 }}</td>
+                <td class="text-end">{{ totals.total_paid|default:0 }}</td>
+                <td class="text-end"></td>
+                <td class="text-end"></td>
+                <td class="text-end">{{ totals.total_booking_commission|default:0 }}</td>
+                <td class="text-end">{{ totals.total_delivery_commission|default:0 }}</td>
+            </tr>
         </tbody>
     </table>
-</div>
+    {% if page_obj.has_other_pages %}
+    <nav>
+        <ul class="pagination justify-content-center">
 
+            {% if page_obj.has_previous %}
+                <li class="page-item">
+                    <a class="page-link"
+                    href="?page={{ page_obj.previous_page_number }}&branch={{ branch_id|default:'' }}&from_date={{ from_date|date:'Y-m-d' }}&to_date={{ to_date|date:'Y-m-d' }}">
+                    Previous
+                    </a>
+                </li>
+            {% endif %}
+
+            {% for num in page_obj.paginator.page_range %}
+                {% if page_obj.number == num %}
+                    <li class="page-item active">
+                        <span class="page-link">{{ num }}</span>
+                    </li>
+                {% else %}
+                    <li class="page-item">
+                        <a class="page-link"
+                        href="?page={{ num }}&branch={{ branch_id|default:'' }}&from_date={{ from_date|date:'Y-m-d' }}&to_date={{ to_date|date:'Y-m-d' }}">
+                        {{ num }}
+                        </a>
+                    </li>
+                {% endif %}
+            {% endfor %}
+
+            {% if page_obj.has_next %}
+                <li class="page-item">
+                    <a class="page-link"
+                    href="?page={{ page_obj.next_page_number }}&branch={{ branch_id|default:'' }}&from_date={{ from_date|date:'Y-m-d' }}&to_date={{ to_date|date:'Y-m-d' }}">
+                    Next
+                    </a>
+                </li>
+            {% endif %}
+
+        </ul>
+    </nav>
+    {% endif %}
+    <div class="card mt-4 shadow">
+    <div class="card-body">
+        <h5 class="text-center mb-3">
+            {% if user.role == "ADMIN" %}
+                Branch Collection vs Commission
+            {% else %}
+                Daily Collection vs Commission
+            {% endif %}
+        </h5>
+        <canvas id="branchChart"></canvas>
+    </div>
+</div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+const ctx = document.getElementById('branchChart');
+
+const graphLabels = {{ graph_labels|safe }};
+const collectionData = {{ collection_data|safe }};
+const commissionData = {{ commission_data|safe }};
+
+new Chart(ctx, {
+    type: 'bar',
+    data: {
+        labels: graphLabels,
+        datasets: [
+            {
+                label: 'Collection Amount',
+                data: collectionData,
+                backgroundColor: 'rgba(54, 162, 235, 0.7)'
+            },
+            {
+                label: 'Total Commission',
+                data: commissionData,
+                backgroundColor: 'rgba(255, 99, 132, 0.7)'
+            }
+        ]
+    },
+    options: {
+        responsive: true,
+        interaction: {
+            mode: 'index',
+            intersect: false
+        },
+        scales: {
+            y: {
+                beginAtZero: true
+            }
+        }
+    }
+});
+</script>
 {% endblock %}

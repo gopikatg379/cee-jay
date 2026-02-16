@@ -1,0 +1,240 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="container-fluid">
+    <div class="mb-4"
+        style="background-color: #1C4D8D; color: white; padding: 12px 20px;
+               border-radius: 6px; display: flex; align-items: center;">
+        <h4 class="mb-4">Booking Commission Report</h4>
+    </div>
+
+    <form method="get" class="card p-3 mb-4">
+        <div class="row g-3 align-items-end">
+        <div class="col-md-3">
+            <label>From Date</label>
+            <input type="date" name="from_date"
+                   value="{{ from_date|date:'Y-m-d' }}"
+                   class="form-control">
+        </div>
+
+        <div class="col-md-3">
+            <label>To Date</label>
+            <input type="date" name="to_date"
+                   value="{{ to_date|date:'Y-m-d' }}"
+                   class="form-control">
+        </div>
+
+        {% if user.role == "ADMIN" %}
+        <div class="col-md-3">
+            <label>Branch</label>
+            <select name="branch" class="form-select">
+                <option value="all">All Branches</option>
+                {% for b in branches %}
+                    <option value="{{ b.branch_id }}"
+                        {% if branch_id == b.branch_id|stringformat:"s" %}selected{% endif %}>
+                        {{ b.branch_name }}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+        {% endif %}
+
+        <div class="col-md-2">
+            <button type="submit" class="btn btn-success">
+                SEARCH
+            </button>
+        </div>
+        </div>
+    </form>
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card shadow border-0 text-white"
+                 style="background: linear-gradient(45deg,#1C4D8D,#3A77D2);">
+                <div class="card-body text-center">
+                    <h6>Total Consignments</h6>
+                    <h3>{{ gross.total_consignment|default:0 }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card shadow border-0 text-white"
+                 style="background: linear-gradient(45deg,#198754,#28a745);">
+                <div class="card-body text-center">
+                    <h6>Total Boxes</h6>
+                    <h3>{{ gross.total_box_qty|default:0 }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card shadow border-0 text-white"
+                    style="background: linear-gradient(45deg,#1C4D8D,#3A77D2);">
+                <div class="card-body text-center">
+                    <h6>Total Booking Commission:</h6>
+                    <h3>₹ {{ totals.total_commission|default:0 }}</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+    <br>
+
+    <div class="card p-3 shadow-sm">
+        <div class="table-responsive">
+        <table class="table table-bordered table-hover">
+            <thead class="table-dark text-center">
+                <tr>
+                    <th class="text-center align-middle">Date</th>
+                    <th class="text-center align-middle">CNote No</th>
+                    <th class="text-center align-middle">Booking Branch</th>
+                    <th class="text-center align-middle">Delivery Branch</th>
+                    <th class="text-center align-middle">Paid Amount</th>
+                    <th class="text-center align-middle">ToPay Amount</th>
+                    <th class="text-center align-middle">Credit Amount</th>
+                    <th class="text-center align-middle">Commission</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for c in cnotes %}
+                <tr>
+                    <td>{{ c.date|date:"d-m-Y" }}</td>
+                    <td>{{ c.cnote_number }}</td>
+                    <td>{{ c.booking_branch.branch_name }}</td>
+                    <td>{{ c.delivery_branch.branch_name }}</td>
+                    <td class="text-end">
+                        {% if c.payment == "PAID" %}
+                            {{ c.total }}
+                        {% else %}
+                            0
+                        {% endif %}
+                    </td>
+
+                    <td class="text-end">
+                        {% if c.payment == "TOPAY" %}
+                            {{ c.total }}
+                        {% else %}
+                            0
+                        {% endif %}
+                    </td>
+
+                    <td class="text-end">
+                        {% if c.payment == "CREDIT" %}
+                            {{ c.total }}
+                        {% else %}
+                            0
+                        {% endif %}
+                    </td>
+                    <td class="text-end">{{ c.booking_commission_amount }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="5" class="text-center">
+                        No records found.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        </div>
+    </div>
+
+    <!-- PAGINATION -->
+    {% if page_obj.has_other_pages %}
+    <nav>
+        <ul class="pagination justify-content-center">
+
+            {% if page_obj.has_previous %}
+            <li class="page-item">
+                <a class="page-link"
+                   href="?page={{ page_obj.previous_page_number }}
+                   &from_date={{ from_date|date:'Y-m-d' }}
+                   &to_date={{ to_date|date:'Y-m-d' }}
+                   &branch={{ branch_id }}">
+                   Previous
+                </a>
+            </li>
+            {% endif %}
+
+            {% for num in page_obj.paginator.page_range %}
+                {% if page_obj.number == num %}
+                <li class="page-item active">
+                    <span class="page-link">{{ num }}</span>
+                </li>
+                {% else %}
+                <li class="page-item">
+                    <a class="page-link"
+                       href="?page={{ num }}
+                       &from_date={{ from_date|date:'Y-m-d' }}
+                       &to_date={{ to_date|date:'Y-m-d' }}
+                       &branch={{ branch_id }}">
+                       {{ num }}
+                    </a>
+                </li>
+                {% endif %}
+            {% endfor %}
+
+            {% if page_obj.has_next %}
+            <li class="page-item">
+                <a class="page-link"
+                   href="?page={{ page_obj.next_page_number }}
+                   &from_date={{ from_date|date:'Y-m-d' }}
+                   &to_date={{ to_date|date:'Y-m-d' }}
+                   &branch={{ branch_id }}">
+                   Next
+                </a>
+            </li>
+            {% endif %}
+
+        </ul>
+    </nav>
+    {% endif %}
+    <!-- GRAPH -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <canvas id="commissionChart"></canvas>
+        </div>
+    </div>
+</div>
+
+<!-- CHART JS -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+const ctx = document.getElementById('commissionChart');
+
+const graphDates = {{ graph_dates|safe }};
+const paidData = {{ paid_data|safe }};
+const topayData = {{ topay_data|safe }};
+const creditData = {{ credit_data|safe }};
+
+new Chart(ctx, {
+    type: 'bar',
+    data: {
+        labels: graphDates,
+        datasets: [
+            {
+                label: 'Paid',
+                data: paidData,
+                backgroundColor: 'rgba(40,167,69,0.7)'
+            },
+            {
+                label: 'ToPay',
+                data: topayData,
+                backgroundColor: 'rgba(255,193,7,0.7)'
+            },
+            {
+                label: 'Credit',
+                data: creditData,
+                backgroundColor: 'rgba(220,53,69,0.7)'
+            }
+        ]
+    },
+    options: {
+        responsive: true,
+        scales: {
+            y: {
+                beginAtZero: true
+            }
+        }
+    }
+});
+</script>
+
+{% endblock %}
