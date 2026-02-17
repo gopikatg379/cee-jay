@@ -1,7 +1,7 @@
 from django.urls import path
 from .views import *
 urlpatterns = [
-    path('dashboard',dashboard,name='dashboard'),
+    path('dashboard',dashboard,name="admin_dashboard"),
     path('brokers/manage/',broker_manage_view, name='broker_manage'),
     path('brokers/add/', broker_manage_view, {'default_mode': 'add'}, name='broker_add'),
     path('brokers/edit/<int:broker_id>',broker_manage_view,name='broker_edit'),

@@ -8,6 +8,7 @@ from django.contrib.auth.decorators import login_required
 from django.db.models import Q,Value
 from django.core.paginator import Paginator
 from openpyxl import Workbook
+from openpyxl.styles import Font
 from datetime import datetime
 from django.http import HttpResponse
 from django.utils import timezone
@@ -26,6 +27,98 @@ from django.db.models.functions import TruncDate, Coalesce
 from django.db.models import Sum, Count, IntegerField,DecimalField, Case, When
 from django.views.decorators.http import require_POST
 from django.views.decorators.csrf import csrf_exempt
+
+@login_required(login_url='/')
+def dashboard(request):
+    user = request.user
+    if user.role != "ADMIN":
+
+        branch = user.branch
+
+        cnotes = CnoteModel.objects.filter(
+            Q(booking_branch=branch) |
+            Q(delivery_branch=branch)
+        ).exclude(
+            status__iexact="cancelled"
+        )
+
+        commission_data = cnotes.aggregate(
+
+            booking_commission=Sum(
+                Case(
+                    When(
+                        booking_branch=branch,
+                        then=F("booking_commission_amount")
+                    ),
+                    default=Value(0),
+                    output_field=DecimalField()
+                )
+            ),
+
+            delivery_commission=Sum(
+                Case(
+                    When(
+                        delivery_branch=branch,
+                        then=F("delivery_commission_amount")
+                    ),
+                    default=Value(0),
+                    output_field=DecimalField()
+                )
+            )
+        )
+
+        total_commission = (
+            (commission_data["booking_commission"] or 0) +
+            (commission_data["delivery_commission"] or 0)
+        )
+
+        collection_data = cnotes.aggregate(
+
+            paid_collection=Sum(
+                Case(
+                    When(
+                        Q(payment="PAID") &
+                        Q(booking_branch=branch),
+                        then=F("total")
+                    ),
+                    default=Value(0),
+                    output_field=DecimalField()
+                )
+            ),
+
+            topay_collection=Sum(
+                Case(
+                    When(
+                        Q(payment="TOPAY") &
+                        Q(delivery_branch=branch),
+                        then=F("total")
+                    ),
+                    default=Value(0),
+                    output_field=DecimalField()
+                )
+            )
+        )
+
+        total_collection = (
+            (collection_data["paid_collection"] or 0) +
+            (collection_data["topay_collection"] or 0)
+        )
+
+        wallet_balance = total_commission - total_collection
+
+    else:
+
+        wallet_balance = 0
+        total_commission = 0
+        total_collection = 0
+
+    context = {
+        "wallet_balance": wallet_balance,
+        "total_commission": total_commission,
+        "total_collection": total_collection,
+    }
+    return render(request,'dashboard.html',context)
+
 
 def get_consignor_items(request, consignor_id):
     consignor = get_object_or_404(Consignor, pk=consignor_id)
@@ -1674,10 +1767,133 @@ def booking_commission_report(request):
 
     paginator = Paginator(cnotes, 10)
     page_obj = paginator.get_page(request.GET.get("page"))
+    if user.role == "ADMIN":
+        branch_id = request.GET.get("branch", "").strip()
+        branches = Branch.objects.filter(branch_is_active=True)
 
+        if branch_id and branch_id != "all":
+            cnotes = cnotes.filter(booking_branch_id=branch_id)
+
+        branch_summary = (
+            cnotes
+            .values("booking_branch__branch_name","booking_branch_id")
+            .annotate(
+
+                paid_collection=Sum(
+                    Case(
+                        When(
+                            Q(payment="PAID") &
+                            Q(booking_branch_id=F("booking_branch_id")),
+                            then=F("total")
+                        ),
+                        default=Value(0),
+                        output_field=DecimalField()
+                    )
+                ),
+
+                topay_collection=Sum(
+                    Case(
+                        When(
+                            Q(payment="TOPAY") &
+                            Q(delivery_branch_id=F("booking_branch_id")),
+                            then=F("total")
+                        ),
+                        default=Value(0),
+                        output_field=DecimalField()
+                    )
+                ),
+
+                total_commission=Sum(
+                    F("booking_commission_amount") +
+                    F("delivery_commission_amount")
+                )
+            )
+            .order_by("booking_branch__branch_name")
+        )
+
+        graph_labels = []
+        collection_data = []
+        commission_data = []
+
+        for row in branch_summary:
+            graph_labels.append(row["booking_branch__branch_name"])
+
+            collection_total = (row["paid_collection"] or 0) + (row["topay_collection"] or 0)
+            collection_data.append(float(collection_total))
+
+            commission_data.append(float(row["total_commission"] or 0))
+
+    else:
+        branches = None 
+        branch_id = None
+
+        user_branch = user.branch
+
+        cnotes = cnotes.filter(
+            Q(booking_branch=user_branch) |
+            Q(delivery_branch=user_branch)
+        )
+        date_summary = (
+            cnotes
+            .values("date")
+            .annotate(
+
+                paid_collection=Sum(
+                    Case(
+                        When(
+                            Q(payment="PAID") &
+                            Q(booking_branch_id=F("booking_branch_id")),
+                            then=F("total")
+                        ),
+                        default=Value(0),
+                        output_field=DecimalField()
+                    )
+                ),
+                topay_collection=Sum(
+                    Case(
+                        When(
+                            Q(payment="TOPAY") &
+                            Q(delivery_branch_id=F("booking_branch_id")),
+                            then=F("total")
+                        ),
+                        default=Value(0),
+                        output_field=DecimalField()
+                    )
+                ),
+
+                total_commission=Sum(
+                    F("booking_commission_amount") +
+                    F("delivery_commission_amount")
+                )
+            )
+            .order_by("date")
+        )
+
+        graph_labels = []
+        collection_data = []
+        commission_data = []
+
+        for row in date_summary:
+            graph_labels.append(row["date"].strftime("%d-%m-%Y"))
+
+            collection_total = (row["paid_collection"] or 0) + (row["topay_collection"] or 0)
+            collection_data.append(float(collection_total))
+
+            commission_data.append(float(row["total_commission"] or 0))
 
     totals = cnotes.aggregate(
-        total_commission=Sum("booking_commission_amount")
+        total_qty=Sum("total_item"),
+        total_freight=Sum("freight"),
+        total_amount=Sum("total"),
+
+        total_paid=Sum(
+            Case(
+                When(payment="PAID", then="freight"),
+                default=Value(0),
+                output_field=DecimalField()
+            )
+        ),
+        total_booking_commission=Sum("booking_commission_amount"),
     )
     gross_total = cnotes.aggregate(
         total_consignment=Count("cnote_id"),
@@ -1701,7 +1917,11 @@ def booking_commission_report(request):
         "paid_data": json.dumps([float(x) for x in paid_data]),
         "topay_data": json.dumps([float(x) for x in topay_data]),
         "credit_data": json.dumps([float(x) for x in credit_data]),
-        "gross": gross_total,
+        "totals": totals,
+        "gross":gross_total,
+        "graph_labels": graph_labels,
+        "collection_data": collection_data,
+        "commission_data": commission_data,
     }
 
     return render(request, "reports/booking_commission_report.html", context)
@@ -1724,7 +1944,10 @@ def delivery_commission_report(request):
     else:
         to_date = today
 
-    cnotes = CnoteModel.objects.filter(
+    cnotes = CnoteModel.objects.select_related(
+        "booking_branch",
+        "delivery_branch"
+    ).filter(
         date__range=(from_date, to_date)
     )
 
@@ -1736,42 +1959,138 @@ def delivery_commission_report(request):
         branches = None
         branch_id = None
         cnotes = cnotes.filter(delivery_branch=user.branch)
-    date_summary = (
-        cnotes
-        .values('date', 'payment')  
-        .annotate(total=Sum('total'))  
-        .order_by('date')
-    )
-    dates = sorted(list(set(item['date'] for item in date_summary)))
-
-    paid_data = []
-    topay_data = []
-    credit_data = []
-
-    for d in dates:
-        paid_total = 0
-        topay_total = 0
-        credit_total = 0
-
-        for item in date_summary:
-            if item['date'] == d:
-                if item['payment'] == "PAID":
-                    paid_total = item['total'] or 0
-                elif item['payment'] == "TOPAY":
-                    topay_total = item['total'] or 0
-                elif item['payment'] == "CREDIT":
-                    credit_total = item['total'] or 0
-
-        paid_data.append(paid_total)
-        topay_data.append(topay_total)
-        credit_data.append(credit_total)
     cnotes = cnotes.order_by("-date")
 
     paginator = Paginator(cnotes, 10)
     page_obj = paginator.get_page(request.GET.get("page"))
 
+    if user.role == "ADMIN":
+        branch_id = request.GET.get("branch", "").strip()
+        branches = Branch.objects.filter(branch_is_active=True)
+
+        if branch_id and branch_id != "all":
+            cnotes = cnotes.filter(booking_branch_id=branch_id)
+
+        branch_summary = (
+            cnotes
+            .values("booking_branch__branch_name","booking_branch_id")
+            .annotate(
+
+                paid_collection=Sum(
+                    Case(
+                        When(
+                            Q(payment="PAID") &
+                            Q(booking_branch_id=F("booking_branch_id")),
+                            then=F("total")
+                        ),
+                        default=Value(0),
+                        output_field=DecimalField()
+                    )
+                ),
+
+                topay_collection=Sum(
+                    Case(
+                        When(
+                            Q(payment="TOPAY") &
+                            Q(delivery_branch_id=F("booking_branch_id")),
+                            then=F("total")
+                        ),
+                        default=Value(0),
+                        output_field=DecimalField()
+                    )
+                ),
+
+                total_commission=Sum(
+                    F("booking_commission_amount") +
+                    F("delivery_commission_amount")
+                )
+            )
+            .order_by("booking_branch__branch_name")
+        )
+
+        graph_labels = []
+        collection_data = []
+        commission_data = []
+
+        for row in branch_summary:
+            graph_labels.append(row["booking_branch__branch_name"])
+
+            collection_total = (row["paid_collection"] or 0) + (row["topay_collection"] or 0)
+            collection_data.append(float(collection_total))
+
+            commission_data.append(float(row["total_commission"] or 0))
+
+    else:
+        branches = None 
+        branch_id = None
+
+        user_branch = user.branch
+
+        cnotes = cnotes.filter(
+            Q(booking_branch=user_branch) |
+            Q(delivery_branch=user_branch)
+        )
+        date_summary = (
+            cnotes
+            .values("date")
+            .annotate(
+
+                paid_collection=Sum(
+                    Case(
+                        When(
+                            Q(payment="PAID") &
+                            Q(booking_branch_id=F("booking_branch_id")),
+                            then=F("total")
+                        ),
+                        default=Value(0),
+                        output_field=DecimalField()
+                    )
+                ),
+                topay_collection=Sum(
+                    Case(
+                        When(
+                            Q(payment="TOPAY") &
+                            Q(delivery_branch_id=F("booking_branch_id")),
+                            then=F("total")
+                        ),
+                        default=Value(0),
+                        output_field=DecimalField()
+                    )
+                ),
+
+                total_commission=Sum(
+                    F("booking_commission_amount") +
+                    F("delivery_commission_amount")
+                )
+            )
+            .order_by("date")
+        )
+
+        graph_labels = []
+        collection_data = []
+        commission_data = []
+
+        for row in date_summary:
+            graph_labels.append(row["date"].strftime("%d-%m-%Y"))
+
+            collection_total = (row["paid_collection"] or 0) + (row["topay_collection"] or 0)
+            collection_data.append(float(collection_total))
+
+            commission_data.append(float(row["total_commission"] or 0))
+
     totals = cnotes.aggregate(
-        total_commission=Sum("delivery_commission_amount")
+        total_qty=Sum("total_item"),
+        total_freight=Sum("freight"),
+        total_amount=Sum("total"),
+
+        total_topay=Sum(
+            Case(
+                When(payment="TOPAY", then="total"),
+                default=Value(0),
+                output_field=DecimalField()
+            )
+        ),
+        total_delivery_commission=Sum("delivery_commission_amount"),
     )
     gross_total = cnotes.aggregate(
         total_consignment=Count("cnote_id"),
@@ -1789,13 +2108,200 @@ def delivery_commission_report(request):
         "from_date": from_date,
         "to_date": to_date,
         "totals": totals,
-        "graph_dates": json.dumps(
-            [d.strftime("%d-%m-%Y") for d in dates]
-        ),
-        "paid_data": json.dumps([float(x) for x in paid_data]),
-        "topay_data": json.dumps([float(x) for x in topay_data]),
-        "credit_data": json.dumps([float(x) for x in credit_data]),
         "gross": gross_total,
+        "graph_labels": graph_labels,
+        "collection_data": collection_data,
+        "commission_data": commission_data,
     }
 
     return render(request, "reports/delivery_commission_report.html", context)
+
+
+@login_required
+def delivery_commission_excel(request):
+
+    from_date = request.GET.get("from_date")
+    to_date = request.GET.get("to_date")
+    branch_id = request.GET.get("branch")
+
+    cnotes = CnoteModel.objects.exclude(status__iexact="cancelled")
+
+    if from_date:
+        cnotes = cnotes.filter(date__gte=from_date)
+
+    if to_date:
+        cnotes = cnotes.filter(date__lte=to_date)
+
+    if request.user.role != "ADMIN":
+        cnotes = cnotes.filter(delivery_branch=request.user.branch)
+
+    elif branch_id and branch_id != "all":
+        cnotes = cnotes.filter(delivery_branch_id=branch_id)
+
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Delivery Commission Report"
+
+    headers = [
+        "Date", "CNote No", "Shipper", "Receiver",
+        "Payment", "Qty", "Freight", "Total",
+        "Booking Branch", "Delivery Branch",
+        "Commission", "ToPay Amount"
+    ]
+
+    ws.append(headers)
+
+    for col in ws[1]:
+        col.font = Font(bold=True)
+
+    for c in cnotes:
+        ws.append([
+            c.date.strftime("%d-%m-%Y"),
+            c.cnote_number,
+            c.consignor.consignor_name,
+            c.consignee.consignee_name,
+            c.payment,
+            c.total_item,
+            float(c.freight or 0),
+            float(c.total or 0),
+            c.booking_branch.branch_name,
+            c.delivery_branch.branch_name,
+            float(c.delivery_commission_amount or 0),
+            float(c.total if c.payment == "TOPAY" else 0),
+        ])
+
+    response = HttpResponse(
+        content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
+    response["Content-Disposition"] = 'attachment; filename="delivery_commission_report.xlsx"'
+
+    wb.save(response)
+    return response
+
+@login_required
+def booking_commission_excel(request):
+
+    from_date = request.GET.get("from_date")
+    to_date = request.GET.get("to_date")
+    branch_id = request.GET.get("branch")
+
+    cnotes = CnoteModel.objects.exclude(status__iexact="cancelled")
+    if from_date:
+        cnotes = cnotes.filter(date__gte=from_date)
+
+    if to_date:
+        cnotes = cnotes.filter(date__lte=to_date)
+
+    if request.user.role != "ADMIN":
+        cnotes = cnotes.filter(booking_branch=request.user.branch)
+
+    elif branch_id and branch_id != "all":
+        cnotes = cnotes.filter(booking_branch_id=branch_id)
+
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Booking Commission Report"
+
+    headers = [
+        "Date", "CNote No", "Shipper", "Receiver",
+        "Payment", "Qty", "Freight", "Total",
+        "Booking Branch", "Delivery Branch",
+        "Commission", "Paid Amount"
+    ]
+
+    ws.append(headers)
+
+    for col in ws[1]:
+        col.font = Font(bold=True)
+
+    for c in cnotes:
+        ws.append([
+            c.date.strftime("%d-%m-%Y"),
+            c.cnote_number,
+            c.consignor.consignor_name,
+            c.consignee.consignee_name,
+            c.payment,
+            c.total_item,
+            float(c.freight or 0),
+            float(c.total or 0),
+            c.booking_branch.branch_name if c.booking_branch else "",
+            c.delivery_branch.branch_name if c.delivery_branch else "",
+            float(c.booking_commission_amount or 0),
+            float(c.freight if c.payment == "PAID" else 0),
+        ])
+
+    response = HttpResponse(
+        content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
+    response["Content-Disposition"] = 'attachment; filename="booking_commission_report.xlsx"'
+
+    wb.save(response)
+    return response
+
+@login_required
+def cnote_commission_excel(request):
+
+    branch_id = request.GET.get("branch")
+    from_date = request.GET.get("from_date")
+    to_date = request.GET.get("to_date")
+
+    cnotes = CnoteModel.objects.exclude(status__iexact="cancelled")
+
+    if from_date:
+        cnotes = cnotes.filter(date__gte=from_date)
+
+    if to_date:
+        cnotes = cnotes.filter(date__lte=to_date)
+
+    if request.user.role != "ADMIN":
+        cnotes = cnotes.filter(booking_branch=request.user.branch)
+
+    elif branch_id and branch_id != "all":
+        cnotes = cnotes.filter(booking_branch_id=branch_id)
+
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "CNote List"
+
+    headers = [
+        "Date", "CNote No", "Shipper", "Receiver",
+        "Payment", "Qty", "Freight", "Total",
+        "Booking Branch", "Delivery Branch",
+        "Booking Commission", "Delivery Commission",
+        "Paid Amount", "Topay Amount"
+    ]
+
+    ws.append(headers)
+
+    for col in ws[1]:
+        col.font = Font(bold=True)
+
+    for c in cnotes:
+
+        paid_amount = c.freight if c.payment == "PAID" else 0
+        topay_amount = c.freight if c.payment == "TOPAY" else 0
+
+        ws.append([
+            c.date.strftime("%d-%m-%Y") if c.date else "",
+            c.cnote_number or "",
+            c.consignor.consignor_name if c.consignor else "",
+            c.consignee.consignee_name if c.consignee else "",
+            c.payment or "",
+            c.total_item or 0,
+            float(c.freight or 0),
+            float(c.total or 0),
+            c.booking_branch.branch_name if c.booking_branch else "",
+            c.delivery_branch.branch_name if c.delivery_branch else "",
+            float(c.booking_commission_amount or 0),
+            float(c.delivery_commission_amount or 0),
+            float(paid_amount or 0),
+            float(topay_amount or 0),
+        ])
+
+    response = HttpResponse(
+        content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
+    response["Content-Disposition"] = 'attachment; filename="cnote_list.xlsx"'
+
+    wb.save(response)
+    return response

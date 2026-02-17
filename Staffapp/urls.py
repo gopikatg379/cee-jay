@@ -1,6 +1,7 @@
 from django.urls import path
 from .views import *
 urlpatterns = [
+    path('dashboard',dashboard,name='staff_dashboard'),
     path('cnote/manage/',cnote_manage_view,name='cnote_manage'),
     path("cnotes/edit/<int:pk>/", cnote_manage_view, name="cnote_edit"),
     path("get-consignor-items/<int:consignor_id>/", get_consignor_items, name="get_consignor_items"),
@@ -31,5 +32,9 @@ urlpatterns = [
     path('cnote/commission',cnote_commission_view,name="cnote_commission"),
     path("get-commission-percentages/", get_commission_percentages, name="get_commission_percentages"),
     path("report/delivery_commission",delivery_commission_report,name="delivery_commission"),
-    path("report/booking_commission",booking_commission_report,name="booking_commission")
+    path("report/booking_commission",booking_commission_report,name="booking_commission"),
+    path("delivery-commission-excel/",delivery_commission_excel,name="delivery_commission_excel"),
+    path("booking-commission-excel/",booking_commission_excel,name="booking_commission_excel"),
+    path("cnote-list-excel/",cnote_commission_excel,name="cnote_list_excel"),
+
 ]

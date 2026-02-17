@@ -69,24 +69,36 @@
                     style="background: linear-gradient(45deg,#1C4D8D,#3A77D2);">
                 <div class="card-body text-center">
                     <h6>Total Delivery Commission:</h6>
-                    <h3>₹ {{ totals.total_commission|default:0 }}</h3>
+                    <h3>₹ {{ totals.total_delivery_commission|default:0 }}</h3>
                 </div>
             </div>
         </div>
     </div>
     <div class="card p-3 shadow-sm">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+        <h5 class="mb-0">Delivery Commission Details</h5>
+
+        <a href="{% url 'delivery_commission_excel' %}?from_date={{ from_date|date:'Y-m-d' }}&to_date={{ to_date|date:'Y-m-d' }}&branch={{ branch_id }}"
+        class="btn btn-success btn-sm">
+            ⬇ Download Excel
+        </a>
+    </div>
     <div class="table-responsive">
         <table class="table table-bordered table-hover">
             <thead class="table-dark">
                 <tr>
                     <th class="text-center align-middle">Date</th>
                     <th class="text-center align-middle">CNote No</th>
+                    <th class="text-center align-middle">Shipper</th>
+                    <th class="text-center align-middle">Receiver</th>
+                    <th class="text-center align-middle">Payment</th>
+                    <th class="text-center align-middle">Qty</th>
+                    <th class="text-center align-middle">Freight</th>
+                    <th class="text-center align-middle">Total</th> 
                     <th class="text-center align-middle">Booking Branch</th>
                     <th class="text-center align-middle">Delivery Branch</th>
-                    <th class="text-center align-middle">Paid Amount</th>
-                    <th class="text-center align-middle">ToPay Amount</th>
-                    <th class="text-center align-middle">Credit Amount</th>
                     <th class="text-center align-middle">Commission</th>
+                    <th class="text-center align-middle">ToPay Amount</th>             
                 </tr>
             </thead>
             <tbody>
@@ -94,16 +106,16 @@
                 <tr>
                     <td>{{ c.date|date:"d-m-Y" }}</td>
                     <td>{{ c.cnote_number }}</td>
+                    <td>{{c.consignor.consignor_name}}</td>
+                    <td>{{c.consignee.consignee_name}}</td>
+                    <td>{{ c.payment }}</td>
+                    <td class="text-end">{{c.total_item}}</td>
+                    <td class="text-end">{{ c.freight }}</td>
+                    <td class="text-end">{{ c.total }}</td>
                     <td>{{ c.booking_branch.branch_name }}</td>
                     <td>{{ c.delivery_branch.branch_name }}</td>
-                    <td class="text-end">
-                        {% if c.payment == "PAID" %}
-                            {{ c.total }}
-                        {% else %}
-                            0
-                        {% endif %}
-                    </td>
 
+                    <td class="text-end">{{ c.delivery_commission_amount }}</td>
                     <td class="text-end">
                         {% if c.payment == "TOPAY" %}
                             {{ c.total }}
@@ -111,15 +123,6 @@
                             0
                         {% endif %}
                     </td>
-
-                    <td class="text-end">
-                        {% if c.payment == "CREDIT" %}
-                            {{ c.total }}
-                        {% else %}
-                            0
-                        {% endif %}
-                    </td>
-                    <td class="text-end">{{ c.delivery_commission_amount }}</td>
                 </tr>
                 {% empty %}
                 <tr>
@@ -128,6 +131,20 @@
                     </td>
                 </tr>
                 {% endfor %}
+                {% if not page_obj.has_next %}
+                <tr class="fw-bold table-warning">
+                    <td colspan="5" class="text-end">TOTAL</td>
+
+                    <td class="text-end">{{ totals.total_qty|default:0 }}</td>
+                    <td class="text-end">{{ totals.total_freight|default:0 }}</td>
+                    <td class="text-end">{{ totals.total_amount|default:0 }}</td>
+                    
+                    <td class="text-end"></td>
+                    <td class="text-end"></td>
+                    <td class="text-end">{{ totals.total_delivery_commission|default:0 }}</td>
+                    <td class="text-end">{{ totals.total_topay|default:0 }}</td>
+                </tr>
+                {% endif %}
             </tbody>
         </table>
     </div>
@@ -183,9 +200,16 @@
     {% endif %}
 
     <!---Graph -->
-    <div class="card mb-4">
+    <div class="card mt-4 shadow">
         <div class="card-body">
-            <canvas id="commissionChart"></canvas>
+            <h5 class="text-center mb-3">
+                {% if user.role == "ADMIN" %}
+                    Branch Collection vs Commission
+                {% else %}
+                    Daily Collection vs Commission
+                {% endif %}
+            </h5>
+            <canvas id="branchChart"></canvas>
         </div>
     </div>
 
@@ -193,38 +217,43 @@
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-const ctx = document.getElementById('commissionChart');
+const ctx = document.getElementById('branchChart');
 
-const graphDates = {{ graph_dates|safe }};
-const paidData = {{ paid_data|safe }};
-const topayData = {{ topay_data|safe }};
-const creditData = {{ credit_data|safe }};
+const graphLabels = {{ graph_labels|safe }};
+const collectionData = {{ collection_data|safe }};
+const commissionData = {{ commission_data|safe }};
 
 new Chart(ctx, {
     type: 'bar',
     data: {
-        labels: graphDates,
+        labels: graphLabels,
         datasets: [
             {
-                label: 'Paid',
-                data: paidData,
-                backgroundColor: 'rgba(40,167,69,0.7)'
+                label: 'Total Commission',
+                data: commissionData,
+                backgroundColor: 'rgba(255, 99, 132, 0.7)',
+                categoryPercentage: 1.0,
+                barPercentage: 1.0
             },
             {
-                label: 'ToPay',
-                data: topayData,
-                backgroundColor: 'rgba(255,193,7,0.7)'
-            },
-            {
-                label: 'Credit',
-                data: creditData,
-                backgroundColor: 'rgba(220,53,69,0.7)'
+                label: 'Collection Amount',
+                data: collectionData,
+                backgroundColor: 'rgba(54, 162, 235, 0.7)',
+                categoryPercentage: 1.0,
+                barPercentage: 1.0
             }
         ]
     },
     options: {
         responsive: true,
+        interaction: {
+            mode: 'index',
+            intersect: false
+        },
         scales: {
+            x: {
+                stacked: false
+            },
             y: {
                 beginAtZero: true
             }

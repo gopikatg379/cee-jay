@@ -4,6 +4,10 @@ from django.contrib.auth.hashers import make_password
 from django.contrib import messages
 from django.db.models import Min
 from collections import defaultdict
+from django.db.models import Sum, Count
+from django.utils import timezone
+from datetime import timedelta
+import json
 import openpyxl
 from django.http import HttpResponse
 from django.contrib.auth import authenticate,login,logout
@@ -14,94 +18,146 @@ from Staffapp.models import *
 
 @login_required(login_url='/')
 def dashboard(request):
-    user = request.user
-    if user.role != "ADMIN":
 
-        branch = user.branch
+    today = timezone.now().date()
+    last_7_days = today - timedelta(days=6)
 
-        cnotes = CnoteModel.objects.filter(
+    base_queryset = CnoteModel.objects.exclude(
+        status=CnoteModel.STATUS_CANCEL
+    )
+
+    shipped_count = CnoteModel.objects.filter(
+        status=CnoteModel.STATUS_INTRANSIT
+    ).count()
+
+    delivered_count = CnoteModel.objects.filter(
+        status=CnoteModel.STATUS_DELIVERED
+    ).count()
+
+    out_for_delivery_count = CnoteModel.objects.filter(
+        status=CnoteModel.STATUS_DISPATCHED
+    ).count()
+
+    cancelled_count = CnoteModel.objects.filter(
+        status=CnoteModel.STATUS_CANCEL
+    ).count()
+
+
+    paid_collection = base_queryset.filter(
+        payment="PAID"
+    ).aggregate(
+        total=Sum("total")
+    )["total"] or 0
+
+    topay_collection = base_queryset.filter(
+        payment="TOPAY"
+    ).aggregate(
+        total=Sum("total")
+    )["total"] or 0
+
+    total_collection = paid_collection + topay_collection
+
+    total_commission = base_queryset.aggregate(
+        total=Sum("booking_commission_amount")
+    )["total"] or 0
+
+    total_commission += base_queryset.aggregate(
+        total=Sum("delivery_commission_amount")
+    )["total"] or 0
+
+    wallet_balance = total_commission - total_collection
+
+    branches = Branch.objects.all()
+    branch_performance = []
+
+    for branch in branches:
+
+        bookings = base_queryset.filter(
             Q(booking_branch=branch) |
             Q(delivery_branch=branch)
-        ).exclude(
-            status__iexact="cancelled"
         )
 
-        commission_data = cnotes.aggregate(
+        revenue = bookings.aggregate(
+            total=Sum("total")
+        )["total"] or 0
 
-            booking_commission=Sum(
-                Case(
-                    When(
-                        booking_branch=branch,
-                        then=F("booking_commission_amount")
-                    ),
-                    default=Value(0),
-                    output_field=DecimalField()
-                )
-            ),
+        booking_commission = bookings.filter(
+            booking_branch=branch
+        ).aggregate(
+            total=Sum("booking_commission_amount")
+        )["total"] or 0
 
-            delivery_commission=Sum(
-                Case(
-                    When(
-                        delivery_branch=branch,
-                        then=F("delivery_commission_amount")
-                    ),
-                    default=Value(0),
-                    output_field=DecimalField()
-                )
-            )
+        delivery_commission = bookings.filter(
+            delivery_branch=branch
+        ).aggregate(
+            total=Sum("delivery_commission_amount")
+        )["total"] or 0
+
+        branch_collection = bookings.aggregate(
+            total=Sum("total")
+        )["total"] or 0
+
+        branch_wallet = (
+            booking_commission +
+            delivery_commission -
+            branch_collection
         )
 
-        total_commission = (
-            (commission_data["booking_commission"] or 0) +
-            (commission_data["delivery_commission"] or 0)
+        branch_performance.append({
+            "branch_name": branch.branch_name,
+            "total_bookings": bookings.count(),
+            "total_revenue": revenue,
+            "total_commission": booking_commission + delivery_commission,
+            "wallet_balance": branch_wallet
+        })
+
+    recent_bookings = base_queryset.order_by("-created_at")[:10]
+
+    revenue_labels = []
+    revenue_data = []
+    booking_labels = []
+    booking_data = []
+
+    for i in range(7):
+        day = last_7_days + timedelta(days=i)
+
+        day_queryset = base_queryset.filter(
+            created_at__date=day
         )
 
-        collection_data = cnotes.aggregate(
+        revenue = day_queryset.aggregate(
+            total=Sum("total")
+        )["total"] or 0
 
-            paid_collection=Sum(
-                Case(
-                    When(
-                        Q(payment="PAID") &
-                        Q(booking_branch=branch),
-                        then=F("total")
-                    ),
-                    default=Value(0),
-                    output_field=DecimalField()
-                )
-            ),
+        bookings_count = day_queryset.count()
 
-            topay_collection=Sum(
-                Case(
-                    When(
-                        Q(payment="TOPAY") &
-                        Q(delivery_branch=branch),
-                        then=F("total")
-                    ),
-                    default=Value(0),
-                    output_field=DecimalField()
-                )
-            )
-        )
+        revenue_labels.append(day.strftime("%d %b"))
+        revenue_data.append(float(revenue))
 
-        total_collection = (
-            (collection_data["paid_collection"] or 0) +
-            (collection_data["topay_collection"] or 0)
-        )
+        booking_labels.append(day.strftime("%d %b"))
+        booking_data.append(bookings_count)
+    negative_wallet_branches = []
 
-        wallet_balance = total_commission - total_collection
-
-    else:
-
-        wallet_balance = 0
-        total_commission = 0
-        total_collection = 0
+    for branch_data in branch_performance:
+        if branch_data["wallet_balance"] < -50000:
+            negative_wallet_branches.append(branch_data)
 
     context = {
+        "shipped_count": shipped_count,
+        "delivered_count": delivered_count,
+        "out_for_delivery_count": out_for_delivery_count,
+        "cancelled_count": cancelled_count,
         "wallet_balance": wallet_balance,
-        "total_commission": total_commission,
-        "total_collection": total_collection,
+        "branch_performance": branch_performance,
+        "negative_wallet_branches": negative_wallet_branches,
+        "recent_bookings": recent_bookings,
+        "revenue_labels": json.dumps(revenue_labels),
+        "revenue_data": json.dumps(revenue_data),
+        "booking_labels": json.dumps(booking_labels),
+        "booking_data": json.dumps(booking_data),
     }
-    return render(request,'dashboard.html',context)
+
+    return render(request, "admin_dashboard.html", context)
 
 @login_required(login_url='/')
 def broker_manage_view(request, broker_id=None):
@@ -948,7 +1004,10 @@ def login_manage_view(request):
         user = authenticate(username=username,password=password)
         if user:
             login(request,user)
-            return redirect('dashboard')
+            if user.role == "ADMIN":
+                return redirect("admin_dashboard")
+            elif user.role != "ADMIN":
+                return redirect("staff_dashboard")
         else:
             messages.error(request,"Invalid Credentials")
             return redirect('/')

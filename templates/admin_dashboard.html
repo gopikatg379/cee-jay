@@ -1,0 +1,227 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="container-fluid mt-4">
+    <div class="card p-3 shadow-sm">
+    <!-- ================= KPI CARDS ROW ================= -->
+    <div class="row g-4 mb-4">
+
+        <div class="col-md-3">
+            <div class="card shadow border-0 text-white bg-primary p-3">
+                <h6>Shipped</h6>
+                <h3>{{ shipped_count }}</h3>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="card shadow border-0 text-white bg-success p-3">
+                <h6>Out For Delivery</h6>
+                <h3>{{ out_for_delivery_count }}</h3>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="card shadow border-0 text-white bg-warning p-3">
+                <h6>Delivered</h6>
+                <h3>{{ delivered_count }}</h3>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="card shadow border-0 text-white bg-danger p-3">
+                <h6>Cancelled CNotes</h6>
+                <h3>{{ cancelled_count }}</h3>
+            </div>
+        </div>
+
+    </div>
+
+
+    <!-- ================= CHART SECTION ================= -->
+    <div class="row mb-4">
+
+        <div class="col-md-6">
+            <div class="card shadow border-0 p-3">
+                <h5 class="mb-3">Revenue Trend</h5>
+                <canvas id="revenueChart"></canvas>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card shadow border-0 p-3">
+                <h5 class="mb-3">Booking Trend</h5>
+                <canvas id="bookingChart"></canvas>
+            </div>
+        </div>
+
+    </div>
+
+
+    <!-- ================= ALERT SECTION ================= -->
+    <div class="card border-0 shadow mb-4">
+        <div class="card-header bg-danger text-white">
+            ⚠ Alerts
+        </div>
+        <div class="card-body">
+
+            {% if negative_wallet_branches %}
+                <p class="text-danger">
+                    🔴 Branches with Negative Wallet:
+                </p>
+                <ul>
+                    {% for branch in negative_wallet_branches %}
+                        <li>{{ branch.branch_name }} (₹ {{ branch.wallet_balance }})</li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <p class="text-success">No critical alerts</p>
+            {% endif %}
+
+        </div>
+    </div>
+
+
+    <!-- ================= BRANCH PERFORMANCE TABLE ================= -->
+    <div class="card shadow border-0 mb-4">
+        <div class="card-header bg-dark text-white">
+            Branch Performance
+        </div>
+        <div class="card-body table-responsive">
+
+            <table class="table table-bordered table-striped">
+                <thead>
+                    <tr>
+                        <th class="text-center align-middle">Branch</th>
+                        <th class="text-center align-middle">Total Bookings</th>
+                        <th class="text-center align-middle">Collection</th>
+                        <th class="text-center align-middle">Commission</th>
+                        <th class="text-center align-middle">Wallet</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for branch in branch_performance %}
+                    <tr>
+                        <td>{{ branch.branch_name }}</td>
+                        <td class="text-end">{{ branch.total_bookings }}</td>
+                        <td class="text-end">₹ {{ branch.total_revenue }}</td>
+                        <td class="text-end">₹ {{ branch.total_commission }}</td>
+                        <td class="{% if branch.wallet_balance < 0 %} text-danger text-end {% endif %}">
+                            ₹ {{ branch.wallet_balance }}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+
+        </div>
+    </div>
+
+
+    <!-- ================= FINANCIAL SECTION ================= -->
+    <div class="row mb-4">
+
+        <div class="col-md-6">
+            <div class="card shadow border-0 p-3">
+                <h5>Pending Collections</h5>
+                <h4>₹ {{ pending_collections }}</h4>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card shadow border-0 p-3">
+                <h5>Outstanding Payments</h5>
+                <h4>₹ {{ outstanding_payments }}</h4>
+            </div>
+        </div>
+
+    </div>
+
+
+    <div class="card shadow border-0 mb-5">
+        <div class="card-header bg-primary text-white">
+            Recent Bookings
+        </div>
+        <div class="card-body table-responsive">
+
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>CNote</th>
+                        <th>Date</th>
+                        <th>Booking Branch</th>
+                        <th>Amount</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for booking in recent_bookings %}
+                    <tr>
+                        <td>{{ booking.cnote_number }}</td>
+                        <td>{{ booking.date|date:"d-m-Y" }}</td>
+                        <td>{{ booking.booking_branch.branch_name }}</td>
+                        <td>₹ {{ booking.total }}</td>
+                        <td>
+                            <span class="badge 
+                                {% if booking.status == 'NEW' %}
+                                    bg-secondary
+                                {% elif booking.status == 'RECEIVED' %}
+                                    bg-primary
+                                {% elif booking.status == 'SHIPPED' %}
+                                    bg-warning text-dark
+                                {% elif booking.status == 'OUT FOR DELIVERY' %}
+                                    bg-info text-dark
+                                {% elif booking.status == 'DELIVERED' %}
+                                    bg-success
+                                {% elif booking.status == 'Cancelled' %}
+                                    bg-danger
+                                {% elif booking.status == 'RETURN' %}
+                                    bg-dark
+                                {% else %}
+                                    bg-light text-dark
+                                {% endif %}
+                            ">
+                                {{ booking.status }}
+                            </span>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+
+        </div>
+    </div>
+    </div>
+</div>
+
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+
+var revenueChart = new Chart(document.getElementById('revenueChart'), {
+    type: 'line',
+    data: {
+        labels: {{ revenue_labels|safe }},
+        datasets: [{
+            label: 'Revenue',
+            data: {{ revenue_data|safe }},
+            borderColor: 'green',
+            fill: false
+        }]
+    }
+});
+
+var bookingChart = new Chart(document.getElementById('bookingChart'), {
+    type: 'bar',
+    data: {
+        labels: {{ booking_labels|safe }},
+        datasets: [{
+            label: 'Bookings',
+            data: {{ booking_data|safe }},
+            backgroundColor: 'blue'
+        }]
+    }
+});
+
+</script>
+
+{% endblock %}

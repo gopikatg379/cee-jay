@@ -27,9 +27,15 @@
           
             <ul class="navbar-nav mx-auto mb-3 mb-lg-0">
                 <li class="nav-item">
-                    <a class="nav-link" href="{% url 'dashboard' %}">
+                    {% if user.role == "ADMIN" %}
+                    <a class="nav-link" href="{% url 'admin_dashboard' %}">
                         <i class="bi bi-speedometer2 me-2"></i>Dashboard
                     </a>
+                    {% else %}
+                    <a class="nav-link" href="{% url 'staff_dashboard' %}">
+                        <i class="bi bi-speedometer2 me-2"></i>Dashboard
+                    </a>
+                    {% endif %}
                 </li>
                 <li class="nav-item dropdown">
                     <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
@@ -214,7 +220,9 @@
                         <li><a class="dropdown-item" href="{% url 'booking_summary'%}"><i class="bi bi-receipt me-2"></i>Booking Summary(All branches)</a></li>
                         <li><a class="dropdown-item" href="{% url 'daily_report'%}"><i class="bi bi-journal-text me-2"></i>Daily Booking Report</a></li>
                         <li><a class="dropdown-item" href="{% url 'booking_data'%}"><i class="bi bi-file-spreadsheet me-2"></i>LR Data</a></li>
+                        {% if user.role == "ADMIN" %}
                         <li><a class="dropdown-item" href="{% url 'cnote_commission' %}"><i class="bi bi-list-ul me-2"></i>Commission Report</a></li>
+                        {% endif %}
                         <li><a class="dropdown-item" href="{% url 'booking_commission' %}"><i class="bi bi-journal-text me-2"></i>Booking Commission Report</a></li>
                         <li><a class="dropdown-item" href="{% url 'delivery_commission' %}"><i class="bi bi-list-ul me-2"></i>Delivery Commission Report</a></li>
                         <li><a class="dropdown-item" href="#"><i class="bi bi-truck-flatbed me-2"></i>Delivery Data</a></li>
@@ -235,9 +243,9 @@
                         <i class="bi bi-lightning-charge me-2"></i>Quick Links
                     </a>
                     <ul class="dropdown-menu dropdown-menu-end">
-                        <li><a class="dropdown-item" href="#"><i class="bi bi-person-plus me-2"></i>Add Consignor</a></li>
-                        <li><a class="dropdown-item" href="#"><i class="bi bi-file-earmark-plus me-2"></i>Add Cnote</a></li>
-                        <li><a class="dropdown-item" href="#"><i class="bi bi-building-add me-2"></i>Add Company</a></li>
+                        <li><a class="dropdown-item" href="{% url 'shipper_manage' %}?mode=add"><i class="bi bi-person-plus me-2"></i>Add Shipper</a></li>
+                        <li><a class="dropdown-item" href="{% url 'cnote_manage' %}"><i class="bi bi-file-earmark-plus me-2"></i>Add LR</a></li>
+                        <li><a class="dropdown-item" href="{% url 'manifest_manage' %}"><i class="bi bi-building-add me-2"></i>Add Manifest</a></li>
                     </ul>
                 </li>
 
