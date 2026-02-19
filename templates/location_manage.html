@@ -137,7 +137,8 @@
                                     step="0.01"
                                     name="rural_commission_percentage"
                                     class="form-control"
-                                    placeholder="0">
+                                    placeholder="0"
+                                    value=0>
                             </div>
                         </div>
                         {% endfor %}
@@ -168,7 +169,7 @@
                         <th class="custom-subhead">Pincode</th>
                         <th class="custom-subhead">Branch</th>
                         <th class="custom-subhead">Location Code</th>
-                        {% if user.role == admin %}
+                        {% if user.role == "ADMIN" %}
                         <th class="custom-subhead">Action</th>
                         {% endif %}
                     </tr>

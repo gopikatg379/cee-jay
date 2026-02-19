@@ -15,7 +15,7 @@
     {% endif %}
     <div class="cee-manage-header">
         <h4>Manage Shipper</h4>
-        {% if request.GET.mode != 'add' and request.GET.mode != 'edit' %}
+        {% if active_tab == 'list' %}
             <div id="search-bar" class="cee-search-container d-flex justify-content-center flex-grow-1 mx-4" >
                 <form method="get" action="{% url 'shipper_manage' %}" class="w-100 d-flex justify-content-center">
                     <input type="hidden" name="mode" value="list">
@@ -48,7 +48,7 @@
         </div>
     </div>
 
-    <div class="view-container {% if active_tab not in 'add edit' %}d-none{% endif %}" id="view-form">
+    <div class="view-container {% if active_tab != 'add' and active_tab != 'edit' %}d-none{% endif %}" id="view-form">
         <div class="cee-broker-form-container">
             <form method="post" enctype="multipart/form-data">
                 {% csrf_token %}
@@ -140,7 +140,7 @@
         </div>
     </div>
 
-    <div class="view-container {% if request.GET.mode == 'add' %}d-none{% endif %}" id="view-list">
+    <div class="view-container {% if active_tab  == 'add' or active_tab == 'edit' %}d-none{% endif %}" id="view-list">
         <div class="p-4">
             <div class="d-flex justify-content-end mb-3">
                 <a href="{% url 'shipper_export_excel' %}" class="btn btn-success">

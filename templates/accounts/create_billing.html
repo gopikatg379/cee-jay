@@ -1,0 +1,161 @@
+{% extends 'base.html' %}
+{% block content %}
+
+<div class="cee-manage-broker-wrapper">
+
+    <div class="cee-manage-header">
+        <h4>Create Billing</h4>
+
+        <div class="cee-search-container d-flex justify-content-center flex-grow-1 mx-4">
+            <form method="get" class="w-100 d-flex justify-content-center">
+                <div class="input-group shadow-sm rounded-pill" style="max-width: 520px; background: white;">
+                    <span class="input-group-text bg-transparent border-0 ps-4">
+                        <i class="bi bi-search text-primary"></i>
+                    </span>
+                    <input type="text"
+                        name="search"
+                        value="{{ request.GET.search }}"
+                        class="form-control border-0 shadow-none"
+                        placeholder="Search Cnote (100-1,100-2,100-3)"
+                        autocomplete="off">
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="p-4">
+
+        <form method="POST">
+        {% csrf_token %}
+
+        <div class="row mb-4">
+            <div class="col-md-4">
+                <label class="form-label fw-semibold">Consignor</label>
+                <select name="consignor" class="form-select shadow-sm" required>
+                    <option value="">Select</option>
+                    {% for c in consignors %}
+                    <option value="{{ c.billing_consignor_id }}">{{ c.billing_consignor_name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+
+        <!-- Table -->
+        <div class="table-wrapper">
+            <table class="table table-bordered table-hover align-middle">
+                <thead class="custom-thead">
+                    <tr>
+                        <th class="custom-subhead text-center">
+                            <input type="checkbox" onclick="toggleAll(this)">
+                        </th>
+                        <th class="custom-subhead">Cnote No</th>
+                        <th class="custom-subhead">Consignee</th>
+                        <th class="custom-subhead text-end">Freight</th>
+                        <th class="custom-subhead text-end">LR</th>
+                        <th class="custom-subhead text-end">Unloading</th>
+                        <th class="custom-subhead text-end">Door delivery</th>
+                        <th class="custom-subhead">Payment</th>
+                        <th class="custom-subhead text-end">INV Freight</th>
+                        <th class="custom-subhead text-end">INV LR</th>
+                        <th class="custom-subhead text-end">INV Unloading</th>
+                        <th class="custom-subhead text-end">INV Other</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    {% for c in cnotes %}
+                    <tr>
+                        <td class="text-center">
+                            <input type="checkbox" name="selected" value="{{ c.cnote_id }}">
+                        </td>
+
+                        <td class="fw-semibold text-primary">
+                            {{ c.cnote_number }}
+                        </td>
+
+                        <td>
+                            <input type="text"
+                                   name="consignee_{{ c.id }}"
+                                   value="{{ c.consignee }}"
+                                   class="form-control form-control-sm shadow-sm">
+                        </td>
+
+                        <td class="text-end">{{ c.freight }}</td>
+                        <td class="text-end">{{ c.lr_charge }}</td>
+                        <td class="text-end">{{ c.unloading_charge }}</td>
+                        <td class="text-end">{{ c.door_delivery }}</td>
+                        <td>
+                            <select name="payment_{{ c.cnote_id }}"
+                                    class="form-select form-select-sm shadow-sm">
+                                <option value="PAID"
+                                    {% if c.payment == "PAID" %}selected{% endif %}>
+                                    Paid
+                                </option>
+                                <option value="CREDIT"
+                                    {% if c.payment == "CREDIT" %}selected{% endif %}>
+                                    Credit
+                                </option>
+                            </select>
+                        </td>
+
+                        <td>
+                            <input type="text"
+                                   name="freight_{{ c.id }}"
+                                   value="0"
+                                   class="form-control form-control-sm text-end shadow-sm">
+                        </td>
+
+                        <td>
+                            <input type="text"
+                                   name="lr_{{ c.id }}"
+                                   value="0"
+                                   class="form-control form-control-sm text-end shadow-sm">
+                        </td>
+
+                        <td>
+                            <input type="text"
+                                   name="unloading_{{ c.id }}"
+                                   value="0"
+                                   class="form-control form-control-sm text-end shadow-sm">
+                        </td>
+
+                        <td>
+                            <input type="text"
+                                   name="other_{{ c.id }}"
+                                   value="0"
+                                   class="form-control form-control-sm text-end shadow-sm">
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="9" class="text-center py-4 text-muted">
+                            No Cnotes Found
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Save Button -->
+        <div class="text-end mt-3">
+            <button type="submit" class="btn btn-success shadow-sm px-4">
+                <i class="bi bi-save me-2"></i>Save Billing
+            </button>
+        </div>
+
+        </form>
+
+    </div>
+</div>
+
+<script>
+function toggleAll(source) {
+    const checkboxes = document.getElementsByName('selected');
+    for(let i = 0; i < checkboxes.length; i++) {
+        checkboxes[i].checked = source.checked;
+    }
+}
+</script>
+
+{% endblock %}

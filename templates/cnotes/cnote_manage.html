@@ -134,14 +134,28 @@
                 {% endfor %}
             </select>
             {% else %}
-                <input type="text"
-                    value="{{ user.branch.branch_name }}"
-                    readonly>
-                <input type="hidden"
-                    name="booking_branch"
-                    value="{{ user.branch.branch_id }}" readonly>
+                {% if is_edit %}
+
+                    <input type="text"
+                        value="{{ cnote.booking_branch.branch_name }}"
+                        readonly class="form-control">
+
+                    <input type="hidden"
+                        name="booking_branch"
+                        value="{{ cnote.booking_branch.branch_id }}">
+                {% else %}
+    
+                    <input type="text"
+                        value="{{ user.branch.branch_name }}"
+                        readonly class="form-control">
+
+                    <input type="hidden"
+                        name="booking_branch"
+                        value="{{ user.branch.branch_id }}">
+                {% endif %}
             {% endif %}
         </div>
+        <input type="hidden" id="company-id">
         <div class="cee-form-group">
             <label>Date <span style="color: red;">*</span></label>
             <input type="date" name="date" id="cnote-date" required>
@@ -407,7 +421,23 @@ receiverNameInput.addEventListener("input", () => {
             receiverPhoneInput.value = data.phone || "";
         });
 });
+document.addEventListener("DOMContentLoaded", function () {
 
+    const bookingField = document.querySelector('[name="booking_branch"]');
+
+    if (bookingField) {
+
+        // If admin changes branch
+        bookingField.addEventListener("change", function () {
+            setCompanyFromBranch(this.value);
+        });
+
+        // On page load (important for edit / non-admin)
+        if (bookingField.value) {
+            setCompanyFromBranch(bookingField.value);
+        }
+    }
+});
 document.getElementById("add-receiver-form").addEventListener("submit", (e) => {
     e.preventDefault();
     const name = receiverNameInput.value.trim();
@@ -593,9 +623,34 @@ function loadQuotationRates() {
             addItemRow();
         });
 }
+function setCompanyFromBranch(branchId) {
+
+    if (!branchId) return;
+
+    fetch(`/staff/get-company-by-branch/${branchId}/`)
+        .then(r => r.json())
+        .then(data => {
+            if (data.company_id) {
+
+                document.getElementById("company-id").value = data.company_id;
+
+                // If location already selected, reload delivery branch
+                let locationId = document.getElementById("location-id").value;
+                if (locationId) {
+                    loadBranchByLocation(locationId);
+                }
+            }
+        });
+}
 
 function loadBranchByLocation(locationId) {
-    fetch(`/staff/get-branch-by-location/${locationId}/`)
+    let companyId = document.getElementById("company-id").value;
+    if (!companyId) {
+        console.log("Company not loaded yet");
+        return;
+    }
+    
+    fetch(`/staff/get-branch-by-location/${locationId}/${companyId}/`)
         .then(r => r.json())
         .then(data => {
             if (data.branches.length) {

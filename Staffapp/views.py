@@ -147,10 +147,23 @@ def get_consignor_items(request, consignor_id):
 
     return JsonResponse(data, safe=False)
 
-def get_branch_by_location(request, location_id):
+def get_company_by_branch(request, branch_id):
+    try:
+        branch = Branch.objects.select_related("company").get(branch_id=branch_id)
+
+        return JsonResponse({
+            "company_id": branch.company.comp_id
+        })
+
+    except Branch.DoesNotExist:
+        return JsonResponse({"company_id": None})
+    
+def get_branch_by_location(request, location_id, company_id):
     try:
         location = Location.objects.get(location_id=location_id)
-        branches = location.branch.all()
+        print(location)
+        branches = location.branch.filter(company__comp_id=company_id)
+        print(branches)
         data = [
             {
                 "branch_id": b.branch_id,
@@ -158,11 +171,12 @@ def get_branch_by_location(request, location_id):
             }
             for b in branches
         ]
-
+        print(data)
         return JsonResponse({"branches": data})
 
     except Location.DoesNotExist:
-        return JsonResponse({"branches": []}, status=404)
+        return JsonResponse({"branches": []})
+    
 @login_required
 def get_lr_charge(request):
     consignor_id = request.GET.get("consignor_id")
@@ -870,13 +884,13 @@ def manifest_manage(request):
     cnotes_qs = CnoteModel.objects.filter(
         status=CnoteModel.STATUS_RECEIVED,
         received_branch=request.user.branch,
-        manifest__isnull=True
     ).order_by("-date")
 
     paginator = Paginator(cnotes_qs, 10)
     page_obj = paginator.get_page(request.GET.get('page'))
 
     if request.method == "POST":
+        print(request.POST)
         cnote_ids = request.POST.getlist("cnotes[]")
         driver_id = request.POST.get("driver")
         vehicle_id = request.POST.get("vehicle")
@@ -917,7 +931,6 @@ def manifest_manage(request):
 
                 cnotes = CnoteModel.objects.select_for_update().filter(
                     cnote_id__in=cnote_ids,
-                    manifest__isnull=True
                 )
                 if cnotes.count() != len(cnote_ids):
                     raise Exception("Some CNotes already manifested")
@@ -1143,6 +1156,7 @@ def manifest_drs_update(request, manifest_id):
                     c.is_returned = True
                     c.status = CnoteModel.STATUS_RECEIVED
                     c.delivery_status = None
+                    c.received_branch = manifest.from_branch
                     c.save()
                     CnoteTracking.objects.create(
                         cnote=c,
@@ -2144,17 +2158,36 @@ def delivery_commission_excel(request):
 
     headers = [
         "Date", "CNote No", "Shipper", "Receiver",
-        "Payment", "Qty", "Freight", "Total",
+        "Payment", "Qty", "Freight", "LR",
+        "Pickup", "Hamali", "Unloading",
+        "Door Delivery", "Other","Total",
         "Booking Branch", "Delivery Branch",
         "Commission", "ToPay Amount"
     ]
 
     ws.append(headers)
-
+    total_qty = 0
+    total_freight = 0
+    total_lr = 0
+    total_pickup = 0
+    total_hamali = 0
+    total_unloading = 0
+    total_door = 0
+    total_other = 0
+    grand_total = 0
     for col in ws[1]:
         col.font = Font(bold=True)
 
     for c in cnotes:
+        total_qty += c.total_item or 0
+        total_freight += c.freight or 0
+        total_lr += c.lr_charge or 0
+        total_pickup += c.pickup_charge or 0
+        total_hamali += c.hamali_charge or 0
+        total_unloading += c.unloading_charge or 0
+        total_door += c.door_delivery or 0
+        total_other += c.other_charge or 0
+        grand_total += c.total or 0
         ws.append([
             c.date.strftime("%d-%m-%Y"),
             c.cnote_number,
@@ -2163,6 +2196,12 @@ def delivery_commission_excel(request):
             c.payment,
             c.total_item,
             float(c.freight or 0),
+            float(c.lr_charge or 0),
+            float(c.pickup_charge or 0),
+            float(c.hamali_charge or 0),
+            float(c.unloading_charge or 0),
+            float(c.door_delivery or 0),
+            float(c.other_charge or 0),
             float(c.total or 0),
             c.booking_branch.branch_name,
             c.delivery_branch.branch_name,
@@ -2204,17 +2243,36 @@ def booking_commission_excel(request):
 
     headers = [
         "Date", "CNote No", "Shipper", "Receiver",
-        "Payment", "Qty", "Freight", "Total",
+        "Payment", "Qty", "Freight", "LR",
+        "Pickup", "Hamali", "Unloading",
+        "Door Delivery", "Other","Total",
         "Booking Branch", "Delivery Branch",
         "Commission", "Paid Amount"
     ]
 
     ws.append(headers)
-
+    total_qty = 0
+    total_freight = 0
+    total_lr = 0
+    total_pickup = 0
+    total_hamali = 0
+    total_unloading = 0
+    total_door = 0
+    total_other = 0
+    grand_total = 0
     for col in ws[1]:
         col.font = Font(bold=True)
 
     for c in cnotes:
+        total_qty += c.total_item or 0
+        total_freight += c.freight or 0
+        total_lr += c.lr_charge or 0
+        total_pickup += c.pickup_charge or 0
+        total_hamali += c.hamali_charge or 0
+        total_unloading += c.unloading_charge or 0
+        total_door += c.door_delivery or 0
+        total_other += c.other_charge or 0
+        grand_total += c.total or 0
         ws.append([
             c.date.strftime("%d-%m-%Y"),
             c.cnote_number,
@@ -2223,11 +2281,17 @@ def booking_commission_excel(request):
             c.payment,
             c.total_item,
             float(c.freight or 0),
+            float(c.lr_charge or 0),
+            float(c.pickup_charge or 0),
+            float(c.hamali_charge or 0),
+            float(c.unloading_charge or 0),
+            float(c.door_delivery or 0),
+            float(c.other_charge or 0),
             float(c.total or 0),
             c.booking_branch.branch_name if c.booking_branch else "",
             c.delivery_branch.branch_name if c.delivery_branch else "",
             float(c.booking_commission_amount or 0),
-            float(c.freight if c.payment == "PAID" else 0),
+            float(c.total if c.payment == "PAID" else 0),
         ])
 
     response = HttpResponse(
@@ -2265,19 +2329,37 @@ def cnote_commission_excel(request):
 
     headers = [
         "Date", "CNote No", "Shipper", "Receiver",
-        "Payment", "Qty", "Freight", "Total",
+        "Payment", "Qty", "Freight", "LR",
+        "Pickup", "Hamali", "Unloading",
+        "Door Delivery", "Other", "Total",
         "Booking Branch", "Delivery Branch",
         "Booking Commission", "Delivery Commission",
         "Paid Amount", "Topay Amount"
     ]
 
     ws.append(headers)
-
+    total_qty = 0
+    total_freight = 0
+    total_lr = 0
+    total_pickup = 0
+    total_hamali = 0
+    total_unloading = 0
+    total_door = 0
+    total_other = 0
+    grand_total = 0
     for col in ws[1]:
         col.font = Font(bold=True)
 
     for c in cnotes:
-
+        total_qty += c.total_item or 0
+        total_freight += c.freight or 0
+        total_lr += c.lr_charge or 0
+        total_pickup += c.pickup_charge or 0
+        total_hamali += c.hamali_charge or 0
+        total_unloading += c.unloading_charge or 0
+        total_door += c.door_delivery or 0
+        total_other += c.other_charge or 0
+        grand_total += c.total or 0
         paid_amount = c.freight if c.payment == "PAID" else 0
         topay_amount = c.freight if c.payment == "TOPAY" else 0
 
@@ -2289,6 +2371,12 @@ def cnote_commission_excel(request):
             c.payment or "",
             c.total_item or 0,
             float(c.freight or 0),
+            float(c.lr_charge or 0),
+            float(c.pickup_charge or 0),
+            float(c.hamali_charge or 0),
+            float(c.unloading_charge or 0),
+            float(c.door_delivery or 0),
+            float(c.other_charge or 0),
             float(c.total or 0),
             c.booking_branch.branch_name if c.booking_branch else "",
             c.delivery_branch.branch_name if c.delivery_branch else "",

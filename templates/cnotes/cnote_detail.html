@@ -185,7 +185,7 @@
                 {% elif t.status|upper == "OUT FOR DELIVERY" %}
                     OUT FOR DELIVERY<br/>
                 <a href="{% url 'manifest_print' t.cnote.manifest.manifest_id %}">DRS/{{t.cnote.manifest.from_branch.branch_shortname}}/{{t.cnote.manifest.manifest_number}}</a>
-                {% elif t.status|upper == "RETURNED" %}
+                    {% elif t.status|upper == "RETURNED" %}
                 RETURN <br>(Delivery not complete)<br/>
                 <a href="{% url 'manifest_print' t.cnote.manifest.manifest_id %}"">DRS/{{t.cnote.manifest.from_branch.branch_shortname}}/{{t.cnote.manifest.manifest_number}}</a>
                 {% else %}

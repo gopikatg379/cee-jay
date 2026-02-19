@@ -794,8 +794,11 @@ def shipper_manage_view(request, consignor_id=None):
 @login_required(login_url='/')
 def shipper_delete(request,consignor_id):
     con = get_object_or_404(Consignor,consignor_id=consignor_id)
-    con.delete()
+    con.is_active = False
+    con.save()
     return redirect('shipper_manage')
+
+
 @login_required(login_url='/')
 def receiver_manage_view(request, consignee_id=None):
     query = request.GET.get('q', '').strip()
@@ -1006,6 +1009,8 @@ def login_manage_view(request):
             login(request,user)
             if user.role == "ADMIN":
                 return redirect("admin_dashboard")
+            elif user.role == "ACCOUNTANT":
+                return redirect("accounts_dashboard")
             elif user.role != "ADMIN":
                 return redirect("staff_dashboard")
         else:

@@ -31,12 +31,17 @@
                     <a class="nav-link" href="{% url 'admin_dashboard' %}">
                         <i class="bi bi-speedometer2 me-2"></i>Dashboard
                     </a>
+                    {% elif user.role == "ACCOUNTANT" %}
+                    <a class="nav-link" href="{% url 'accounts_dashboard' %}">
+                        <i class="bi bi-speedometer2 me-2"></i>Dashboard
+                    </a>
                     {% else %}
                     <a class="nav-link" href="{% url 'staff_dashboard' %}">
                         <i class="bi bi-speedometer2 me-2"></i>Dashboard
                     </a>
                     {% endif %}
                 </li>
+                {% if user.role == "ADMIN" or user.role == "STAFF" %}
                 <li class="nav-item dropdown">
                     <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                         <i class="bi bi-database me-2"></i>Master
@@ -170,7 +175,63 @@
                         
                     </ul>
                 </li>
+                {% elif user.role == "ACCOUNTANT" %}
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="bi bi-database me-2"></i>Master
+                    </a>
+                    <ul class="dropdown-menu">
+                        <li class="dropend">
+                            <a class="dropdown-item dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" **data-bs-auto-close="outside"** aria-expanded="false">
+                                <i class="bi bi-building me-2"></i>Customer
+                                <i class="bi bi-chevron-right float-end"></i>
+                            </a>
+                            <ul class="dropdown-menu">
+                                <li><a class="dropdown-item" href="{% url 'billing_shipper_manage' %}?mode=add"><i class="bi bi-plus-circle me-2"></i>Add Booking Customer</a></li>
+                                <li><a class="dropdown-item" href="{% url 'billing_shipper_manage' %}"><i class="bi bi-list-ul me-2"></i>List Booking Customer</a></li>
+                            </ul>
+                        </li>
+                        <li class="dropend">
+                            <a class="dropdown-item dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" **data-bs-auto-close="outside"** aria-expanded="false">
+                                <i class="bi bi-building me-2"></i>Receiver
+                                <i class="bi bi-chevron-right float-end"></i>
+                            </a>
+                            <ul class="dropdown-menu">
+                                <li><a class="dropdown-item" href="{% url 'billing_receiver_manage' %}?mode=add"><i class="bi bi-plus-circle me-2"></i>Add Booking Customer</a></li>
+                                <li><a class="dropdown-item" href="{% url 'billing_receiver_manage' %}"><i class="bi bi-list-ul me-2"></i>List Booking Customer</a></li>
+                            </ul>
+                        </li>
+                        <li class="dropend">
+                            <a class="dropdown-item dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" **data-bs-auto-close="outside"** aria-expanded="false">
+                                <i class="bi bi-building me-2"></i>Courier
+                                <i class="bi bi-chevron-right float-end"></i>
+                            </a>
+                            <ul class="dropdown-menu">
+                                <li><a class="dropdown-item" href="{% url 'courier_manage' %}?mode=add"><i class="bi bi-plus-circle me-2"></i>Add Courier</a></li>
+                                <li><a class="dropdown-item" href="{% url 'courier_manage' %}"><i class="bi bi-list-ul me-2"></i>List Courier</a></li>
+                            </ul>
+                        </li>
+                        <li>
+                            <a class="dropdown-item" href="{% url 'create_billing' %}">
+                                <i class="bi bi-receipt me-2"></i>Assign LR
+                            </a>
+                        </li>
 
+                        <li class="dropend">
+                            <a class="dropdown-item dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" **data-bs-auto-close="outside"** aria-expanded="false">
+                                <i class="bi bi-person-badge me-2"></i>Receipt
+                                <i class="bi bi-chevron-right float-end"></i>
+                            </a>
+                            <ul class="dropdown-menu">
+                                <li><a class="dropdown-item" href="#"><i class="bi bi-plus-circle me-2"></i>Add Receipt</a></li>
+                                <li><a class="dropdown-item" href="#"><i class="bi bi-list-ul me-2"></i>List Receipt</a></li>
+                            </ul>
+                        </li>
+                    </ul>
+                </li>
+                {% endif %}
+
+                {% if user.role != "ACCOUNTANT" %}
                 <li class="nav-item dropdown">
                     <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
                         <i class="bi bi-truck me-2"></i>Operations
@@ -199,7 +260,8 @@
                         </li>
                     </ul>
                 </li>
-
+                {% endif %}
+                {% if user.role == "ADMIN" or user.role == "ACCOUNTANT" %}
                 <li class="nav-item dropdown">
                     <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" **data-bs-auto-close="outside"**>
                         <i class="bi bi-currency-rupee me-2"></i>Accounts
@@ -210,7 +272,7 @@
                         <li><a class="dropdown-item" href="#"><i class="bi bi-person-check me-2"></i>Agent Commission</a></li>
                     </ul>
                 </li>
-
+                {% endif %}
                 <li class="nav-item dropdown">
                     <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" **data-bs-auto-close="outside"**>
                         <i class="bi bi-clipboard-data me-2"></i>Reports
