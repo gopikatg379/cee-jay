@@ -1,0 +1,101 @@
+{% extends "accounts/accounts_base.html" %}
+{% block content %}
+
+<div class="card shadow-sm p-4">
+
+    <h4 class="mb-4">
+        <i class="bi bi-receipt-cutoff me-2 text-primary"></i>
+        Allocate CNote
+    </h4>
+
+    <form method="POST">
+        {% csrf_token %}
+
+        <div class="row mb-3">
+            <div class="col-md-4">
+                <label class="form-label">Branch</label>
+                <select name="branch" class="form-control text-uppercase" required>
+                    <option value="">Select Branch</option>
+                    {% for b in branches %}
+                        <option value="{{ b.branch_id }}">{{ b.branch_name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="col-md-4">
+                <label class="form-label">Courier</label>
+                <select name="courier" class="form-control text-uppercase" required>
+                    <option value="">Select Courier</option>
+                    {% for c in couriers %}
+                        <option value="{{ c.id }}">{{ c.courier_name|upper }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Enter CNote Numbers (One per line)</label>
+            <textarea name="cnote_numbers"
+                      class="form-control"
+                      rows="5"
+                      placeholder="EKM-1011&#10;EKM-1012"
+                      required></textarea>
+        </div>
+
+        <button type="submit" class="btn btn-success">
+            <i class="bi bi-plus-circle me-1"></i> IMPORT / ADD
+        </button>
+
+    </form>
+</div>
+
+
+<hr class="my-4">
+
+
+<h5 class="mb-3">
+    <i class="bi bi-list-check me-2 text-secondary"></i>
+    Allocated CNotes
+</h5>
+
+<div class="card shadow-sm">
+    <table class="table table-bordered mb-0">
+        <thead class="table-light">
+            <tr>
+                <th>CNote No</th>
+                <th>Branch</th>
+                <th>Courier</th>
+                <th>Status</th>
+                <th width="120">Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for obj in allocated %}
+            <tr>
+                <td>{{ obj.cnote_number }}</td>
+                <td>{{ obj.branch.branch_name }}</td>
+                <td>{{ obj.courier.courier_name|upper }}</td>
+                <td>
+                    <span class="badge bg-warning text-dark">
+                        {{ obj.status }}
+                    </span>
+                </td>
+                <td>
+                    <a href="{% url 'edit_shipment' obj.id %}"
+                       class="btn btn-sm btn-primary">
+                        <i class="bi bi-pencil-square"></i> Edit
+                    </a>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="5" class="text-center text-muted">
+                    No Allocated CNotes
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+{% endblock %}

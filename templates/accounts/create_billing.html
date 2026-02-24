@@ -1,5 +1,75 @@
-{% extends 'base.html' %}
+{% extends 'accounts/accounts_base.html' %}
 {% block content %}
+<style>
+
+
+
+.table-wrapper {
+    overflow-x: auto;
+}
+
+.table {
+    font-size: 14px;
+}
+
+.table th {
+    background-color: #f1f3f6;
+    font-weight: 600;
+    font-size: 13px;
+    color:black
+}
+
+.main-info {
+    background-color: #ffffff;
+    font-weight: 500;
+}
+
+.original-header {
+    background-color: #e9f2ff;
+    color: #0d6efd;
+    font-weight: 600;
+}
+
+.original-values {
+    background-color: #f8fbff;
+}
+
+.invoice-header {
+    background-color: #fff3e6;
+    color: #d35400;
+    font-weight: 600;
+}
+
+.invoice-values {
+    background-color: #fffaf5;
+}
+
+.orig-total {
+    background-color: #eef7ff;
+    font-weight: bold;
+}
+
+.inv-total {
+    background-color: #fff0e0;
+    font-weight: bold;
+}
+
+.margin {
+    font-weight: bold;
+}
+
+.table td, .table th {
+    vertical-align: middle;
+}
+
+input.form-control-sm {
+    text-align: right;
+}
+
+.number-cell {
+    text-align: right;
+}
+</style>
 
 <div class="cee-manage-broker-wrapper">
 
@@ -19,18 +89,183 @@
                         placeholder="Search Cnote (100-1,100-2,100-3)"
                         autocomplete="off">
                 </div>
+                
             </form>
         </div>
     </div>
+    <div class="card shadow-sm p-3">
+        <div class="p-4">
+            <form method="get" 
+                class="d-flex align-items-center gap-3 mb-4 p-3 bg-light rounded shadow-sm">
 
-    <div class="p-4">
+                <div style="width: 280px;">
+                    <select name="consignors" multiple 
+                            class="form-select select2">
+                        {% for shipper in shippers %}
+                            <option value="{{ shipper.consignor_id }}"
+                                {% if shipper.consignor_id|stringformat:"s" in selected_consignors %}
+                                    selected
+                                {% endif %}>
+                                {{ shipper.consignor_name }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label class="form-label fw-semibold mb-1">From</label>
+                    <input type="date"
+                        name="from_date"
+                        value="{{ request.GET.from_date }}"
+                        class="form-control"
+                        style="text-transform: uppercase;">
+                </div>
 
+                <div>
+                    <label class="form-label fw-semibold mb-1">To</label>
+                    <input type="date"
+                        name="to_date"
+                        value="{{ request.GET.to_date }}"
+                        class="form-control"
+                        style="text-transform: uppercase;">
+                </div>
+                <button type="submit" class="btn btn-primary px-4">
+                    <i class="bi bi-funnel me-2"></i>Apply Filter
+                </button>
+
+            </form>
+    </div>
+    <div class="card shadow-sm p-3">
         <form method="POST">
         {% csrf_token %}
 
+        
+        <!-- Table -->
+<div class="table-wrapper">
+<table class="table table-bordered table-hover shadow-sm">
+
+    <thead class="table-dark">
+    <tr>
+        <th style="width:50px;">
+            <input type="checkbox" onclick="toggleAll(this)">
+        </th>
+        <th class="text-center align-middle">DATE</th>
+        <th class="text-center align-middle">LR NO</th>
+        <th class="text-center align-middle">SHIPPER NAME</th>
+        <th class="text-center align-middle">RECEIVER NAME</th>
+        <th class="text-center align-middle">DESTINATION</th>
+        <th class="text-center align-middle">QTY</th>
+        <th class="text-center align-middle">PARTICULARS</th>
+        <th colspan="8" class="text-center">CHARGES SECTION</th>
+    </tr>
+</thead>
+
+    <tbody>
+{% for c in cnotes %}
+
+<!-- MAIN ROW -->
+<tr class="main-info">
+    <td rowspan="4">
+        <input type="checkbox" name="selected" value="{{ c.cnote_id }}">
+    </td>
+    <td rowspan="4">{{ c.date|date:"d-m-Y" }}</td>
+    <td rowspan="4"><strong>{{ c.cnote_number }}</strong></td>
+    <td rowspan="4">{{ c.consignor }}</td>
+    <td rowspan="4">{{ c.consignee }}</td>
+    <td rowspan="4">{{ c.destination }}</td>
+    <td rowspan="4">{{ c.total_item }}</td>
+    <td rowspan="4">
+        <input type="text" name="particulars_{{ c.cnote_id }}" 
+            class="form-control form-control-sm inv-input mb-1">
+
+        <small class="text-muted d-block">
+            Current Avg Box Rate: 
+            <span class="avg-rate text-primary fw-semibold"></span>
+        </small>
+    </td>
+
+    <th class="original-header text-center align-middle">FREIGHT</th>
+    <th class="original-header text-center align-middle">LR</th>
+    <th class="original-header text-center align-middle">PICKUP</th>
+    <th class="original-header text-center align-middle">HAMALI</th>
+    <th class="original-header text-center align-middle">UNLOADING</th>
+    <th class="original-header text-center align-middle">DOOR</th>
+    <th class="original-header text-center align-middle">OTHER</th>
+    <th class="original-header text-center align-middle">TOTAL</th>
+</tr>
+
+<tr class="original-values">
+    <td class="number-cell">{{ c.freight }}</td>
+    <td class="number-cell">{{ c.lr_charge }}</td>
+    <td class="number-cell">{{ c.pickup_charge }}</td>
+    <td class="number-cell">{{ c.hamali_charge }}</td>
+    <td class="number-cell">{{ c.unloading_charge }}</td>
+    <td class="number-cell">{{ c.door_delivery }}</td>
+    <td class="number-cell">0</td>
+
+    <td class="orig-total number-cell">
+        {{ c.freight|add:c.lr_charge|add:c.pickup_charge|add:c.hamali_charge|add:c.unloading_charge|add:c.door_delivery }}
+    </td>
+</tr>
+
+<tr>
+    <th class="invoice-header text-center align-middle">RATE/BOX</th>
+    <th class="invoice-header text-center align-middle">CHARGED WT</th>
+    <th class="invoice-header text-center align-middle">SUBTOTAL</th>
+    <th class="invoice-header text-center align-middle">LR</th>
+    <th class="invoice-header text-center align-middle">UNLOADING</th>
+    <th class="invoice-header text-center align-middle">OTHER</th>
+    <th class="invoice-header text-center align-middle">INV TOTAL</th>
+    <th class="invoice-header text-center align-middle">MARGIN</th>
+</tr>
+
+<tr class="invoice-values">
+    <td>
+        <input type="text" name="actual_weight_{{ c.cnote_id }}" 
+               class="form-control form-control-sm inv-input">
+    </td>
+
+    <td>
+        <input type="text" name="charged_weight_{{ c.cnote_id }}" 
+               class="form-control form-control-sm inv-input" value=0>
+    </td>
+
+    <td>
+        <input type="text" name="subtotal_{{ c.cnote_id }}" 
+               class="form-control form-control-sm inv-input subtotal-input">
+    </td>
+
+    <td>
+        <input type="text" name="inv_lr_{{ c.cnote_id }}" 
+               class="form-control form-control-sm inv-input">
+    </td>
+
+    <td>
+        <input type="text" name="inv_unloading_{{ c.cnote_id }}" 
+               class="form-control form-control-sm inv-input"  value=0>
+    </td>
+
+    <td>
+        <input type="text" name="inv_other_{{ c.cnote_id }}" 
+               class="form-control form-control-sm inv-input"  value=0>
+    </td>
+
+    <td>
+        <input type="text" class="form-control form-control-sm inv-total" readonly>
+    </td>
+
+    <td>
+        <input type="text" class="form-control form-control-sm margin" readonly>
+    </td>
+</tr>
+
+{% endfor %}
+</tbody>
+
+</table>
+</div>
         <div class="row mb-4">
             <div class="col-md-4">
-                <label class="form-label fw-semibold">Consignor</label>
+                <label class="form-label fw-semibold" style="color: red;">SELECT BILLING CUSTOMER</label>
                 <select name="consignor" class="form-select shadow-sm" required>
                     <option value="">Select</option>
                     {% for c in consignors %}
@@ -40,104 +275,6 @@
             </div>
         </div>
 
-        <!-- Table -->
-        <div class="table-wrapper">
-            <table class="table table-bordered table-hover align-middle">
-                <thead class="custom-thead">
-                    <tr>
-                        <th class="custom-subhead text-center">
-                            <input type="checkbox" onclick="toggleAll(this)">
-                        </th>
-                        <th class="custom-subhead">Cnote No</th>
-                        <th class="custom-subhead">Consignee</th>
-                        <th class="custom-subhead text-end">Freight</th>
-                        <th class="custom-subhead text-end">LR</th>
-                        <th class="custom-subhead text-end">Unloading</th>
-                        <th class="custom-subhead text-end">Door delivery</th>
-                        <th class="custom-subhead">Payment</th>
-                        <th class="custom-subhead text-end">INV Freight</th>
-                        <th class="custom-subhead text-end">INV LR</th>
-                        <th class="custom-subhead text-end">INV Unloading</th>
-                        <th class="custom-subhead text-end">INV Other</th>
-                    </tr>
-                </thead>
-
-                <tbody>
-                    {% for c in cnotes %}
-                    <tr>
-                        <td class="text-center">
-                            <input type="checkbox" name="selected" value="{{ c.cnote_id }}">
-                        </td>
-
-                        <td class="fw-semibold text-primary">
-                            {{ c.cnote_number }}
-                        </td>
-
-                        <td>
-                            <input type="text"
-                                   name="consignee_{{ c.id }}"
-                                   value="{{ c.consignee }}"
-                                   class="form-control form-control-sm shadow-sm">
-                        </td>
-
-                        <td class="text-end">{{ c.freight }}</td>
-                        <td class="text-end">{{ c.lr_charge }}</td>
-                        <td class="text-end">{{ c.unloading_charge }}</td>
-                        <td class="text-end">{{ c.door_delivery }}</td>
-                        <td>
-                            <select name="payment_{{ c.cnote_id }}"
-                                    class="form-select form-select-sm shadow-sm">
-                                <option value="PAID"
-                                    {% if c.payment == "PAID" %}selected{% endif %}>
-                                    Paid
-                                </option>
-                                <option value="CREDIT"
-                                    {% if c.payment == "CREDIT" %}selected{% endif %}>
-                                    Credit
-                                </option>
-                            </select>
-                        </td>
-
-                        <td>
-                            <input type="text"
-                                   name="freight_{{ c.id }}"
-                                   value="0"
-                                   class="form-control form-control-sm text-end shadow-sm">
-                        </td>
-
-                        <td>
-                            <input type="text"
-                                   name="lr_{{ c.id }}"
-                                   value="0"
-                                   class="form-control form-control-sm text-end shadow-sm">
-                        </td>
-
-                        <td>
-                            <input type="text"
-                                   name="unloading_{{ c.id }}"
-                                   value="0"
-                                   class="form-control form-control-sm text-end shadow-sm">
-                        </td>
-
-                        <td>
-                            <input type="text"
-                                   name="other_{{ c.id }}"
-                                   value="0"
-                                   class="form-control form-control-sm text-end shadow-sm">
-                        </td>
-                    </tr>
-                    {% empty %}
-                    <tr>
-                        <td colspan="9" class="text-center py-4 text-muted">
-                            No Cnotes Found
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-
-        <!-- Save Button -->
         <div class="text-end mt-3">
             <button type="submit" class="btn btn-success shadow-sm px-4">
                 <i class="bi bi-save me-2"></i>Save Billing
@@ -149,6 +286,7 @@
     </div>
 </div>
 
+
 <script>
 function toggleAll(source) {
     const checkboxes = document.getElementsByName('selected');
@@ -157,5 +295,95 @@ function toggleAll(source) {
     }
 }
 </script>
+<script>
+$(document).ready(function() {
+    $('.select2').select2({
+        placeholder: "Select Consignors",
+        width: '100%'
+    });
+});
+</script>
+<script>
+document.querySelectorAll("tbody").forEach(tbody => {
 
+    const rows = tbody.querySelectorAll("tr");
+
+    for (let i = 0; i < rows.length; i += 4) {
+
+        let mainRow = rows[i];
+        let originalRow = rows[i + 1];
+        let invoiceRow = rows[i + 3];
+
+        let qty = parseFloat(mainRow.querySelectorAll("td")[6].innerText) || 0;
+        let freight = parseFloat(originalRow.querySelectorAll("td")[0].innerText) || 0;
+        let avgRateSpan = mainRow.querySelector('.avg-rate');
+
+        let avgRate = qty > 0 ? (freight  / qty) : 0;
+        avgRateSpan.innerText = avgRate.toFixed(2);
+        let rateInput = invoiceRow.querySelector('input[name^="actual_weight_"]');
+        let subtotalInput = invoiceRow.querySelector('input[name^="subtotal_"]');
+        let lrInput = invoiceRow.querySelector('input[name^="inv_lr_"]');
+        let unloadingInput = invoiceRow.querySelector('input[name^="inv_unloading_"]');
+        let otherInput = invoiceRow.querySelector('input[name^="inv_other_"]');
+        let invTotalInput = invoiceRow.querySelector('.inv-total');
+        let marginInput = invoiceRow.querySelector('.margin');
+
+        function calculate() {
+
+            let rate = parseFloat(rateInput.value) || 0;
+
+            let subtotal = rate * qty;
+            subtotalInput.value = subtotal.toFixed(2);
+
+            let lr = parseFloat(lrInput.value) || 0;
+            let unloading = parseFloat(unloadingInput.value) || 0;
+            let other = parseFloat(otherInput.value) || 0;
+
+            let invoiceTotal = subtotal + lr + unloading + other;
+            invTotalInput.value = invoiceTotal.toFixed(2);
+
+            let originalTotal = parseFloat(originalRow.querySelector('.orig-total').innerText) || 0;
+
+            let margin = invoiceTotal - originalTotal;
+            marginInput.value = margin.toFixed(2);
+            marginInput.style.color = margin >= 0 ? "green" : "red";
+        }
+
+        [rateInput, lrInput, unloadingInput, otherInput].forEach(input => {
+            input.addEventListener("input", calculate);
+        });
+
+    }
+});
+</script>
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+
+    const checkboxes = document.querySelectorAll('input[name="selected"]');
+
+    checkboxes.forEach(function (checkbox) {
+
+        checkbox.addEventListener("change", function () {
+
+            // Find the 4 rows of this consignment block
+            const mainRow = checkbox.closest("tr");
+            const tbody = mainRow.parentElement;
+            const rows = Array.from(tbody.children);
+            const index = rows.indexOf(mainRow);
+
+            const invoiceRow = rows[index + 3]; // 4th row
+            const subtotalInput = invoiceRow.querySelector(".subtotal-input");
+
+            if (checkbox.checked) {
+                subtotalInput.setAttribute("required", "required");
+            } else {
+                subtotalInput.removeAttribute("required");
+            }
+
+        });
+
+    });
+
+});
+</script>
 {% endblock %}

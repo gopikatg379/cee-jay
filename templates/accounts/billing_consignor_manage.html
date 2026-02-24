@@ -1,5 +1,5 @@
 
-{% extends 'base.html' %}
+{% extends 'accounts/accounts_base.html' %}
 {% block content %}
 
 <div class="cee-manage-broker-wrapper">
@@ -91,6 +91,15 @@
                     </div>
                 </div>
                 <div class="cee-form-row">
+                <div class="cee-form-group">
+                        <label>Payment<span style="color:red;">*</span></label>
+                        <select name="payment" required>
+                            <option value="PAID"  {% if shipper.billing_payment == 'PAID' %}selected{% endif %}>Paid Billing</option>
+                            <option value="CREDIT" {% if shipper.billing_payment == 'CREDIT' %}selected{% endif %}>Credit Billing</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="cee-form-row">
                     <div class="cee-checkbox-group">
                         <label><input type="checkbox" name="consignor_is_active" {% if not is_edit or shipper.billing_consignor_active %}checked{% endif %}> Active</label>
                     </div>
@@ -112,11 +121,12 @@
                 <thead class="custom-thead">
                     <tr>
                         <th class="custom-subhead">#</th>
-                        <th class="custom-subhead">Shipper Code</th>
-                        <th class="custom-subhead">Shipper Name</th>
+                        <th class="custom-subhead">Customer Code</th>
+                        <th class="custom-subhead">Customer Name</th>
                         <th class="custom-subhead">Phone</th>
                         <th class="custom-subhead">GST No.</th>
                         <th class="custom-subhead">GST Type </th>
+                        <th class="custom-subhead">Payment</th>
                         <th class="custom-subhead">Address</th>
                         <th class="custom-subhead">Type</th>
                         <th class="custom-subhead">Is Active?</th>
@@ -137,6 +147,7 @@
                             <td>{{ shipper.billing_consignor_phone }}</td>
                             <td>{{ shipper.billing_consignor_gst|upper }}</td>
                             <td>{{ shipper.billing_consignor_gsttype|upper }}</td>
+                            <td>{{ shipper.billing_payment|upper }} BILLING</td>
                             <td>{{ shipper.billing_consingor_address|upper }}</td>
                             <td>{{ shipper.billing_consignor_type|upper }}</td>
 

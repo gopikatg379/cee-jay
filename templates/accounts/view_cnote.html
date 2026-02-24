@@ -1,0 +1,138 @@
+{% extends 'accounts/accounts_base.html' %}
+{% block content %}
+<div class="cee-manage-broker-wrapper">
+    <div class="cee-manage-header">
+        <h4>View Cnote-Billing</h4>
+    </div>
+    <div class="card shadow-sm p-3">
+        <div class="text-end mb-3">
+            <a href="{% url 'export_cnote_excel' %}" class="btn btn-success">
+                <i class="bi bi-file-earmark-excel"></i> Export to Excel
+            </a>
+        </div>
+        <form method="POST">
+        {% csrf_token %}
+            <div class="table-wrapper">
+                <table class="table table-bordered table-hover align-middle">
+                    <thead class="custom-thead">
+                        <tr>
+                            <th class="custom-subhead text-center align-middle" style="width: 45px;">
+                                <input type="checkbox" onclick="toggleAll(this)">
+                            </th>
+                            <th class="custom-subhead text-center align-middle" style="width: 100px;">Date</th>
+                            <th class="custom-subhead text-center align-middle" style="width: 100px;">LR No</th>
+                            <th class="custom-subhead text-center align-middle">Customer Code</th>
+                            <th class="custom-subhead text-center align-middle">Branch</th>
+                            <th class="custom-subhead text-center align-middle">Invoice No</th>
+                            <th class="custom-subhead text-center align-middle">Consignor</th>
+                            <th class="custom-subhead text-center align-middle">Consignee</th>
+                            <th class="custom-subhead text-center align-middle">Destination</th>
+                            <th class="custom-subhead text-center align-middle" style="width: 70px;">Qty</th>
+                            <th class="custom-subhead text-center align-middle" style="width: 80px;">Rate</th>
+                            <th class="custom-subhead text-center align-middle" style="width: 82px;">Subtotal</th>
+                            <th class="custom-subhead text-center align-middle" style="width: 70px;">LR</th>
+                            <th class="custom-subhead text-center align-middle" style="width: 80px;">Other Charges</th>
+                            <th class="custom-subhead text-center align-middle" style="width: 70px;">Total</th>
+                            <th class="custom-subhead text-center align-middle" style="width: 90px;">Status</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                        {% for item in page_obj  %}
+                        {% with b=item.obj %}
+                        <tr>
+                            <td class="text-center">
+                                <input type="checkbox" name="selected" value="{{ b.id }}">
+                            </td>
+
+                            {% if item.type == "billing" %}
+                                <td>{{ b.cnote.date|date:"d-m-Y" }}</td>
+                                <td class="fw-semibold text-primary">{{ b.cnote.cnote_number }}</td>
+                                <td>{{ b.consignor.billing_consignor_code }}</td>
+                                <td>{{b.cnote.booking_branch.branch_name}}</td>
+                                <td>{{ b.cnote.invoice_no }}</td>
+                                <td>{{ b.consignor.billing_consignor_name }}</td>
+                                <td>{{ item.consignee }}</td>
+                                <td>{{ b.cnote.destination.location_name }}</td>
+                                <td class="text-end">{{ b.cnote.total_item }}</td>
+
+                            {% else %}
+                                <td>{{ b.booking_date|date:"d-m-Y" }}</td>
+                                <td class="fw-semibold text-primary">{{ b.cnote_number }}</td>
+                                <td>{{ b.consignor.billing_consignor_code }}</td>
+                                <td>{{b.branch.branch_name}}</td>
+                                <td>-</td>
+                                <td>{{ b.consignor.billing_consignor_name }}</td>
+                                <td>{{ item.consignee|upper }}</td>
+                                <td>{{ b.destination|upper }}</td>
+                                <td class="text-end">{{ b.qty }}</td>
+                            {% endif %}
+
+                            <td class="text-end">{{ item.rate }}</td>
+
+                            {% if item.type == "billing" %}
+                                <td class="text-end">{{ b.inv_freight }}</td>
+                                <td class="text-end">{{ b.inv_lr }}</td>
+                            {% else %}
+                                <td class="text-end">{{ b.freight }}</td>
+                                <td class="text-end">{{ b.lr_charge }}</td>
+                            {% endif %}
+
+                            <td class="text-end">{{ item.other }}</td>
+                            <td class="text-end">{{ item.total_amount }}</td>
+                            <td>{{ b.status }}</td>
+                        </tr>
+                        {% endwith %}
+                        {% endfor %}
+                    </tbody>
+                </table>
+        </div>
+
+
+        </form>
+        <div class="mt-3">
+            <nav>
+                <ul class="pagination">
+                    {% if page_obj.has_previous %}
+                        <li class="page-item">
+                            <a class="page-link" href="?{% if search_query %}search={{ search_query }}&{% endif %}page=1">First</a>
+                        </li>
+                        <li class="page-item">
+                            <a class="page-link" href="?{% if search_query %}search={{ search_query }}&{% endif %}page={{ page_obj.previous_page_number }}">
+                                Previous
+                            </a>
+                        </li>
+                    {% endif %}
+
+                    <li class="page-item active">
+                        <span class="page-link">
+                            Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+                        </span>
+                    </li>
+
+                    {% if page_obj.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="?{% if search_query %}search={{ search_query }}&{% endif %}page={{ page_obj.next_page_number }}">
+                                Next
+                            </a>
+                        </li>
+                        <li class="page-item">
+                            <a class="page-link" href="?{% if search_query %}search={{ search_query }}&{% endif %}page={{ page_obj.paginator.num_pages }}">
+                                Last
+                            </a>
+                        </li>
+                    {% endif %}
+                </ul>
+            </nav>
+        </div>
+    </div>
+</div>
+<script>
+function toggleAll(source) {
+    const checkboxes = document.getElementsByName('selected');
+    for(let i = 0; i < checkboxes.length; i++) {
+        checkboxes[i].checked = source.checked;
+    }
+}
+</script>
+{% endblock %}

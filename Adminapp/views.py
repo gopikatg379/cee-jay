@@ -1009,7 +1009,7 @@ def login_manage_view(request):
             login(request,user)
             if user.role == "ADMIN":
                 return redirect("admin_dashboard")
-            elif user.role == "ACCOUNTANT":
+            elif user.role == "ACCOUNTANT" or user.role == "ACCOUNTSMANAGER":
                 return redirect("accounts_dashboard")
             elif user.role != "ADMIN":
                 return redirect("staff_dashboard")

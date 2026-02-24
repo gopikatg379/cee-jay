@@ -1,0 +1,219 @@
+{% extends "accounts/accounts_base.html" %}
+{% block content %}
+
+<div class="card p-4 shadow-sm">
+    <h4 class="mb-4">Edit Shipment - {{ shipment.cnote_number }}</h4>
+
+    <form method="POST">
+        {% csrf_token %}
+
+        <div class="row mb-3">
+            <div class="col-md-3">
+                <label>Booking Date</label>
+                <input type="date" name="booking_date"
+                       value="{{ shipment.booking_date|date:'Y-m-d' }}"
+                       class="form-control" required>
+            </div>
+            <div class="col-md-3">
+                <label>Consignor</label>
+                <select name="consignor" class="form-control" required>
+                    <option value="">Select Consignor</option>
+                    {% for c in consignors %}
+                        <option value="{{ c.billing_consignor_code  }}"
+                            {% if shipment.consignor.billing_consignor_code  == c.billing_consignor_code  %}selected{% endif %}>
+                            {{ c.billing_consignor_name|upper }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="col-md-3">
+                <label>Consignee</label>
+                <select name="consignee" class="form-control" required>
+                    <option value="">Select Consignee</option>
+                    {% for c in consignees %}
+                        <option value="{{ c.billing_consignee_id }}"
+                            {% if shipment.consignee.billing_consignee_id == c.billing_consignee_id %}selected{% endif %}>
+                            {{ c.billing_consignee_name|upper }}
+                        </option>
+                    {% endfor %}
+                </select>
+                <a href="#" data-bs-toggle="modal" data-bs-target="#addConsigneeModal">
+                    Add Consignee
+                </a>
+            </div>
+
+            
+
+            <div class="col-md-3">
+                <label>Destination</label>
+                <input type="text" name="destination"
+                       value=""
+                       class="form-control" required required style="text-transform: uppercase;">
+            </div>
+        </div>
+        <div class="row mb-3">
+            <div class="col-md-3">
+                <label>Qty</label>
+                <input type="number" name="qty"
+                       value="{{ shipment.qty }}"
+                       class="form-control" required>
+            </div>
+
+            <div class="col-md-3">
+                <label>Actual Weight</label>
+                <input type="number" step="0.01" name="actual_weight"
+                       value="{{ shipment.actual_weight }}"
+                       class="form-control">
+            </div>
+
+            <div class="col-md-3">
+                <label>Charged Weight</label>
+                <input type="number" step="0.01" name="charged_weight"
+                       value="{{ shipment.charged_weight }}"
+                       class="form-control">
+            </div>
+
+            <div class="col-md-3">
+                <label>Rate</label>
+                <input type="number" name="rate"
+                       value="{{ shipment.rate }}"
+                       class="form-control" required>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-3">
+                <label>Freight</label>
+                <input type="number" step="0.01" name="freight"
+                       value="{{ shipment.freight }}"
+                       class="form-control">
+            </div>
+
+            <div class="col-md-3">
+                <label>LR Charge</label>
+                <input type="number" step="0.01" name="lr_charge"
+                       value="{{ shipment.lr_charge }}"
+                       class="form-control">
+            </div>
+
+            <div class="col-md-3">
+                <label>Unloading</label>
+                <input type="number" step="0.01" name="unloading_charge"
+                       value="{{ shipment.unloading_charge }}"
+                       class="form-control">
+            </div>
+
+            <div class="col-md-3">
+                <label>Other</label>
+                <input type="number" step="0.01" name="other_charge"
+                       value="{{ shipment.other_charge }}"
+                       class="form-control">
+            </div>
+        </div><br>
+        <div class="row">
+            
+            <div class="col-md-4">
+                <label>Total</label>
+                <input type="number" step="0.01" name="total"
+                    id="total_field"
+                    value="{{ shipment.freight|default:0|add:shipment.lr_charge|add:shipment.unloading_charge|add:shipment.other_charge }}"
+                    class="form-control"
+                    readonly>
+            </div>
+
+            <div class="col-md-8">
+                <label>Particulars</label>
+                <input type="text" name="particulars"
+                    value=""
+                    class="form-control"  style="text-transform: uppercase;">
+            </div>
+        </div>
+        <button type="submit" class="btn btn-success mt-4">
+            Save Details
+        </button>
+
+        
+        
+    </form>
+    <div class="modal fade" id="addConsigneeModal" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <form id="addConsigneeForm">
+                        {% csrf_token %}
+                        <div class="modal-header">
+                            <h5 class="modal-title">Add Consignee</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+
+                        <div class="modal-body">
+                            <div class="mb-3">
+                                <label>Consignee Name</label>
+                                <input type="text" name="billing_consignee_name"
+                                    class="form-control" required style="text-transform: uppercase;" required>
+                            </div>
+                        </div>
+
+                        <div class="modal-footer">
+                            <button type="submit" class="btn btn-primary">
+                                Save
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+</div>
+<script>
+document.getElementById("addConsigneeForm").addEventListener("submit", function(e) {
+    e.preventDefault();
+
+    let formData = new FormData(this);
+
+    fetch("{% url 'add_consignee_ajax' %}", {
+        method: "POST",
+        headers: {
+            "X-CSRFToken": "{{ csrf_token }}"
+        },
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+
+        if (data.success) {
+
+            let select = document.querySelector("select[name='consignee']");
+            
+            let newOption = document.createElement("option");
+            newOption.value = data.id;
+            newOption.text = data.name.toUpperCase();
+            newOption.selected = true;
+
+            select.appendChild(newOption);
+
+            let modal = bootstrap.Modal.getInstance(
+                document.getElementById('addConsigneeModal')
+            );
+            modal.hide();
+        }
+    });
+});
+</script>
+<script>
+function calculateTotal() {
+    let freight = parseFloat(document.querySelector("[name='freight']").value) || 0;
+    let lr = parseFloat(document.querySelector("[name='lr_charge']").value) || 0;
+    let unloading = parseFloat(document.querySelector("[name='unloading_charge']").value) || 0;
+    let other = parseFloat(document.querySelector("[name='other_charge']").value) || 0;
+
+    let total = freight + lr + unloading + other;
+
+    document.getElementById("total_field").value = total.toFixed(2);
+}
+
+document.querySelector("[name='freight']").addEventListener("input", calculateTotal);
+document.querySelector("[name='lr_charge']").addEventListener("input", calculateTotal);
+document.querySelector("[name='unloading_charge']").addEventListener("input", calculateTotal);
+document.querySelector("[name='other_charge']").addEventListener("input", calculateTotal);
+</script>
+{% endblock %}

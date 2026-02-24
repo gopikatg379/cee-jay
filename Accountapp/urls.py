@@ -16,5 +16,11 @@ urlpatterns = [
     path("billing/courier/edit/<int:id>",courier_manage,name="courier_edit"),
     path("billing/courier/delete/<int:id>",courier_delete,name="courier_delete"),
     path("billing/create/", create_billing, name="create_billing"),
+    path("billing/invoice/manage",view_cnote,name="view_cnote"),
+    path("export-cnote-excel/",export_cnote_excel, name="export_cnote_excel"),
+    path('billing/allocate_cnote',allocate_cnote,name="allocate_cnote"),
+    path('billing/add_shipment/<int:id>',edit_shipment,name="edit_shipment"),
+    path("add-consignee-ajax/", add_consignee_ajax, name="add_consignee_ajax"),
+    path("billing/add_invoice",create_invoice,name="create_invoice")
 
 ]

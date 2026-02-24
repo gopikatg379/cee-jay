@@ -79,7 +79,7 @@
             <div class="col-md-5 text-md-end mt-4 mt-md-0">
                 <div class="wallet-amount 
                     {% if wallet_balance < 0 %} text-danger {% endif %}">
-                    ₹ {{ wallet_balance|default:0 }}
+                    ₹ {{ wallet_balance|default:0|floatformat:2  }}
                 </div>
                 <small class="wallet-sub">Available Balance</small>
             </div>

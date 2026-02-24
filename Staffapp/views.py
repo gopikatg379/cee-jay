@@ -28,96 +28,11 @@ from django.db.models import Sum, Count, IntegerField,DecimalField, Case, When
 from django.views.decorators.http import require_POST
 from django.views.decorators.csrf import csrf_exempt
 
+
+
 @login_required(login_url='/')
 def dashboard(request):
-    user = request.user
-    if user.role != "ADMIN":
-
-        branch = user.branch
-
-        cnotes = CnoteModel.objects.filter(
-            Q(booking_branch=branch) |
-            Q(delivery_branch=branch)
-        ).exclude(
-            status__iexact="cancelled"
-        )
-
-        commission_data = cnotes.aggregate(
-
-            booking_commission=Sum(
-                Case(
-                    When(
-                        booking_branch=branch,
-                        then=F("booking_commission_amount")
-                    ),
-                    default=Value(0),
-                    output_field=DecimalField()
-                )
-            ),
-
-            delivery_commission=Sum(
-                Case(
-                    When(
-                        delivery_branch=branch,
-                        then=F("delivery_commission_amount")
-                    ),
-                    default=Value(0),
-                    output_field=DecimalField()
-                )
-            )
-        )
-
-        total_commission = (
-            (commission_data["booking_commission"] or 0) +
-            (commission_data["delivery_commission"] or 0)
-        )
-
-        collection_data = cnotes.aggregate(
-
-            paid_collection=Sum(
-                Case(
-                    When(
-                        Q(payment="PAID") &
-                        Q(booking_branch=branch),
-                        then=F("total")
-                    ),
-                    default=Value(0),
-                    output_field=DecimalField()
-                )
-            ),
-
-            topay_collection=Sum(
-                Case(
-                    When(
-                        Q(payment="TOPAY") &
-                        Q(delivery_branch=branch),
-                        then=F("total")
-                    ),
-                    default=Value(0),
-                    output_field=DecimalField()
-                )
-            )
-        )
-
-        total_collection = (
-            (collection_data["paid_collection"] or 0) +
-            (collection_data["topay_collection"] or 0)
-        )
-
-        wallet_balance = total_commission - total_collection
-
-    else:
-
-        wallet_balance = 0
-        total_commission = 0
-        total_collection = 0
-
-    context = {
-        "wallet_balance": wallet_balance,
-        "total_commission": total_commission,
-        "total_collection": total_collection,
-    }
-    return render(request,'dashboard.html',context)
+    return render(request,'dashboard.html')
 
 
 def get_consignor_items(request, consignor_id):
@@ -224,20 +139,7 @@ def calculate_commission(cnote):
         deduction_amount = freight * deduction_percent / 100
         net_freight = freight - deduction_amount
 
-        subtract_booking = False
-
-        if booking_branch.category == "SOUTH":
-            if delivery_branch.category == "NORTH":
-                subtract_booking = True
-
-        elif booking_branch.category == "NORTH":
-            if delivery_branch.category == "SOUTH":
-                subtract_booking = True
-
-        if subtract_booking:
-            base = net_freight - booking_amount
-        else:
-            base = net_freight
+        base = net_freight
         normal_delivery = base * delivery_obj.percentage / 100
 
         rural_extra = 0
