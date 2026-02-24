@@ -15,9 +15,9 @@ def wallet_balance(request):
 
     if user.role == "ADMIN":
         return {
-            "wallet_balance": 0,
-            "total_commission": 0,
-            "total_collection": 0,
+            "wallet_balance": None,
+            "total_commission": None,
+            "total_collection": None,
         }
 
     branch = user.branch

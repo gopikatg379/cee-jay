@@ -234,12 +234,14 @@
                     </ul>
                 </li>
             </ul>
+            {% if not user.is_superuser and user.role != "ADMIN" %}
             <li class="nav-item d-flex align-items-center ms-3">
                 <div class="wallet-box {% if wallet_balance < 0 %} text-danger {% endif %}">
                     <i class="bi bi-wallet2 me-2"></i>
-                    ₹ {{ wallet_balance|default:0|floatformat:2 }}
+                    ₹ {{ wallet_balance|floatformat:2 }}
                 </div>
             </li>
+            {% endif %}
           <div class="d-flex flex-column flex-lg-row align-items-lg-center gap-3 mt-3 mt-lg-0 ms-lg-auto">
             <form class="search-form d-flex me-3 me-lg-4" action="{% url 'cnote_list' %}" method="get">
                 <input class="form-control" name="search" type="search" placeholder="Search LR here..." aria-label="Search">
