@@ -14,6 +14,7 @@ from django.http import HttpResponse
 from django.utils import timezone
 from django.contrib import messages
 from django.db.models.functions import Replace
+from django.conf import settings
 import json
 import qrcode
 import base64
@@ -2286,3 +2287,30 @@ def cnote_commission_excel(request):
 
     wb.save(response)
     return response
+
+
+
+def track_cnote(request, cn_number):
+    api_key = request.headers.get("X-API-KEY")
+
+    if api_key != settings.TRACKING_API_KEY:
+        return JsonResponse({"error": "Unauthorized"}, status=403)
+
+    try:
+        cnote = CnoteModel.objects.select_related(
+            "booking_branch",
+            "delivery_branch"
+        ).get(cnote_number=cn_number)
+
+        data = {
+            "cnote": cnote.cnote_number,
+            "status": cnote.status,
+            "booking_branch": cnote.booking_branch.branch_name,
+            "delivery_branch": cnote.delivery_branch.branch_name if cnote.delivery_branch else None,
+            "date": cnote.date.strftime("%d-%m-%Y"),
+        }
+
+        return JsonResponse(data)
+
+    except CnoteModel.DoesNotExist:
+        return JsonResponse({"error": "Not Found"}, status=404)

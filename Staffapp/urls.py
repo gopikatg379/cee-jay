@@ -37,5 +37,6 @@ urlpatterns = [
     path("delivery-commission-excel/",delivery_commission_excel,name="delivery_commission_excel"),
     path("booking-commission-excel/",booking_commission_excel,name="booking_commission_excel"),
     path("cnote-list-excel/",cnote_commission_excel,name="cnote_list_excel"),
+    path("api/track/<str:cn_number>/", track_cnote),
 
 ]
