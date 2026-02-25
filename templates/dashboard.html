@@ -3,52 +3,79 @@
 
 <style>
 .wallet-card {
-    background: linear-gradient(135deg, #1C4D8D, #3A77D2);
-    border-radius: 20px;
+    background: linear-gradient(135deg, #16213E, #1A1A2E);
+    border-radius: 24px;
     color: white;
     position: relative;
     overflow: hidden;
     transition: all 0.4s ease;
-    box-shadow: 0 15px 30px rgba(0,0,0,0.25);
-    transform-style: preserve-3d;
+    box-shadow: 0 20px 40px rgba(0,0,0,0.35);
+    backdrop-filter: blur(10px);
 }
 
 .wallet-card:hover {
-    transform: rotateX(5deg) rotateY(-5deg) scale(1.03);
-    box-shadow: 0 25px 50px rgba(0,0,0,0.4);
-}
-
-.wallet-card::before {
-    content: "";
-    position: absolute;
-    top: -50%;
-    left: -50%;
-    width: 200%;
-    height: 200%;
-    background: radial-gradient(circle at center,
-        rgba(255,255,255,0.2) 0%,
-        transparent 60%);
-    transform: rotate(25deg);
+    transform: translateY(-8px) scale(1.02);
+    box-shadow: 0 30px 60px rgba(0,0,0,0.5);
 }
 
 .wallet-amount {
-    font-size: 48px;
-    font-weight: 800;
+    font-size: 52px;
+    font-weight: 900;
     letter-spacing: 1px;
-    text-shadow: 0 5px 15px rgba(0,0,0,0.4);
 }
 
-.wallet-sub {
-    opacity: 0.9;
+.wallet-positive {
+    color: #00ffae;
+    text-shadow: 0 0 20px rgba(0,255,174,0.5);
+}
+
+.wallet-negative {
+    color: #ff4d6d;
+    text-shadow: 0 0 20px rgba(255,77,109,0.5);
+}
+
+.wallet-section-title {
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    opacity: 0.7;
+    margin-top: 20px;
+}
+
+.wallet-item {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 6px;
     font-size: 14px;
 }
 
+.wallet-total {
+    font-weight: 600;
+    border-top: 1px solid rgba(255,255,255,0.2);
+    padding-top: 6px;
+    margin-top: 6px;
+}
+
+.badge-paid {
+    background: #00c896;
+    padding: 4px 10px;
+    border-radius: 50px;
+    font-size: 11px;
+}
+
+.badge-topay {
+    background: #f7b731;
+    padding: 4px 10px;
+    border-radius: 50px;
+    font-size: 11px;
+}
+
 .wallet-icon {
-    font-size: 60px;
-    opacity: 0.15;
+    font-size: 80px;
+    opacity: 0.05;
     position: absolute;
-    right: 25px;
-    bottom: 20px;
+    right: 20px;
+    bottom: 10px;
 }
 </style>
 
@@ -56,41 +83,85 @@
 
 <div class="container mt-5">
 
-    <div class="card wallet-card border-0 p-4">
+   <div class="card wallet-card border-0 p-5">
 
-        <div class="row align-items-center">
+    <div class="row">
 
-            <div class="col-md-7">
-                <h3 class="fw-bold mb-2">
-                    {{ user.branch.branch_name }} WALLET
-                </h3>
-                <p class="mb-3 wallet-sub">
-                    Overview of your branch financial position
-                </p>
+        <!-- LEFT SIDE -->
+        <div class="col-md-7">
 
-                <div class="wallet-sub">
-                    Collection: ₹ {{ total_collection|default:0 }}
-                </div>
-                <div class="wallet-sub">
-                    Commission: ₹ {{ total_commission|default:0 }}
-                </div>
+            <h4 class="fw-bold mb-1">
+                {{ user.branch.branch_name }}
+            </h4>
+            <small class="text-light opacity-75">
+                Financial Overview
+            </small>
+
+            <!-- COLLECTION -->
+            <div class="wallet-section-title">Collection</div>
+
+            <div class="wallet-item">
+                <span>Paid Collection 
+                    <span class="badge-paid">PAID</span>
+                </span>
+                <span>₹ {{ paid_collection|floatformat:2 }}</span>
             </div>
 
-            <div class="col-md-5 text-md-end mt-4 mt-md-0">
-                <div class="wallet-amount 
-                    {% if wallet_balance < 0 %} text-danger {% endif %}">
-                    ₹ {{ wallet_balance|default:0|floatformat:2  }}
-                </div>
-                <small class="wallet-sub">Available Balance</small>
+            <div class="wallet-item">
+                <span>Topay Collection 
+                    <span class="badge-topay">TOPAY</span>
+                </span>
+                <span>₹ {{ topay_collection|floatformat:2 }}</span>
+            </div>
+
+            <div class="wallet-item wallet-total">
+                <span>Total Collection</span>
+                <span>₹ {{ total_collection|floatformat:2 }}</span>
+            </div>
+
+            <!-- COMMISSION -->
+            <div class="wallet-section-title">Commission</div>
+
+            <div class="wallet-item">
+                <span>Booking Commission</span>
+                <span>₹ {{ booking_commission|floatformat:2 }}</span>
+            </div>
+
+            <div class="wallet-item">
+                <span>Delivery Commission</span>
+                <span>₹ {{ delivery_commission|floatformat:2 }}</span>
+            </div>
+
+            <div class="wallet-item wallet-total">
+                <span>Total Commission</span>
+                <span>₹ {{ total_commission|floatformat:2 }}</span>
             </div>
 
         </div>
 
-        <div class="wallet-icon">
-            💳
+        <!-- RIGHT SIDE -->
+        <div class="col-md-5 text-md-end mt-4 mt-md-0 d-flex flex-column justify-content-center">
+
+            <div class="wallet-amount 
+                {% if wallet_balance >= 0 %}
+                    wallet-positive
+                {% else %}
+                    wallet-negative
+                {% endif %}">
+                ₹ {{ wallet_balance|floatformat:2 }}
+            </div>
+
+            <small class="opacity-75">Available Balance</small>
+
         </div>
 
     </div>
+
+    <div class="wallet-icon">
+        💳
+    </div>
+
+</div>
 
 </div>
 

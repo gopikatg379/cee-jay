@@ -83,6 +83,12 @@ def wallet_balance(request):
 
     return {
         "wallet_balance": wallet_balance,
+
+        "booking_commission": commission_data["booking_commission"] or 0,
+        "delivery_commission": commission_data["delivery_commission"] or 0,
         "total_commission": total_commission,
+
+        "paid_collection": collection_data["paid_collection"] or 0,
+        "topay_collection": collection_data["topay_collection"] or 0,
         "total_collection": total_collection,
     }

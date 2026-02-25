@@ -64,6 +64,19 @@
 .suggestion-item:hover {
     background: #f1f1f1;
 }
+.commission-breakdown {
+    font-size: 12px;
+    background: #f8f9fa;
+    padding: 8px 10px;
+    margin-top: 6px;
+    border-left: 3px solid #0d6efd;
+    border-radius: 4px;
+    line-height: 1.5;
+}
+
+.commission-breakdown span {
+    display: block;
+}
 @media (max-width: 992px) {
     .cee-form-row {
         grid-template-columns: repeat(3, 1fr);
@@ -281,10 +294,6 @@
     </div>
     <div class="cee-form-row">
 
-    <!-- Remarks (Reduced Width) -->
-    
-
-    <!-- Delivery Type -->
     <div class="cee-form-group">
         <label>Delivery Type</label>
         <select name="delivery_type" required>
@@ -306,7 +315,7 @@
                value="{{ cnote.delivery_branch.branch_id|default:'' }}">
     </div>
 
-    <!-- Booking Commission -->
+
     <div class="cee-form-group">
         <label>Booking %</label>
         <input type="text"
@@ -314,18 +323,20 @@
                class="form-control bg-light"
                style="width: 200px;"
                readonly>
+        <div id="booking-breakdown" class="commission-breakdown"></div>
     </div>
 
-    <!-- Delivery Commission -->
     <div class="cee-form-group">
         <label>Delivery %</label>
         <input type="text"
                id="delivery-commission-percent"
                class="form-control bg-light"
+               style="width: 450px;"
                readonly>
+        <div id="delivery-breakdown" class="commission-breakdown"></div>
     </div>
 
-    <!-- Deduction -->
+
     <div class="cee-form-group">
         <label>Deduction %</label>
         <input type="text"
@@ -427,12 +438,11 @@ document.addEventListener("DOMContentLoaded", function () {
 
     if (bookingField) {
 
-        // If admin changes branch
+
         bookingField.addEventListener("change", function () {
             setCompanyFromBranch(this.value);
         });
 
-        // On page load (important for edit / non-admin)
         if (bookingField.value) {
             setCompanyFromBranch(bookingField.value);
         }
@@ -634,7 +644,7 @@ function setCompanyFromBranch(branchId) {
 
                 document.getElementById("company-id").value = data.company_id;
 
-                // If location already selected, reload delivery branch
+
                 let locationId = document.getElementById("location-id").value;
                 if (locationId) {
                     loadBranchByLocation(locationId);
@@ -691,22 +701,37 @@ function fetchCommissionPercentages() {
             const lrCommission = lrCharge * lrPercent / 100;
             const bookingAmount = (freightCommission + lrCommission).toFixed(2);
 
-            let deliveryAmount = (freight * deliveryPercent / 100);
-            if (ruralPercent > 0) {
-                deliveryAmount += freight * ruralPercent / 100;
-            }
+            const deductionAmount = freight * deductionPercent / 100;
+            const netFreight = freight - deductionAmount;
 
-            deliveryAmount = deliveryAmount.toFixed(2);
-            const deductionAmount = (freight * deductionPercent / 100).toFixed(2);
+            const normalDelivery = netFreight * deliveryPercent / 100;
+
+            const ruralExtra = netFreight * ruralPercent / 100;
+            const finalDeliveryAmount = (normalDelivery + ruralExtra).toFixed(2);
 
             document.getElementById("booking-commission-percent").value =
                 `${bookingAmount} (Frt ${freightPercent}% + LR ${lrPercent}%)`;
 
             document.getElementById("delivery-commission-percent").value =
-                `${deliveryAmount} (${deliveryPercent} %+Rural${ruralPercent}%)`;
+                `${finalDeliveryAmount} (${deliveryPercent}% + Rural ${ruralPercent}% After Deduction)`;
 
             document.getElementById("deduction-percent").value =
-                `${deductionAmount} (${deductionPercent} %)`;
+                `${deductionAmount.toFixed(2)} (${deductionPercent}%)`;
+            document.getElementById("booking-breakdown").innerHTML = `
+                <span>Freight: ${freight.toFixed(2)}</span>
+                <span>Freight Commission (${freightPercent}%): ${(freight * freightPercent / 100).toFixed(2)}</span>
+                <span>LR Charge: ${lrCharge.toFixed(2)}</span>
+                <span>LR Commission (${lrPercent}%): ${(lrCharge * lrPercent / 100).toFixed(2)}</span>
+                <strong>Total Booking Commission: ${bookingAmount}</strong>
+            `;
+            document.getElementById("delivery-breakdown").innerHTML = `
+                <span>Freight: ${freight.toFixed(2)}</span>
+                <span>Deduction (${deductionPercent}%): ${deductionAmount.toFixed(2)}</span>
+                <span>Net Freight: ${netFreight.toFixed(2)}</span>
+                <span>Delivery (${deliveryPercent}%): ${(normalDelivery).toFixed(2)}</span>
+                <span>Rural (${ruralPercent}%): ${(ruralExtra).toFixed(2)}</span>
+                <strong>Total Delivery Commission: ${finalDeliveryAmount}</strong>
+            `;
         });
 }
 

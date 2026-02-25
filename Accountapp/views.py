@@ -489,7 +489,7 @@ def allocate_cnote(request):
                         other_charge=0,
                         status=CourierShipment.ALLOCATE
                     )
-            print("success")
+
             messages.success(request, "CNotes Allocated Successfully")
             return redirect("allocate_cnote")
 
@@ -509,7 +509,6 @@ def edit_shipment(request, id):
     consignors = BillingConsignor.objects.all()
     consignees = BillingConsignee.objects.all()
     if request.method == "POST":
-        print(request.POST)
         shipment.consignor_id = request.POST.get('consignor')
         shipment.consignee_id = request.POST.get('consignee')
         shipment.booking_date = request.POST.get("booking_date")

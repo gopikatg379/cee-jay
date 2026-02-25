@@ -288,7 +288,6 @@ def branch_manage_view(request, branch_id=None):
         mode = 'edit'
     
     if request.method == 'POST':
-        print(request.POST)
         company_id = request.POST['company']
         company=Company.objects.get(comp_id=company_id)
         branch_name = request.POST['branch_name']
@@ -321,9 +320,7 @@ def branch_manage_view(request, branch_id=None):
             branch = Branch(company = company,branch_name = branch_name,branch_shortname = branch_shortname,
                             branch_type = branch_type,branch_phone = phone,branch_email = branch_email,broker = broker,branch_address = branch_address,
                             services = services,category = category,branch_is_active = is_active)
-            print("statred to saving..")
             branch.save()
-            print("saved")
             return redirect('branch_manage')
     context = {
         'user':user,
@@ -884,7 +881,6 @@ def consignor_quotation(request, consignor_id):
             for key, value in request.POST.items():
                 if not key.startswith("rate__"):
                     continue
-                print(f"Processing: {key} = {value}")
                 try:
                     _, loc_id_str, item_id_str = key.split("__")
                     location_id = int(loc_id_str)
@@ -897,7 +893,6 @@ def consignor_quotation(request, consignor_id):
                     rate = float(rate_str)
                     if rate < 0:
                         continue 
-                    print(rate)
                     location = Location.objects.get(location_id=location_id)
                     item = Item.objects.get(item_id=item_id)
 

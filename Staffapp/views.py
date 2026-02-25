@@ -76,9 +76,7 @@ def get_company_by_branch(request, branch_id):
 def get_branch_by_location(request, location_id, company_id):
     try:
         location = Location.objects.get(location_id=location_id)
-        print(location)
         branches = location.branch.filter(company__comp_id=company_id)
-        print(branches)
         data = [
             {
                 "branch_id": b.branch_id,
@@ -86,7 +84,6 @@ def get_branch_by_location(request, location_id, company_id):
             }
             for b in branches
         ]
-        print(data)
         return JsonResponse({"branches": data})
 
     except Location.DoesNotExist:
@@ -792,7 +789,6 @@ def manifest_manage(request):
     page_obj = paginator.get_page(request.GET.get('page'))
 
     if request.method == "POST":
-        print(request.POST)
         cnote_ids = request.POST.getlist("cnotes[]")
         driver_id = request.POST.get("driver")
         vehicle_id = request.POST.get("vehicle")
@@ -1641,7 +1637,9 @@ def booking_commission_report(request):
         "delivery_branch"
     ).filter(
         date__range=(from_date, to_date)
-    ) 
+    ).exclude(
+        status=CnoteModel.STATUS_CANCEL
+    )
     if user.role == "ADMIN":
         branches = Branch.objects.filter(branch_is_active=True)
         if branch_id and branch_id != "all":
@@ -1864,7 +1862,10 @@ def delivery_commission_report(request):
         "booking_branch",
         "delivery_branch"
     ).filter(
-        date__range=(from_date, to_date)
+        date__range=(from_date, to_date),
+        delivery_branch__isnull=False
+    ).exclude(
+        status=CnoteModel.STATUS_CANCEL
     )
 
     if user.role == "ADMIN":
@@ -1885,18 +1886,16 @@ def delivery_commission_report(request):
         branches = Branch.objects.filter(branch_is_active=True)
 
         if branch_id and branch_id != "all":
-            cnotes = cnotes.filter(booking_branch_id=branch_id)
+            cnotes = cnotes.filter(delivery_branch_id=branch_id)
 
         branch_summary = (
             cnotes
-            .values("booking_branch__branch_name","booking_branch_id")
+            .values("delivery_branch__branch_name","delivery_branch_id")
             .annotate(
-
                 paid_collection=Sum(
                     Case(
                         When(
-                            Q(payment="PAID") &
-                            Q(booking_branch_id=F("booking_branch_id")),
+                            payment="PAID",
                             then=F("total")
                         ),
                         default=Value(0),
@@ -1907,29 +1906,23 @@ def delivery_commission_report(request):
                 topay_collection=Sum(
                     Case(
                         When(
-                            Q(payment="TOPAY") &
-                            Q(delivery_branch_id=F("booking_branch_id")),
+                            payment="TOPAY",
                             then=F("total")
                         ),
                         default=Value(0),
                         output_field=DecimalField()
                     )
                 ),
-
-                total_commission=Sum(
-                    F("booking_commission_amount") +
-                    F("delivery_commission_amount")
-                )
+                total_commission=Sum("delivery_commission_amount")
             )
-            .order_by("booking_branch__branch_name")
+            .order_by("delivery_branch__branch_name")
         )
-
         graph_labels = []
         collection_data = []
         commission_data = []
 
         for row in branch_summary:
-            graph_labels.append(row["booking_branch__branch_name"])
+            graph_labels.append(row["delivery_branch__branch_name"])
 
             collection_total = (row["paid_collection"] or 0) + (row["topay_collection"] or 0)
             collection_data.append(float(collection_total))
@@ -1962,6 +1955,7 @@ def delivery_commission_report(request):
                         output_field=DecimalField()
                     )
                 ),
+
                 topay_collection=Sum(
                     Case(
                         When(
@@ -1974,10 +1968,7 @@ def delivery_commission_report(request):
                     )
                 ),
 
-                total_commission=Sum(
-                    F("booking_commission_amount") +
-                    F("delivery_commission_amount")
-                )
+                total_commission=Sum("delivery_commission_amount")
             )
             .order_by("date")
         )
