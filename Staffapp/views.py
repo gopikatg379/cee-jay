@@ -2291,8 +2291,9 @@ def cnote_commission_excel(request):
 
 
 def track_cnote(request, cn_number):
-    api_key = request.headers.get("X-API-KEY")
-
+    api_key = request.META.get("HTTP_X_API_KEY")
+    print("Received API key:", api_key)
+    print("Expected API key:", settings.TRACKING_API_KEY)
     if api_key != settings.TRACKING_API_KEY:
         return JsonResponse({"error": "Unauthorized"}, status=403)
 
