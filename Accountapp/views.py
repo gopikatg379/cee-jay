@@ -616,11 +616,13 @@ def create_invoice(request):
         selected_cnotes = request.POST.getlist("cnotes")
 
         if invoice_number and invoice_date and customer_id and selected_cnotes:
+            customer = BillingConsignor.objects.get(billing_consignor_id=customer_id)
 
             invoice = Invoice.objects.create(
                 invoice_number=invoice_number,
                 invoice_date=invoice_date,
-                customer_id=customer_id
+                customer_id=customer_id,
+                invoiced_by=request.user.username
             )
 
             for item in selected_cnotes:
@@ -638,7 +640,10 @@ def create_invoice(request):
                     billing.status = CnoteBilling.INV_INVOICED
                     billing.save()
 
-            return redirect("accounts_dashboard")
+            total = invoice.total_amount()
+            invoice.save()
+            invoice.create_accounting_entry()
+            return redirect("view_invoice")
 
     context = {
         'customers': credit_customers,
@@ -652,3 +657,43 @@ def create_invoice(request):
     }
 
     return render(request, "accounts/create_invoice.html", context)
+
+def invoice_list(request):
+
+    invoices = Invoice.objects.select_related('customer').all().order_by('-invoice_date')
+
+    invoice_data = []
+    for inv in invoices:
+        type = inv.customer.billing_consignor_gsttype
+        cgst = inv.cgst or 0
+        sgst = inv.sgst or 0
+        igst = inv.igst or 0
+        round_off = inv.roundoff or 0
+        total = inv.total_amount()
+        taxable_value = total - (cgst + sgst + igst)
+        if round_off<=0.5:
+            total = total+round_off
+        else:
+            total = total-round_off
+        if type == "REVERSE":
+            taxable_value = total
+        invoice_data.append({
+            'id': inv.id,
+            'invoice_number': inv.invoice_number,
+            'invoice_date': inv.invoice_date,
+            'customer': inv.customer.billing_consignor_name,
+            'type': type,
+            'cgst': cgst,
+            'sgst': sgst,
+            'igst': igst,
+            'roundoff':round_off,
+            'taxable_value': taxable_value,
+            'total_amount': total,
+        })
+
+    context = {
+        'invoices': invoice_data,
+        'today': timezone.now().date()
+    }
+
+    return render(request, "accounts/invoice_list.html", context)

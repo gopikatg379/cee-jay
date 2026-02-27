@@ -1,0 +1,46 @@
+{% extends "accounts/accounts_base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>Invoice List</h2>
+
+    <table class="table table-bordered table-striped mt-3">
+        <thead class="table-dark">
+            <tr>
+                <th>#</th>
+                <th>Invoice Number</th>
+                <th>Date</th>
+                <th>Customer</th>
+                <th>Type</th>
+                <th>Taxable</th>
+                <th>CGST</th>
+                <th>SGST</th>
+                <th>IGST</th>
+                <th>Roundoff</th>
+                <th>Total Amount</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for inv in invoices %}
+            <tr>
+                <td>{{ forloop.counter }}</td>
+                <td>{{ inv.invoice_number }}</td>
+                <td>{{ inv.invoice_date|date:"d-m-Y" }}</td>
+                <td>{{ inv.customer }}</td>
+                <td>{{ inv.type }}</td>
+                <td>{{ inv.taxable_value }}</td>
+                <td>{{ inv.cgst|floatformat:2 }}</td>
+                <td>{{ inv.sgst|floatformat:2 }}</td>
+                <td>{{ inv.igst|floatformat:2 }}</td>
+                <td>{{inv.roundoff}}</td>
+                <td>{{ inv.total_amount|floatformat:2 }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="9" class="text-center">No invoices found.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

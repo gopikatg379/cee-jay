@@ -1,0 +1,98 @@
+{% extends 'accounts/accounts_base.html' %}
+{% block content %}
+<div class="cee-manage-broker-wrapper">
+    <div class="cee-manage-header">
+        <h4>Profit & Loss Account</h4>
+    </div>
+
+    <div class="card shadow-sm p-3">
+
+
+        <div class="row">
+    <!-- Expenses Column -->
+    <div class="col-md-6">
+        <h5 class="mb-2">Expenses</h5>
+        <table class="table table-bordered table-hover align-middle">
+            <thead class="custom-thead">
+                <tr>
+                    <th class="text-center text-white">Particulars</th>
+                    <th class="text-center text-white">Amount</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for group in expense_data %}
+                <tr class="fw-bold table-secondary toggle-row" data-target="expense{{ forloop.counter }}">
+                    <td>{{ group.group_name }}</td>
+                    <td class="text-end">{{ group.group_total|floatformat:2 }}</td>
+                </tr>
+                {% for ledger in group.ledgers %}
+                <tr class="expense{{ forloop.parentloop.counter }} d-none ledger-row" data-ledger-id="{{ ledger.id }}">
+                    <td class="ps-4">
+                        <a href="{% url 'ledger_page' ledger.id %}">↳ {{ ledger.ledger_name }}</a>
+                    </td>
+                    <td class="text-end">{{ ledger.amount|floatformat:2 }}</td>
+                </tr>
+                {% endfor %}
+                {% endfor %}
+                <tr class="fw-bold">
+                    <td>Total Expense</td>
+                    <td class="text-end">{{ total_expense|floatformat:2 }}</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Income Column -->
+    <div class="col-md-6">
+        <h5 class="mb-2">Income</h5>
+        <table class="table table-bordered table-hover align-middle">
+            <thead class="custom-thead">
+                <tr>
+                    <th class="text-center text-white">Particulars</th>
+                    <th class="text-center text-white">Amount</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for group in income_data %}
+                <tr class="fw-bold table-secondary toggle-row" data-target="income{{ forloop.counter }}">
+                    <td>{{ group.group_name }}</td>
+                    <td class="text-end">{{ group.group_total|floatformat:2 }}</td>
+                </tr>
+                {% for ledger in group.ledgers %}
+                <tr class="income{{ forloop.parentloop.counter }} d-none ledger-row" data-ledger-id="{{ ledger.id }}">
+                    <td class="ps-4">
+                        <a href="{% url 'ledger_page' ledger.id %}">↳ {{ ledger.ledger_name }}</a>
+                    </td>
+                    <td class="text-end">{{ ledger.amount|floatformat:2 }}</td>
+                </tr>
+                {% endfor %}
+                {% endfor %}
+                <tr class="fw-bold">
+                    <td>Total Income</td>
+                    <td class="text-end">{{ total_income|floatformat:2 }}</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+        </div>
+
+        <div class="mt-3 text-end">
+            <h5>Net Profit: <span class="fw-bold">{{ net_profit|floatformat:2 }}</span></h5>
+        </div>
+
+
+    </div>
+</div>
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    document.querySelectorAll(".toggle-row").forEach(function(row) {
+        row.addEventListener("click", function() {
+            let target = this.getAttribute("data-target");
+            document.querySelectorAll("." + target).forEach(function(el) {
+                el.classList.toggle("d-none");
+            });
+        });
+    });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,223 @@
+{% extends "accounts/accounts_base.html" %}
+{% block content %}
+
+<div class="cee-manage-broker-wrapper">
+    <div class="cee-manage-header">
+        <h4>Add Accounting Voucher</h4>
+    </div>
+
+    <div class="card shadow-sm p-4">
+
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-danger">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+
+        <form method="POST">
+            {% csrf_token %}
+
+            <div class="d-flex justify-content-between mb-3">
+                <div style="width:50%;">
+                    <label class="form-label">Voucher Type</label>
+                    <select name="voucher_type" id="voucher_type" class="form-select" required>
+                        <option value="Payment">Payment</option>
+                        <option value="Receipt">Receipt</option>
+                        <option value="Contra">Contra</option>
+                        <option value="Journal">Journal</option>
+                    </select>
+                </div>
+
+                <div style="width:30%;">
+                    <label class="form-label">Date</label>
+                    <input type="date" name="date" class="form-control" required>
+                </div>
+            </div>
+
+            <hr>
+
+            <!-- From Ledger -->
+            <div class="mb-3" id="from_section">
+                <label class="form-label" id="from_label">
+                    From Ledger
+                </label>
+                <select name="from_ledger" class="form-select" required>
+                    {% for ledger in ledgers %}
+                    <option value="{{ ledger.id }}">{{ ledger.ledger_name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <hr>
+
+            <!-- Particulars Section -->
+            <div id="normal_section">
+
+                <div class="row mb-2">
+                    <div class="col-md-8">
+                        <label class="form-label" id="to_label">
+                            To Ledger
+                        </label>
+                        <select name="to_ledger" class="form-select" required>
+                            {% for ledger in ledgers %}
+                            <option value="{{ ledger.id }}">{{ ledger.ledger_name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="col-md-4 text-end">
+                        <label class="form-label">Amount</label>
+                        <input type="number" step="0.01" name="amount" class="form-control text-end" required>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Journal Section -->
+            <div id="journal_section" style="display:none;">
+
+    <!-- Header -->
+    <div class="row mb-2 fw-bold">
+        <div class="col-md-6">Particulars</div>
+        <div class="col-md-3 text-end">Debit</div>
+        <div class="col-md-3 text-end">Credit</div>
+    </div>
+
+    <div id="journal_rows">
+
+        <!-- First Row -->
+        <div class="row mb-2 journal-row">
+            <div class="col-md-6">
+                <select name="ledger[]" class="form-select">
+                    {% for ledger in ledgers %}
+                    <option value="{{ ledger.id }}">{{ ledger.ledger_name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="col-md-3">
+                <input type="number" step="0.01" name="debit[]" class="form-control text-end debit-field" >
+            </div>
+
+            <div class="col-md-3">
+                <input type="number" step="0.01" name="credit[]" class="form-control text-end credit-field">
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Add Row Button -->
+    <div class="mb-3">
+        <button type="button" class="btn btn-sm btn-secondary" onclick="addJournalRow()">
+            + Add Row
+        </button>
+    </div>
+
+    <hr>
+
+    <!-- Totals -->
+    <div class="row fw-bold">
+        <div class="col-md-6 text-end">Total</div>
+        <div class="col-md-3 text-end" id="total_debit">0.00</div>
+        <div class="col-md-3 text-end" id="total_credit">0.00</div>
+    </div>
+
+</div>
+
+            <hr>
+            <div class="mb-3">
+                <label class="form-label">Remarks</label>
+                <input type="text" name="remarks" class="form-control" placeholder="Enter remarks (optional)">
+            </div>
+
+            <hr>
+            
+            <div class="text-end">
+                <button type="submit" class="btn btn-success">
+                    Save
+                </button>
+            </div>
+
+        </form>
+
+    </div>
+</div>
+<script>
+const voucherSelect = document.getElementById("voucher_type");
+const normalSection = document.getElementById("normal_section");
+const journalSection = document.getElementById("journal_section");
+const fromLabel = document.getElementById("from_label");
+const toLabel = document.getElementById("to_label");
+const amountField = document.querySelector("input[name='amount']");
+function adjustLayout() {
+    const type = voucherSelect.value;
+
+    if (type === "Journal") {
+        normalSection.style.display = "none";
+        journalSection.style.display = "block";
+        document.getElementById("from_section").style.display = "none";
+        amountField.required = false;
+    } else {
+        normalSection.style.display = "block";
+        journalSection.style.display = "none";
+        document.getElementById("from_section").style.display = "block";
+        amountField.required = true; 
+        if (type === "Payment") {
+            fromLabel.innerText = "By (Cash/Bank)";
+            toLabel.innerText = "To (Expense / Party)";
+        }
+        else if (type === "Receipt") {
+            fromLabel.innerText = "To (Cash/Bank)";
+            toLabel.innerText = "By (Party / Income)";
+        }
+        else if (type === "Contra") {
+            fromLabel.innerText = "From Ledger";
+            toLabel.innerText = "To Ledger";
+        }
+    }
+}
+
+voucherSelect.addEventListener("change", adjustLayout);
+window.addEventListener("load", adjustLayout);
+</script>
+<script>
+
+function addJournalRow() {
+    const container = document.getElementById("journal_rows");
+    const firstRow = document.querySelector(".journal-row");
+    const newRow = firstRow.cloneNode(true);
+
+    newRow.querySelectorAll("input").forEach(input => input.value = "");
+
+    container.appendChild(newRow);
+    attachEvents();
+}
+
+function calculateTotals() {
+    let totalDebit = 0;
+    let totalCredit = 0;
+
+    document.querySelectorAll(".debit-field").forEach(input => {
+        totalDebit += parseFloat(input.value) || 0;
+    });
+
+    document.querySelectorAll(".credit-field").forEach(input => {
+        totalCredit += parseFloat(input.value) || 0;
+    });
+
+    document.getElementById("total_debit").innerText = totalDebit.toFixed(2);
+    document.getElementById("total_credit").innerText = totalCredit.toFixed(2);
+}
+
+function attachEvents() {
+    document.querySelectorAll(".debit-field, .credit-field")
+        .forEach(input => {
+            input.removeEventListener("input", calculateTotals);
+            input.addEventListener("input", calculateTotals);
+        });
+}
+
+attachEvents();
+
+</script>
+{% endblock %}

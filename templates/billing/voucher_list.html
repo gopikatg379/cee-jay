@@ -1,0 +1,54 @@
+{% extends "accounts/accounts_base.html" %}
+{% block content %}
+
+<div class="card shadow-sm p-4">
+
+<h4>Voucher List</h4>
+<hr>
+
+{% for voucher in vouchers %}
+    <div class="mb-4 border p-3">
+
+        <div class="d-flex justify-content-between">
+            <strong>{{ voucher.voucher_type }}</strong>
+            <span>{{ voucher.date|date:"d-m-Y" }}</span>
+        </div>
+
+        <hr>
+
+        <table class="table table-sm">
+            <thead>
+                <tr>
+                    <th>Ledger</th>
+                    <th class="text-end">Debit</th>
+                    <th class="text-end">Credit</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for entry in voucher.entries %}
+                <tr>
+                    <td>{{ entry.ledger.ledger_name }}</td>
+                    <td class="text-end">
+                        {% if entry.debit > 0 %}{{ entry.debit }}{% endif %}
+                    </td>
+                    <td class="text-end">
+                        {% if entry.credit > 0 %}{{ entry.credit }}{% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+            <tfoot>
+                <tr class="fw-bold">
+                    <td>Total</td>
+                    <td class="text-end">{{ voucher.total_debit }}</td>
+                    <td class="text-end">{{ voucher.total_credit }}</td>
+                </tr>
+            </tfoot>
+        </table>
+
+    </div>
+{% endfor %}
+
+</div>
+
+{% endblock %}

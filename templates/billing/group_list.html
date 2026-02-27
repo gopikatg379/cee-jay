@@ -1,0 +1,15 @@
+{% extends "accounts/accounts_base.html" %}
+{% block content %}
+<h2>Groups</h2>
+<a href="{% url 'add_group' %}">Add Group</a>
+<table border="1">
+<tr><th>Name</th><th>Under</th></tr>
+{% for group in groups %}
+<tr>
+<td>{{ group.group_name }}</td>
+<td>{{ group.under }}</td>
+
+</tr>
+{% endfor %}
+</table>
+{% endblock %}

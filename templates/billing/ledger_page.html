@@ -1,0 +1,67 @@
+{% extends "accounts/accounts_base.html" %}
+{% block content %}
+
+<div class="container mt-4">
+    <h3>Ledger: {{ ledger.ledger_name }}</h3>
+
+    <!-- Date Range Form -->
+    <form method="get" class="row g-2 mb-3">
+        <div class="col-md-3">
+            <input type="date" name="from_date" value="{{ from_date }}" class="form-control" placeholder="From Date">
+        </div>
+        <div class="col-md-3">
+            <input type="date" name="to_date" value="{{ to_date }}" class="form-control" placeholder="To Date">
+        </div>
+        <div class="col-md-2">
+            <button type="submit" class="btn btn-primary">Filter</button>
+        </div>
+    </form>
+
+    <!-- Ledger Entries Table -->
+    <table class="table table-bordered table-hover">
+    <thead class="table-dark">
+        <tr>
+            <th>Date</th>
+            <th>Customer</th>
+            <th class="text-end">Debit</th>
+            <th class="text-end">Credit</th>
+            <th>Invoice No</th>
+            <th>Remarks</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for entry in entries %}
+        <tr>
+            <td>{{ entry.date|date:"d-m-Y" }}</td>
+            <td>{{entry.invoice.customer.billing_consignor_name}}</td>
+            <td class="text-end">{{ entry.debit|floatformat:2 }}</td>
+            <td class="text-end">{{ entry.credit|floatformat:2 }}</td>
+            <td>
+                {% if entry.invoice %}
+                    {{ entry.invoice.invoice_number }}
+                {% else %}
+                    N/A
+                {% endif %}
+            </td>
+            <td>{{ entry.remarks }}</td>
+        </tr>
+        {% empty %}
+        <tr>
+            <td colspan="6" class="text-center">No entries found</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+    <tfoot class="fw-bold">
+        <tr>
+            <td>Total</td>
+            <td class="text-end">{{ total_debit|floatformat:2 }}</td>
+            <td class="text-end">{{ total_credit|floatformat:2 }}</td>
+            <td></td>
+            <td></td>
+            <td></td>
+        </tr>
+    </tfoot>
+</table>
+</div>
+
+{% endblock %}

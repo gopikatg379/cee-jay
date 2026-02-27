@@ -1,0 +1,68 @@
+{% extends "accounts/accounts_base.html" %}
+{% block content %}
+
+<div class="cee-manage-broker-wrapper">
+    <div class="cee-manage-header">
+        <h4>Ledgers</h4>
+    </div>
+
+    <div class="card shadow-sm p-3 mb-3">
+        <div class="text-end mb-3">
+            <a href="{% url 'add_ledger' %}" class="btn btn-primary">
+                <i class="bi bi-plus-circle"></i> Add Ledger
+            </a>
+        </div>
+
+        <div class="table-wrapper">
+            <table class="table table-bordered table-hover align-middle">
+                <thead class="custom-thead">
+                    <tr>
+                        <th class="text-center">Name</th>
+                        <th class="text-center">Type</th>
+                        <th class="text-center">Opening Balance</th>
+                        <th class="text-center">Current Balance</th>
+                        <th class="text-center">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in ledger_data %}
+                    <tr style="cursor:pointer;">
+                        <td>{{ item.ledger.ledger_name }}</td>
+                        <td>{{ item.ledger.group.group_name }}</td>
+                        <td class="text-end">{{ item.ledger.opening_balance|floatformat:2 }}</td>
+                        <td class="text-end">{{ item.current_balance|floatformat:2 }}</td>
+                        <td class="text-center">
+                            <a href="{% url 'ledger_delete' item.ledger.id %}" class="btn btn-danger btn-sm">Delete</a>
+                        </td>
+                    </tr>
+                    <tr class="collapse" id="ledger-{{ item.ledger.id }}">
+                        <td colspan="5">
+                            <table class="table table-sm table-bordered mb-0">
+                                <thead>
+                                    <tr class="table-secondary">
+                                        <th>Date</th>
+                                        <th>Debit</th>
+                                        <th>Credit</th>
+                                        <th>Balance</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for t in item.transactions %}
+                                    <tr>
+                                        <td>{{ t.date|date:"d-m-Y" }}</td>
+                                        <td class="text-end">{{ t.debit|floatformat:2 }}</td>
+                                        <td class="text-end">{{ t.credit|floatformat:2 }}</td>
+                                        <td class="text-end">{{ t.balance|floatformat:2 }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Payments</title>
+    <style>
+        table { border-collapse: collapse; width: 100%; margin-top: 20px; }
+        th, td { border: 1px solid #333; padding: 8px; text-align: left; }
+        th { background-color: #f2f2f2; }
+        a { text-decoration: none; color: blue; }
+        h2 { margin-top: 20px; }
+        .add-btn { margin-top: 10px; display: inline-block; padding: 5px 10px; background: #4CAF50; color: white; border-radius: 3px; }
+    </style>
+</head>
+<body>
+    <h2>Payments</h2>
+    <a href="{% url 'add_payment' %}" class="add-btn">Add Payment</a>
+    <table>
+        <tr>
+            <th>Ledger</th>
+            <th>Type</th>
+            <th>Amount</th>
+            <th>Date</th>
+            <th>Mode</th>
+            <th>Remarks</th>
+        </tr>
+        {% for payment in payments %}
+        <tr>
+            <td>{{ payment.ledger.name }}</td>
+            <td>{{ payment.payment_type }}</td>
+            <td>{{ payment.amount }}</td>
+            <td>{{ payment.date }}</td>
+            <td>{{ payment.mode }}</td>
+            <td>{{ payment.remarks }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+</body>
+</html>

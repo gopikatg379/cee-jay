@@ -1,0 +1,32 @@
+<!-- group_ledgers.html -->
+{% extends 'accounts/accounts_base.html' %}
+{% block content %}
+<div class="cee-manage-broker-wrapper">
+    <div class="cee-manage-header">
+        <h4>{{ group.group_name }} - Ledgers</h4>
+    </div>
+
+    <div class="card shadow-sm p-3">
+        <table class="table table-bordered table-hover align-middle">
+            <thead class="custom-thead">
+                <tr>
+                    <th>Ledger Name</th>
+                    <th class="text-end">Amount</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in ledger_data %}
+                <tr>
+                    <td>{{ row.name }}</td>
+                    <td class="text-end">{{ row.amount|floatformat:2 }}</td>
+                </tr>
+                {% endfor %}
+                <tr class="fw-bold">
+                    <td>Total</td>
+                    <td class="text-end">{{ total_amount|floatformat:2 }}</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

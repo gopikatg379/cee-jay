@@ -1,0 +1,7 @@
+{% extends "accounts/accounts_base.html" %}
+{% block content %}
+<h2>{{ ledger.name }} Balance</h2>
+<p>Opening Balance: {{ ledger.opening_balance }}</p>
+<p>Current Balance: {{ balance }}</p>
+<a href="{% url 'ledger_list' %}">Back</a>
+{% endblock %}

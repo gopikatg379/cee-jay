@@ -72,9 +72,9 @@
                         <label>GST Type <span style="color:red;">*</span></label>
                         <select name="gst_type" required>
                             <option value="STATEMENT"  {% if shipper.billing_consignor_gsttype == 'STATEMENT' %}selected{% endif %}>Statement</option>
-                            <option value="REVERSE TAX INVOICE(5%)" {% if shipper.billing_consignor_gsttype == 'REVERSE TAX INVOICE(5%)' %}selected{% endif %}>Reverse Tax Invoice(5%)</option>
-                            <option value="REGULAR TAX INVOICE(18%)" {% if shipper.billing_consignor_gsttype == 'REGULAR TAX INVOICE(18%)' %}selected{% endif %}>Regular Tax Invoice(18%)</option>
-                            <option value="IGST TAX INVOICE(18%)" {% if shipper.billing_consignor_gsttype == 'IGST TAX INVOICE(18%)' %}selected{% endif %}>IGST Tax Invoice(18%)</option>
+                            <option value="REVERSE" {% if shipper.billing_consignor_gsttype == 'REVERSE' %}selected{% endif %}>Reverse Tax Invoice(5%)</option>
+                            <option value="REGULAR" {% if shipper.billing_consignor_gsttype == 'REGULAR' %}selected{% endif %}>Regular Tax Invoice(18%)</option>
+                            <option value="IGST" {% if shipper.billing_consignor_gsttype == 'IGST' %}selected{% endif %}>IGST Tax Invoice(18%)</option>
                         </select>
                     </div>
                      <div class="cee-form-group">
@@ -129,6 +129,7 @@
                         <th class="custom-subhead">Payment</th>
                         <th class="custom-subhead">Address</th>
                         <th class="custom-subhead">Type</th>
+                        <th class="custom-subhead">Group</th>
                         <th class="custom-subhead">Is Active?</th>
                         <th class="custom-subhead">Action</th>
                     </tr>
@@ -150,7 +151,7 @@
                             <td>{{ shipper.billing_payment|upper }} BILLING</td>
                             <td>{{ shipper.billing_consingor_address|upper }}</td>
                             <td>{{ shipper.billing_consignor_type|upper }}</td>
-
+                            <td>{{ shipper.group.group_name|upper }}</td>
                             <td>
                                 <span class="badge {% if shipper.billing_consignor_active %}bg-success{% else %}bg-danger{% endif %}">
                                     {{ shipper.billing_consignor_active|yesno:"YES,NO" }}

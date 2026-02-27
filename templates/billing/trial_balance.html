@@ -1,0 +1,38 @@
+{% extends "accounts/accounts_base.html" %}
+{% block content %}
+
+<div class="cee-manage-broker-wrapper">
+    <div class="cee-manage-header">
+        <h4>Trial Balance</h4>
+    </div>
+
+    <div class="card shadow-sm p-3">
+        <div class="table-wrapper">
+            <table class="table table-bordered table-hover align-middle">
+                <thead class="custom-thead">
+                    <tr>
+                        <th class="text-center text-white">Ledger</th>
+                        <th class="text-center text-white">Debit</th>
+                        <th class="text-center text-white">Credit</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in data %}
+                    <tr>
+                        <td>{{ row.name }}</td>
+                        <td class="text-end">{{ row.debit|floatformat:2 }}</td>
+                        <td class="text-end">{{ row.credit|floatformat:2 }}</td>
+                    </tr>
+                    {% endfor %}
+                    <tr class="fw-bold">
+                        <td>Total</td>
+                        <td class="text-end">{{ total_debit|floatformat:2 }}</td>
+                        <td class="text-end">{{ total_credit|floatformat:2 }}</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

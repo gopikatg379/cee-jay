@@ -47,6 +47,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'Adminapp',
     'Staffapp',
+    'Billingapp',
     'Accountapp',
     'multiselectfield',
     "corsheaders",

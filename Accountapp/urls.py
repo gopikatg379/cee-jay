@@ -21,6 +21,7 @@ urlpatterns = [
     path('billing/allocate_cnote',allocate_cnote,name="allocate_cnote"),
     path('billing/add_shipment/<int:id>',edit_shipment,name="edit_shipment"),
     path("add-consignee-ajax/", add_consignee_ajax, name="add_consignee_ajax"),
-    path("billing/add_invoice",create_invoice,name="create_invoice")
+    path("billing/add_invoice",create_invoice,name="create_invoice"),
+    path("billing/view_invoice",invoice_list,name="view_invoice")
 
 ]

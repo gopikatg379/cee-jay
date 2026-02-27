@@ -22,5 +22,6 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('',include('Adminapp.urls')),
     path('staff/',include('Staffapp.urls')),
-    path('accounts/',include('Accountapp.urls'))
+    path('accounts/',include('Accountapp.urls')),
+    path('ceejay_billing/',include('Billingapp.urls'))
 ]+ static(settings.MEDIA_URL, document_root =settings.MEDIA_ROOT)

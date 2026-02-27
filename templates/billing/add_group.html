@@ -1,0 +1,16 @@
+{% extends "accounts/accounts_base.html" %}
+{% block content %}
+<h2>Add Group</h2>
+<form method="post">{% csrf_token %}
+<label>Name:</label> <input type="text" name="name" required><br>
+<label>Type:</label>
+<select name="under">
+<option value="Income">Income</option>
+<option value="Liability">Liability</option>
+<option value="Expense">Expense</option>
+<option value="Asset">Asset</option>
+</select><br>
+
+<button type="submit">Add Group</button>
+</form>
+{% endblock %}
