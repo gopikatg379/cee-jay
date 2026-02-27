@@ -1,16 +1,60 @@
 {% extends "accounts/accounts_base.html" %}
 {% block content %}
-<h2>Add Group</h2>
-<form method="post">{% csrf_token %}
-<label>Name:</label> <input type="text" name="name" required><br>
-<label>Type:</label>
-<select name="under">
-<option value="Income">Income</option>
-<option value="Liability">Liability</option>
-<option value="Expense">Expense</option>
-<option value="Asset">Asset</option>
-</select><br>
 
-<button type="submit">Add Group</button>
-</form>
+<div class="cee-manage-broker-wrapper">
+
+
+    <div class="cee-manage-header">
+        <h4>Add New Group</h4>
+    </div>
+
+
+    <div class="card shadow-sm p-4">
+
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-danger">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+
+        <form method="post">
+            {% csrf_token %}
+
+
+            <div class="mb-4">
+                <label class="form-label">Group Name</label>
+                <input type="text" 
+                       name="name" 
+                       class="form-control" 
+                       placeholder="Enter group name" 
+                       required>
+            </div>
+
+            <hr>
+
+
+            <div class="mb-4">
+                <label class="form-label">Under</label>
+                <select name="under" class="form-select">
+                    <option value="Income">Income</option>
+                    <option value="Liability">Liability</option>
+                    <option value="Expense">Expense</option>
+                    <option value="Asset">Asset</option>
+                </select>
+            </div>
+
+            <hr>
+
+            <div class="text-end">
+                <button type="submit" class="btn btn-success">
+                    Save Group
+                </button>
+            </div>
+
+        </form>
+
+    </div>
+
+</div>
+
 {% endblock %}

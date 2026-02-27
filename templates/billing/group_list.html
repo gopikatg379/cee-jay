@@ -1,15 +1,78 @@
 {% extends "accounts/accounts_base.html" %}
 {% block content %}
-<h2>Groups</h2>
-<a href="{% url 'add_group' %}">Add Group</a>
-<table border="1">
-<tr><th>Name</th><th>Under</th></tr>
-{% for group in groups %}
-<tr>
-<td>{{ group.group_name }}</td>
-<td>{{ group.under }}</td>
 
-</tr>
-{% endfor %}
-</table>
+<div class="cee-manage-broker-wrapper">
+
+
+    <div class="cee-manage-header d-flex justify-content-between align-items-center">
+        <h4 class="mb-0">Groups</h4>
+        <a href="{% url 'add_group' %}" class="btn btn-light btn-sm">
+            + Add Group
+        </a>
+    </div>
+
+
+    <div class="card shadow-sm p-4">
+
+        {% if groups %}
+        <div class="table-responsive">
+            <table class="table table-bordered table-striped table-hover align-middle custom-table">
+                
+           
+                <thead>
+                    <tr>
+                        <th style="width:60%;">Group Name</th>
+                        <th style="width:40%;">Under</th>
+                    </tr>
+                </thead>
+
+          
+                <tbody>
+                    {% for group in groups %}
+                    <tr>
+                        <td>{{ group.group_name }}</td>
+                        <td>{{ group.under }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+
+            </table>
+        </div>
+        {% else %}
+            <div class="text-center text-muted">
+                No groups available.
+            </div>
+        {% endif %}
+
+    </div>
+
+</div>
+
+<style>
+
+.custom-table thead {
+    background: linear-gradient(135deg, #1e3c72, #2a5298);
+    color: white;
+}
+
+.custom-table thead th {
+    font-weight: 600;
+    border: 1px solid #dee2e6;
+}
+
+.custom-table tbody tr:nth-child(even) {
+    background-color: #f4f7fb;
+}
+
+.custom-table tbody tr:hover {
+    background-color: #e9f0fb;
+    transition: 0.2s ease-in-out;
+}
+
+
+.table td, .table th {
+    padding: 12px;
+}
+</style>
+
 {% endblock %}
